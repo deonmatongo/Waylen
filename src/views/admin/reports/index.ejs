@@ -1,0 +1,59 @@
+<%# PRD §10 — the KPI set, tracked from launch rather than retrofitted. %>
+<dl class="stat-row stat-row--cards">
+  <div class="stat stat--card">
+    <dt class="stat__label">Registered students</dt>
+    <dd class="stat__value"><%= summary.totalStudents %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">New in last 30 days</dt>
+    <dd class="stat__value"><%= summary.newStudents30d %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Applications submitted</dt>
+    <dd class="stat__value"><%= summary.applicationsSubmitted %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Offers received</dt>
+    <dd class="stat__value"><%= summary.offersReceived %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Enrolled</dt>
+    <dd class="stat__value"><%= summary.enrolled %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Application → offer</dt>
+    <dd class="stat__value"><%= summary.offerConversionRate %>%</dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Offer → enrolment</dt>
+    <dd class="stat__value"><%= summary.enrolmentConversionRate %>%</dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Consultations (30d)</dt>
+    <dd class="stat__value"><%= summary.consultationsBooked30d %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Webinar sign-ups (30d)</dt>
+    <dd class="stat__value"><%= summary.webinarRegistrations30d %></dd>
+  </div>
+  <div class="stat stat--card">
+    <dt class="stat__label">Partner referrals (30d)</dt>
+    <dd class="stat__value"><%= summary.activeReferrals30d %></dd>
+  </div>
+</dl>
+
+<section class="panel">
+  <h2 class="panel__title">Detailed reports</h2>
+  <ul class="link-list">
+    <li><a href="/admin/reports/students">Student funnel by stage</a></li>
+    <li><a href="/admin/reports/applications">Application conversion &amp; time to decision</a></li>
+    <li><a href="/admin/reports/destinations">Popular destinations</a></li>
+    <li><a href="/admin/reports/revenue">Revenue by category</a></li>
+  </ul>
+
+  <h2 class="panel__title">Export</h2>
+  <ul class="link-list">
+    <li><a href="/admin/reports/export?type=students">Student register (CSV)</a></li>
+    <li><a href="/admin/reports/export?type=applications">Applications (CSV)</a></li>
+  </ul>
+</section>

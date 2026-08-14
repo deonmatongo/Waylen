@@ -1,0 +1,22 @@
+<%# Expects `results` with { page, totalPages } and `baseUrl`. %>
+<% if (results.totalPages > 1) { %>
+  <nav class="pagination" aria-label="Pagination">
+    <% const qs = function (page) {
+         const params = new URLSearchParams(typeof query !== 'undefined' ? query : {});
+         params.set('page', page);
+         return (typeof baseUrl !== 'undefined' ? baseUrl : currentPath) + '?' + params.toString();
+       }; %>
+
+    <% if (results.page > 1) { %>
+      <a class="pagination__link" href="<%= qs(results.page - 1) %>" rel="prev">Previous</a>
+    <% } %>
+
+    <span class="pagination__status">
+      Page <%= results.page %> of <%= results.totalPages %>
+    </span>
+
+    <% if (results.page < results.totalPages) { %>
+      <a class="pagination__link" href="<%= qs(results.page + 1) %>" rel="next">Next</a>
+    <% } %>
+  </nav>
+<% } %>

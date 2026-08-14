@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title><%= title %></title>
+  <meta name="description" content="<%= metaDescription %>">
+  <link rel="canonical" href="<%= canonicalUrl %>">
+
+  <%# PRD §8.1 — SEO-friendly structure. Open Graph so shared links look %>
+  <%# credible to institutions and partners as well as students. %>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= appName %>">
+  <meta property="og:title" content="<%= title %>">
+  <meta property="og:description" content="<%= metaDescription %>">
+  <meta property="og:url" content="<%= canonicalUrl %>">
+  <meta property="og:image" content="<%= appUrl %>/img/brand/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="/img/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/brand/apple-touch-icon.png">
+  <link rel="stylesheet" href="/css/app.css">
+
+  <%- typeof style !== 'undefined' ? style : '' %>
+</head>
+<body class="site">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <%- include('../partials/header') %>
+
+  <main id="main" class="site__main">
+    <%- include('../partials/flash') %>
+    <%- body %>
+  </main>
+
+  <%- include('../partials/footer') %>
+
+  <script src="/js/app.js" defer></script>
+  <%- typeof script !== 'undefined' ? script : '' %>
+</body>
+</html>

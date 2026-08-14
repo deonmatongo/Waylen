@@ -1,0 +1,56 @@
+<%# PRD §4.3 — destination-first pages. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Study destinations</h1>
+    <p class="page-hero__lede">
+      Detailed guides to studying, living, working and building a career in each
+      of our destinations — costs, visas, healthcare, banking and student life.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <% if (!countries.length) { %>
+      <%- include('../../partials/empty-state', {
+            heading: 'Destination guides are on their way',
+            message: 'Our country guides are being prepared. Get in touch and we will talk you through your options.',
+            actionHref: '/contact',
+            actionLabel: 'Contact us'
+          }) %>
+    <% } else { %>
+      <ul class="card-grid card-grid--3">
+        <% countries.forEach(function (country) { %>
+          <li class="card card--destination">
+            <% if (country.heroImagePath) { %>
+              <img class="card__image" src="<%= country.heroImagePath %>" alt="" width="480" height="270" loading="lazy">
+            <% } %>
+            <div class="card__content">
+              <h2 class="card__title"><%= country.name %></h2>
+              <% if (country.summary) { %>
+                <p class="card__body"><%= format.truncate(country.summary, 140) %></p>
+              <% } %>
+
+              <dl class="card__meta">
+                <div>
+                  <dt>Tuition</dt>
+                  <dd><%= format.formatTuitionRange(country.indicativeTuitionMin, country.indicativeTuitionMax, country.currency) %></dd>
+                </div>
+                <% if (country.costOfLivingMonthly) { %>
+                  <div>
+                    <dt>Living costs</dt>
+                    <dd><%= format.formatMoney(country.costOfLivingMonthly, country.currency) %> / month</dd>
+                  </div>
+                <% } %>
+              </dl>
+
+              <a class="card__link" href="/countries/<%= country.slug %>">
+                Explore <span class="visually-hidden"><%= country.name %></span>
+              </a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</section>

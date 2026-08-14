@@ -1,0 +1,77 @@
+<%#
+  PRD §4.2 — the institution behind this listing is deliberately not shown.
+  The model layer does not even fetch it, so there is nothing here to leak.
+%>
+<article class="section">
+  <div class="section__inner prose-layout">
+    <div class="prose">
+      <p class="listing__eyebrow"><%= categoryLabel %> · <%= opportunity.country.name %></p>
+      <h1><%= opportunity.title %></h1>
+
+      <%- opportunity.description %>
+
+      <% if (opportunity.entryRequirements) { %>
+        <h2>Entry requirements</h2>
+        <%- opportunity.entryRequirements %>
+      <% } %>
+
+      <% if (opportunity.scholarshipAvailable && opportunity.scholarshipDetails) { %>
+        <h2>Scholarships</h2>
+        <%- opportunity.scholarshipDetails %>
+      <% } %>
+    </div>
+
+    <aside class="prose-layout__aside">
+      <div class="panel panel--sticky">
+        <h2 class="panel__title">At a glance</h2>
+
+        <dl class="detail-list">
+          <div><dt>Destination</dt><dd><%= opportunity.country.name %></dd></div>
+          <% if (opportunity.studyLevel) { %>
+            <div><dt>Level</dt><dd><%= format.humaniseEnum(opportunity.studyLevel) %></dd></div>
+          <% } %>
+          <% if (opportunity.duration) { %>
+            <div><dt>Duration</dt><dd><%= opportunity.duration %></dd></div>
+          <% } %>
+          <div>
+            <dt>Indicative tuition</dt>
+            <dd><%= format.formatTuitionRange(opportunity.indicativeTuitionMin, opportunity.indicativeTuitionMax, opportunity.currency) %></dd>
+          </div>
+          <% if (opportunity.intakePeriods.length) { %>
+            <div><dt>Intake periods</dt><dd><%= opportunity.intakePeriods.join(', ') %></dd></div>
+          <% } %>
+        </dl>
+
+        <p class="panel__note">
+          Once you register, your counsellor recommends the specific institution
+          that best matches your course and study level.
+        </p>
+
+        <form class="form" method="post" action="/opportunities/<%= opportunity.slug %>/enquire">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="field">
+            <label class="field__label" for="fullName">Your name</label>
+            <input class="field__input" type="text" id="fullName" name="fullName" required>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="email">Email address</label>
+            <input class="field__input" type="email" id="email" name="email" required>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="message">Your question</label>
+            <textarea class="field__textarea" id="message" name="message" rows="4"></textarea>
+          </div>
+
+          <button class="button button--primary button--block" type="submit">Enquire</button>
+        </form>
+
+        <p class="panel__footer">
+          <a href="/book-consultation">Or book a free consultation</a>
+        </p>
+      </div>
+    </aside>
+  </div>
+</article>

@@ -1,0 +1,127 @@
+<%# PRD §4.3 — each section of the country encyclopaedia. Sections with no %>
+<%# content are omitted rather than rendered empty. %>
+<article class="country">
+  <header class="page-hero page-hero--media">
+    <% if (country.heroImagePath) { %>
+      <img class="page-hero__image" src="<%= country.heroImagePath %>" alt="" loading="eager">
+    <% } %>
+    <div class="section__inner">
+      <h1 class="page-hero__title">Study in <%= country.name %></h1>
+      <% if (country.summary) { %>
+        <p class="page-hero__lede"><%= country.summary %></p>
+      <% } %>
+
+      <dl class="stat-row">
+        <div class="stat">
+          <dt class="stat__label">Indicative tuition</dt>
+          <dd class="stat__value"><%= format.formatTuitionRange(country.indicativeTuitionMin, country.indicativeTuitionMax, country.currency) %></dd>
+        </div>
+        <% if (country.costOfLivingMonthly) { %>
+          <div class="stat">
+            <dt class="stat__label">Cost of living</dt>
+            <dd class="stat__value"><%= format.formatMoney(country.costOfLivingMonthly, country.currency) %> / month</dd>
+          </div>
+        <% } %>
+        <div class="stat">
+          <dt class="stat__label">Programmes listed</dt>
+          <dd class="stat__value"><%= country.opportunities.length %></dd>
+        </div>
+      </dl>
+
+      <div class="page-hero__actions">
+        <a class="button button--primary" href="/book-consultation">Book a consultation</a>
+        <a class="button button--secondary" href="/opportunities?country=<%= country.slug %>">
+          See programmes
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="section">
+    <div class="section__inner prose-layout">
+      <nav class="prose-layout__toc" aria-label="On this page">
+        <h2 class="prose-layout__toc-title">On this page</h2>
+        <ul>
+          <% [
+               ['educationOverview', 'Education overview'],
+               ['costOfLiving', 'Cost of living'],
+               ['accommodation', 'Accommodation'],
+               ['healthcare', 'Healthcare'],
+               ['banking', 'Banking'],
+               ['transportation', 'Transportation'],
+               ['studentLife', 'Student life'],
+               ['workingWhileStudying', 'Working while studying'],
+               ['careerOpportunities', 'Career opportunities'],
+               ['visaInformation', 'Visa information'],
+               ['popularProgrammes', 'Popular programmes']
+             ].forEach(function (pair) { %>
+            <% if (country[pair[0]]) { %>
+              <li><a href="#<%= pair[0] %>"><%= pair[1] %></a></li>
+            <% } %>
+          <% }) %>
+          <% if (country.faqs.length) { %><li><a href="#faqs">FAQs</a></li><% } %>
+        </ul>
+      </nav>
+
+      <div class="prose">
+        <% [
+             ['educationOverview', 'Education overview'],
+             ['costOfLiving', 'Cost of living'],
+             ['accommodation', 'Accommodation'],
+             ['healthcare', 'Healthcare'],
+             ['banking', 'Banking'],
+             ['transportation', 'Transportation'],
+             ['studentLife', 'Student life'],
+             ['workingWhileStudying', 'Working while studying'],
+             ['careerOpportunities', 'Career opportunities'],
+             ['visaInformation', 'Visa information'],
+             ['popularProgrammes', 'Popular programme types']
+           ].forEach(function (pair) { %>
+          <% if (country[pair[0]]) { %>
+            <section id="<%= pair[0] %>">
+              <h2><%= pair[1] %></h2>
+              <%- country[pair[0]] %>
+            </section>
+          <% } %>
+        <% }) %>
+
+        <% if (country.faqs.length) { %>
+          <section id="faqs">
+            <h2>Frequently asked questions</h2>
+            <dl class="faq-list">
+              <% country.faqs.forEach(function (faq) { %>
+                <div class="faq-list__item">
+                  <dt><%= faq.question %></dt>
+                  <dd><%- faq.answer %></dd>
+                </div>
+              <% }) %>
+            </dl>
+          </section>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <% if (country.opportunities.length) { %>
+    <section class="section section--muted">
+      <div class="section__inner">
+        <header class="section__head">
+          <h2 class="section__title">Programmes in <%= country.name %></h2>
+        </header>
+
+        <ul class="card-grid card-grid--3">
+          <% country.opportunities.forEach(function (opportunity) { %>
+            <li class="card">
+              <div class="card__content">
+                <p class="card__eyebrow"><%= format.humaniseEnum(opportunity.category) %></p>
+                <h3 class="card__title"><%= opportunity.title %></h3>
+                <p class="card__body"><%= format.truncate(opportunity.description, 110) %></p>
+                <a class="card__link" href="/opportunities/<%= opportunity.slug %>">View details</a>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    </section>
+  <% } %>
+</article>

@@ -1,0 +1,17 @@
+<section class="section section--centered">
+  <div class="section__inner section__inner--narrow">
+    <p class="error-page__code" aria-hidden="true"><%= status %></p>
+    <h1 class="section__title">Something went wrong</h1>
+    <p class="section__lede"><%= message || 'We have logged the problem. Please try again in a moment.' %></p>
+
+    <p class="section__footer">
+      <a class="button button--primary" href="/">Back to the homepage</a>
+      <a class="button button--secondary" href="/contact">Contact us</a>
+    </p>
+
+    <% if (stack) { %>
+      <%# Development only — errorHandler passes null in production. %>
+      <pre class="error-page__stack"><code><%= stack %></code></pre>
+    <% } %>
+  </div>
+</section>

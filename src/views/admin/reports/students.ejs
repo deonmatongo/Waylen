@@ -1,0 +1,16 @@
+<section class="panel">
+  <h2 class="panel__title">Students by stage</h2>
+
+  <ul class="bar-chart">
+    <% const max = report.reduce(function (m, r) { return Math.max(m, r.count); }, 1); %>
+    <% report.forEach(function (row) { %>
+      <li class="bar-chart__row">
+        <span class="bar-chart__label"><%= row.label %></span>
+        <span class="bar-chart__track">
+          <span class="bar-chart__fill" style="width: <%= Math.round((row.count / max) * 100) %>%"></span>
+        </span>
+        <span class="bar-chart__value"><%= row.count %></span>
+      </li>
+    <% }) %>
+  </ul>
+</section>

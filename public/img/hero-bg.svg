@@ -1,0 +1,351 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice">
+  <defs>
+
+    <!-- Sky gradient -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#060f26"/>
+      <stop offset="55%"  stop-color="#0a1940"/>
+      <stop offset="100%" stop-color="#112054"/>
+    </linearGradient>
+
+    <!-- Left veil: keep text area dark -->
+    <linearGradient id="left-veil" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#060f26" stop-opacity="0.95"/>
+      <stop offset="50%"  stop-color="#060f26" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#060f26" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Horizon glow -->
+    <radialGradient id="horizon-glow" cx="50%" cy="100%" r="60%">
+      <stop offset="0%"   stop-color="#1a3a8a" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#1a3a8a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Orb glow top-right -->
+    <radialGradient id="orb-tr" cx="85%" cy="18%" r="28%">
+      <stop offset="0%"   stop-color="#1e3d8a" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#1e3d8a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Orb glow mid -->
+    <radialGradient id="orb-mid" cx="65%" cy="55%" r="20%">
+      <stop offset="0%"   stop-color="#243d73" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#243d73" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bottom fade -->
+    <linearGradient id="bottom-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="65%"  stop-color="#060f26" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#060f26" stop-opacity="0.75"/>
+    </linearGradient>
+
+    <!-- Glow filter for constellation nodes -->
+    <filter id="node-glow" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for windows -->
+    <filter id="win-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5"/>
+    </filter>
+
+    <!-- Horizon line glow -->
+    <filter id="horizon-filter" x="-5%" y="-200%" width="110%" height="500%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+
+  </defs>
+
+  <!-- Base sky -->
+  <rect width="1440" height="760" fill="url(#sky)"/>
+
+  <!-- Atmospheric orbs -->
+  <rect width="1440" height="760" fill="url(#orb-tr)"/>
+  <rect width="1440" height="760" fill="url(#orb-mid)"/>
+
+  <!-- Horizon glow -->
+  <rect width="1440" height="760" fill="url(#horizon-glow)"/>
+
+  <!-- ── Stars ──────────────────────────────────────────────────────────────── -->
+  <g fill="#ffffff">
+    <circle cx="92"   cy="42"  r="0.8" opacity="0.6"/>
+    <circle cx="210"  cy="88"  r="0.7" opacity="0.5"/>
+    <circle cx="340"  cy="30"  r="1.0" opacity="0.7"/>
+    <circle cx="420"  cy="110" r="0.6" opacity="0.4"/>
+    <circle cx="530"  cy="55"  r="0.9" opacity="0.65"/>
+    <circle cx="610"  cy="20"  r="0.7" opacity="0.55"/>
+    <circle cx="700"  cy="75"  r="0.8" opacity="0.5"/>
+    <circle cx="780"  cy="40"  r="1.1" opacity="0.7"/>
+    <circle cx="870"  cy="90"  r="0.6" opacity="0.45"/>
+    <circle cx="950"  cy="25"  r="0.9" opacity="0.6"/>
+    <circle cx="1060" cy="60"  r="0.7" opacity="0.5"/>
+    <circle cx="1150" cy="35"  r="1.0" opacity="0.65"/>
+    <circle cx="1240" cy="80"  r="0.8" opacity="0.55"/>
+    <circle cx="1330" cy="50"  r="0.7" opacity="0.5"/>
+    <circle cx="1400" cy="95"  r="0.9" opacity="0.6"/>
+    <circle cx="160"  cy="145" r="0.7" opacity="0.4"/>
+    <circle cx="450"  cy="160" r="0.6" opacity="0.35"/>
+    <circle cx="670"  cy="130" r="0.8" opacity="0.45"/>
+    <circle cx="900"  cy="150" r="0.7" opacity="0.4"/>
+    <circle cx="1120" cy="120" r="0.9" opacity="0.5"/>
+    <circle cx="1380" cy="140" r="0.6" opacity="0.4"/>
+    <circle cx="290"  cy="65"  r="0.5" opacity="0.35"/>
+    <circle cx="1010" cy="45"  r="0.6" opacity="0.4"/>
+    <circle cx="1290" cy="115" r="0.8" opacity="0.5"/>
+    <circle cx="490"  cy="200" r="0.5" opacity="0.3"/>
+    <circle cx="760"  cy="185" r="0.6" opacity="0.35"/>
+    <circle cx="1180" cy="170" r="0.7" opacity="0.4"/>
+  </g>
+
+  <!-- ── Perspective grid ───────────────────────────────────────────────────── -->
+  <!-- Vanishing point: (720, 480) -->
+
+  <!-- Radial lines from vanishing point -->
+  <g stroke="#c5a028" stroke-width="0.5" opacity="0.18" fill="none">
+    <line x1="720" y1="480" x2="0"    y2="560"/>
+    <line x1="720" y1="480" x2="0"    y2="640"/>
+    <line x1="720" y1="480" x2="0"    y2="720"/>
+    <line x1="720" y1="480" x2="0"    y2="760"/>
+    <line x1="720" y1="480" x2="200"  y2="760"/>
+    <line x1="720" y1="480" x2="400"  y2="760"/>
+    <line x1="720" y1="480" x2="1440" y2="560"/>
+    <line x1="720" y1="480" x2="1440" y2="640"/>
+    <line x1="720" y1="480" x2="1440" y2="720"/>
+    <line x1="720" y1="480" x2="1440" y2="760"/>
+    <line x1="720" y1="480" x2="1240" y2="760"/>
+    <line x1="720" y1="480" x2="1040" y2="760"/>
+    <line x1="720" y1="480" x2="600"  y2="760"/>
+    <line x1="720" y1="480" x2="720"  y2="760"/>
+    <line x1="720" y1="480" x2="840"  y2="760"/>
+  </g>
+
+  <!-- Horizontal cross-lines -->
+  <g stroke="#c5a028" stroke-width="0.4" opacity="0.12" fill="none">
+    <line x1="0" y1="510" x2="1440" y2="510"/>
+    <line x1="0" y1="540" x2="1440" y2="540"/>
+    <line x1="0" y1="575" x2="1440" y2="575"/>
+    <line x1="0" y1="615" x2="1440" y2="615"/>
+    <line x1="0" y1="660" x2="1440" y2="660"/>
+    <line x1="0" y1="710" x2="1440" y2="710"/>
+  </g>
+
+  <!-- Horizon line -->
+  <line x1="0" y1="480" x2="1440" y2="480" stroke="#3b6fd4" stroke-width="1.5" opacity="0.25" filter="url(#horizon-filter)"/>
+  <line x1="0" y1="480" x2="1440" y2="480" stroke="#8ab0f0" stroke-width="0.5" opacity="0.4"/>
+
+  <!-- ── City skyline silhouette ────────────────────────────────────────────── -->
+  <path d="
+    M 0 760
+    L 0 520
+    L 30 520 L 30 500 L 60 500 L 60 480
+    L 80 480 L 80 460 L 90 460 L 90 440
+    L 100 440 L 100 455 L 110 455 L 110 420
+    L 118 420 L 118 410 L 125 400 L 132 410
+    L 132 420 L 145 420 L 145 450 L 155 450
+    L 155 430 L 165 430 L 165 415 L 172 415
+    L 172 440 L 185 440 L 185 460 L 200 460
+    L 200 430 L 210 430 L 210 400 L 220 390
+    L 230 390 L 240 360 L 242 358 L 244 360
+    L 244 380 L 250 380 L 260 390 L 270 380
+    L 280 380 L 280 400 L 295 400 L 295 420
+    L 310 420 L 310 405 L 320 405 L 320 390
+    L 328 385 L 336 390 L 336 420 L 350 420
+    L 350 440 L 370 440 L 370 415 L 385 415
+    L 385 395 L 395 380 L 398 370 L 401 380
+    L 405 395 L 420 395 L 420 415 L 435 415
+    L 435 430 L 450 430 L 450 410 L 462 410
+    L 462 395 L 470 388 L 478 395 L 478 410
+    L 490 410 L 490 435 L 505 435 L 505 445
+    L 520 445 L 520 420 L 532 420 L 532 400
+    L 540 392 L 548 400 L 548 440 L 560 440
+    L 560 455 L 575 455 L 575 430 L 590 430
+    L 590 390 L 598 380 L 606 370 L 610 360
+    L 614 370 L 618 380 L 626 390 L 626 460
+    L 640 460 L 640 435 L 655 435 L 655 420
+    L 665 412 L 675 420 L 675 460 L 690 460
+    L 690 440 L 705 440 L 705 420 L 715 410
+    L 720 405 L 725 410 L 735 420 L 735 460
+    L 750 460 L 750 435 L 765 435 L 765 415
+    L 774 405 L 783 415 L 783 460 L 800 460
+    L 800 445 L 815 445 L 815 420 L 822 408
+    L 830 380 L 832 365 L 834 380 L 842 408
+    L 850 420 L 860 420 L 860 440 L 875 440
+    L 875 420 L 888 420 L 888 395 L 896 382
+    L 904 395 L 904 440 L 920 440 L 920 455
+    L 935 455 L 935 430 L 945 430 L 945 408
+    L 953 396 L 961 408 L 961 450 L 975 450
+    L 975 430 L 990 430 L 990 415 L 998 405
+    L 1006 415 L 1006 450 L 1020 450 L 1020 460
+    L 1040 460 L 1040 435 L 1054 435 L 1054 415
+    L 1062 405 L 1070 395 L 1074 385 L 1078 395
+    L 1082 405 L 1090 415 L 1090 445 L 1105 445
+    L 1105 425 L 1118 425 L 1118 408 L 1126 400
+    L 1134 408 L 1134 450 L 1150 450 L 1150 465
+    L 1165 465 L 1165 440 L 1178 440 L 1178 420
+    L 1186 410 L 1194 420 L 1194 460 L 1210 460
+    L 1210 440 L 1222 440 L 1222 420 L 1230 410
+    L 1240 420 L 1250 420 L 1250 455 L 1268 455
+    L 1268 435 L 1280 435 L 1280 418 L 1290 408
+    L 1298 418 L 1298 450 L 1315 450 L 1315 470
+    L 1335 470 L 1335 450 L 1345 450 L 1345 435
+    L 1355 428 L 1365 435 L 1365 460 L 1380 460
+    L 1380 480 L 1400 480 L 1400 500 L 1420 500
+    L 1420 520 L 1440 520
+    L 1440 760 Z
+  " fill="#0a1535" opacity="0.95"/>
+
+  <!-- ── Gold lit windows (glow layer) ─────────────────────────────────────── -->
+  <g filter="url(#win-glow)" fill="#c5a028" opacity="0.5">
+    <rect x="238" y="362" width="3" height="2"/>
+    <rect x="243" y="362" width="3" height="2"/>
+    <rect x="238" y="368" width="3" height="2"/>
+    <rect x="243" y="368" width="3" height="2"/>
+    <rect x="393" y="372" width="3" height="2"/>
+    <rect x="398" y="372" width="3" height="2"/>
+    <rect x="393" y="377" width="3" height="2"/>
+    <rect x="398" y="377" width="3" height="2"/>
+    <rect x="393" y="382" width="3" height="2"/>
+    <rect x="606" y="362" width="3" height="2"/>
+    <rect x="611" y="362" width="3" height="2"/>
+    <rect x="606" y="368" width="3" height="2"/>
+    <rect x="611" y="368" width="3" height="2"/>
+    <rect x="606" y="374" width="3" height="2"/>
+    <rect x="611" y="374" width="3" height="2"/>
+    <rect x="606" y="380" width="3" height="2"/>
+    <rect x="826" y="367" width="4" height="2.5"/>
+    <rect x="832" y="367" width="4" height="2.5"/>
+    <rect x="826" y="374" width="4" height="2.5"/>
+    <rect x="832" y="374" width="4" height="2.5"/>
+    <rect x="826" y="381" width="4" height="2.5"/>
+    <rect x="832" y="381" width="4" height="2.5"/>
+    <rect x="826" y="388" width="4" height="2.5"/>
+    <rect x="832" y="388" width="4" height="2.5"/>
+    <rect x="1069" y="387" width="3" height="2"/>
+    <rect x="1074" y="387" width="3" height="2"/>
+    <rect x="1069" y="393" width="3" height="2"/>
+    <rect x="1074" y="393" width="3" height="2"/>
+    <rect x="1069" y="399" width="3" height="2"/>
+    <rect x="1074" y="399" width="3" height="2"/>
+  </g>
+
+  <!-- Gold windows (crisp) -->
+  <g fill="#f0d060" opacity="0.9">
+    <rect x="238" y="362" width="3" height="2"/>
+    <rect x="243" y="362" width="3" height="2"/>
+    <rect x="238" y="368" width="3" height="2"/>
+    <rect x="243" y="368" width="3" height="2"/>
+    <rect x="393" y="372" width="3" height="2"/>
+    <rect x="398" y="372" width="3" height="2"/>
+    <rect x="393" y="377" width="3" height="2"/>
+    <rect x="398" y="377" width="3" height="2"/>
+    <rect x="393" y="382" width="3" height="2"/>
+    <rect x="606" y="362" width="3" height="2"/>
+    <rect x="611" y="362" width="3" height="2"/>
+    <rect x="606" y="368" width="3" height="2"/>
+    <rect x="611" y="368" width="3" height="2"/>
+    <rect x="606" y="374" width="3" height="2"/>
+    <rect x="611" y="374" width="3" height="2"/>
+    <rect x="606" y="380" width="3" height="2"/>
+    <rect x="826" y="367" width="4" height="2.5"/>
+    <rect x="832" y="367" width="4" height="2.5"/>
+    <rect x="826" y="374" width="4" height="2.5"/>
+    <rect x="832" y="374" width="4" height="2.5"/>
+    <rect x="826" y="381" width="4" height="2.5"/>
+    <rect x="832" y="381" width="4" height="2.5"/>
+    <rect x="826" y="388" width="4" height="2.5"/>
+    <rect x="832" y="388" width="4" height="2.5"/>
+    <rect x="1069" y="387" width="3" height="2"/>
+    <rect x="1074" y="387" width="3" height="2"/>
+    <rect x="1069" y="393" width="3" height="2"/>
+    <rect x="1074" y="393" width="3" height="2"/>
+    <rect x="1069" y="399" width="3" height="2"/>
+    <rect x="1074" y="399" width="3" height="2"/>
+    <!-- Blue-white office windows -->
+    <rect x="165" y="418" width="4" height="3" fill="#a8c8f8" opacity="0.6"/>
+    <rect x="172" y="418" width="4" height="3" fill="#a8c8f8" opacity="0.5"/>
+    <rect x="320" y="393" width="4" height="3" fill="#a8c8f8" opacity="0.55"/>
+    <rect x="462" y="398" width="4" height="3" fill="#a8c8f8" opacity="0.5"/>
+    <rect x="470" y="398" width="4" height="3" fill="#a8c8f8" opacity="0.45"/>
+    <rect x="665" y="415" width="4" height="3" fill="#a8c8f8" opacity="0.5"/>
+    <rect x="888" y="398" width="4" height="3" fill="#a8c8f8" opacity="0.55"/>
+    <rect x="1118" y="412" width="4" height="3" fill="#a8c8f8" opacity="0.5"/>
+    <rect x="1280" y="422" width="4" height="3" fill="#a8c8f8" opacity="0.5"/>
+  </g>
+
+  <!-- ── Constellation network ──────────────────────────────────────────────── -->
+
+  <!-- Connection lines -->
+  <g stroke="#c5a028" stroke-width="0.6" opacity="0.25" fill="none">
+    <line x1="950"  y1="120" x2="1050" y2="80"/>
+    <line x1="1050" y1="80"  x2="1140" y2="150"/>
+    <line x1="1140" y1="150" x2="1220" y2="100"/>
+    <line x1="1220" y1="100" x2="1300" y2="180"/>
+    <line x1="1300" y1="180" x2="1380" y2="130"/>
+    <line x1="1050" y1="80"  x2="1220" y2="100"/>
+    <line x1="950"  y1="120" x2="1020" y2="200"/>
+    <line x1="1020" y1="200" x2="1140" y2="150"/>
+    <line x1="1020" y1="200" x2="1120" y2="240"/>
+    <line x1="1120" y1="240" x2="1210" y2="270"/>
+    <line x1="1210" y1="270" x2="1300" y2="180"/>
+    <line x1="1210" y1="270" x2="1340" y2="250"/>
+    <line x1="1340" y1="250" x2="1380" y2="130"/>
+    <line x1="1020" y1="200" x2="980"  y2="270"/>
+    <line x1="980"  y1="270" x2="1120" y2="240"/>
+    <line x1="980"  y1="270" x2="1100" y2="320"/>
+    <line x1="1100" y1="320" x2="1210" y2="270"/>
+    <line x1="1100" y1="320" x2="1250" y2="310"/>
+    <line x1="1250" y1="310" x2="1340" y2="250"/>
+    <line x1="950"  y1="120" x2="880"  y2="200"/>
+    <line x1="880"  y1="200" x2="980"  y2="270"/>
+    <line x1="880"  y1="200" x2="860"  y2="310"/>
+    <line x1="860"  y1="310" x2="980"  y2="270"/>
+    <line x1="860"  y1="310" x2="1100" y2="320"/>
+  </g>
+
+  <!-- Constellation nodes (glow) -->
+  <g filter="url(#node-glow)" fill="#c5a028" opacity="0.6">
+    <circle cx="950"  cy="120" r="5"/>
+    <circle cx="1050" cy="80"  r="6"/>
+    <circle cx="1140" cy="150" r="4"/>
+    <circle cx="1220" cy="100" r="5"/>
+    <circle cx="1300" cy="180" r="4"/>
+    <circle cx="1380" cy="130" r="4"/>
+    <circle cx="1020" cy="200" r="5"/>
+    <circle cx="1120" cy="240" r="4"/>
+    <circle cx="1210" cy="270" r="5"/>
+    <circle cx="1340" cy="250" r="4"/>
+    <circle cx="1100" cy="320" r="5"/>
+    <circle cx="1250" cy="310" r="4"/>
+    <circle cx="980"  cy="270" r="4"/>
+    <circle cx="880"  cy="200" r="5"/>
+    <circle cx="860"  cy="310" r="4"/>
+  </g>
+
+  <!-- Constellation nodes (crisp) -->
+  <g fill="#f0d060">
+    <circle cx="950"  cy="120" r="2.5"/>
+    <circle cx="1050" cy="80"  r="3"/>
+    <circle cx="1140" cy="150" r="2"/>
+    <circle cx="1220" cy="100" r="2.5"/>
+    <circle cx="1300" cy="180" r="2"/>
+    <circle cx="1380" cy="130" r="2"/>
+    <circle cx="1020" cy="200" r="2.5"/>
+    <circle cx="1120" cy="240" r="2"/>
+    <circle cx="1210" cy="270" r="2.5"/>
+    <circle cx="1340" cy="250" r="2"/>
+    <circle cx="1100" cy="320" r="2.5"/>
+    <circle cx="1250" cy="310" r="2"/>
+    <circle cx="980"  cy="270" r="2"/>
+    <circle cx="880"  cy="200" r="2.5"/>
+    <circle cx="860"  cy="310" r="2"/>
+  </g>
+
+  <!-- ── Overlays ───────────────────────────────────────────────────────────── -->
+  <rect width="1440" height="760" fill="url(#left-veil)"/>
+  <rect width="1440" height="760" fill="url(#bottom-fade)"/>
+
+</svg>

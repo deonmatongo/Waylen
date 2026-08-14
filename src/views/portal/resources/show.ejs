@@ -1,0 +1,14 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/portal/resources">Resource library</a>
+  <span aria-hidden="true">/</span>
+  <span><%= resource.title %></span>
+</nav>
+
+<article class="panel prose">
+  <% if (resource.excerpt) { %><p class="article-head__lede"><%= resource.excerpt %></p><% } %>
+  <%- resource.body %>
+
+  <% if (resource.filePath) { %>
+    <p><a class="button button--primary" href="<%= resource.filePath %>" download>Download</a></p>
+  <% } %>
+</article>

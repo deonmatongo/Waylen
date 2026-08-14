@@ -1,0 +1,36 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/content/resources/new">New resource</a>
+</div>
+
+<% if (!resources.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No content yet', actionHref: '/admin/content/resources/new', actionLabel: 'Create the first one' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Title</th><th scope="col">Type</th><th scope="col">Status</th>
+        <th scope="col">Access</th><th scope="col">Views</th><th scope="col">Published</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% resources.forEach(function (resource) { %>
+        <tr>
+          <td><%= resource.title %><small class="table__hint">/<%= resource.slug %></small></td>
+          <td><%= format.humaniseEnum(resource.type) %></td>
+          <td>
+            <span class="badge badge--<%= resource.status === 'PUBLISHED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(resource.status) %>
+            </span>
+          </td>
+          <td><%= resource.requiresAuth ? 'Portal only' : 'Public' %></td>
+          <td><%= resource.viewCount %></td>
+          <td><%= format.formatDate(resource.publishedAt) %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/content/resources/<%= resource.id %>/edit">Edit</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

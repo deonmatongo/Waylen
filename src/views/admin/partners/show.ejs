@@ -1,0 +1,69 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/partners">Partners</a>
+  <span aria-hidden="true">/</span>
+  <span><%= partner.name %></span>
+</nav>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Partner</h2>
+
+    <dl class="detail-list">
+      <div><dt>Category</dt><dd><%= categoryLabels[partner.category] %></dd></div>
+      <div><dt>Status</dt><dd><%= format.humaniseEnum(partner.status) %></dd></div>
+      <div><dt>Coverage</dt><dd><%= partner.countries.map(function (c) { return c.name; }).join(', ') || '—' %></dd></div>
+      <div><dt>Contact</dt><dd><%= partner.contactName || '—' %></dd></div>
+      <div><dt>Email</dt><dd><%= partner.contactEmail || '—' %></dd></div>
+      <div><dt>Website</dt><dd><%= partner.websiteUrl || '—' %></dd></div>
+      <div><dt>Vetted</dt><dd><%= partner.vettedAt ? format.formatDate(partner.vettedAt) : 'Not yet' %></dd></div>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <%# Commission terms are admin-only and never rendered on a public page. %>
+    <h2 class="panel__title">Commercial terms</h2>
+
+    <dl class="detail-list">
+      <div><dt>Contract reference</dt><dd><%= partner.contractReference || '—' %></dd></div>
+      <div><dt>Term</dt><dd><%= format.formatDate(partner.contractStartsAt) %> – <%= format.formatDate(partner.contractEndsAt) %></dd></div>
+      <div>
+        <dt>Commission rate</dt>
+        <dd><%= partner.commissionRateBps ? (partner.commissionRateBps / 100).toFixed(2) + '%' : '—' %></dd>
+      </div>
+      <div><dt>Terms</dt><dd><%= partner.commissionTerms || '—' %></dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="panel">
+  <h2 class="panel__title">Referrals</h2>
+
+  <% if (!partner.referrals.length) { %>
+    <p class="panel__note">No referrals to this partner yet.</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Student</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col">Converted</th><th scope="col">Commission</th></tr>
+      </thead>
+      <tbody>
+        <% partner.referrals.forEach(function (referral) { %>
+          <tr>
+            <td>
+              <a href="/admin/students/<%= referral.studentProfile.id %>">
+                <%= referral.studentProfile.user.fullName %>
+              </a>
+            </td>
+            <td><%= format.humaniseEnum(referral.status) %></td>
+            <td><%= format.formatDate(referral.createdAt) %></td>
+            <td><%= format.formatDate(referral.convertedAt) %></td>
+            <td>
+              <%= referral.commissionAmountMinor
+                    ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || 'EUR')
+                    : '—' %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>

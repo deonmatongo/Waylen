@@ -1,0 +1,69 @@
+<%# PRD §4.8 — contact form, WhatsApp, email, offices, social. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Contact us</h1>
+    <p class="page-hero__lede">We reply to every enquiry, usually within one working day.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner prose-layout">
+    <div>
+      <form class="form" method="post" action="/contact" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="field">
+          <label class="field__label" for="fullName">Full name</label>
+          <input class="field__input" type="text" id="fullName" name="fullName"
+                 value="<%= values.fullName || '' %>" autocomplete="name" required>
+          <% if (errors.fullName) { %><p class="field-error"><%= errors.fullName[0] %></p><% } %>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="email">Email address</label>
+          <input class="field__input" type="email" id="email" name="email"
+                 value="<%= values.email || '' %>" autocomplete="email" required>
+          <% if (errors.email) { %><p class="field-error"><%= errors.email[0] %></p><% } %>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="phone">Phone (optional)</label>
+          <input class="field__input" type="tel" id="phone" name="phone"
+                 value="<%= values.phone || '' %>" autocomplete="tel">
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="countryOfInterest">Destination of interest (optional)</label>
+          <input class="field__input" type="text" id="countryOfInterest" name="countryOfInterest"
+                 value="<%= values.countryOfInterest || '' %>">
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="message">How can we help?</label>
+          <textarea class="field__textarea" id="message" name="message" rows="6" required><%= values.message || '' %></textarea>
+          <% if (errors.message) { %><p class="field-error"><%= errors.message[0] %></p><% } %>
+        </div>
+
+        <button class="button button--primary" type="submit">Send message</button>
+      </form>
+    </div>
+
+    <aside class="prose-layout__aside">
+      <div class="panel">
+        <h2 class="panel__title">Other ways to reach us</h2>
+        <%#
+          TODO(phase-1): read these from the Setting table so staff can update
+          contact details without a deploy.
+        %>
+        <ul class="link-list">
+          <li><a href="/book-consultation">Book a free consultation</a></li>
+          <li><a href="/webinars">Join a webinar</a></li>
+        </ul>
+        <p class="panel__note">
+          Office locations, WhatsApp and social links are configured in the admin
+          settings.
+        </p>
+      </div>
+    </aside>
+  </div>
+</section>

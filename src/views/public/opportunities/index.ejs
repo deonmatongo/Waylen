@@ -1,0 +1,116 @@
+<%# PRD §4.2 — organised by category, institution names withheld. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Opportunities</h1>
+    <p class="page-hero__lede">
+      Universities and postgraduate programmes, professional certifications,
+      vocational training and more — across every destination we cover.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner listing-layout">
+    <aside class="listing-layout__filters">
+      <form class="filters" method="get" action="/opportunities">
+        <h2 class="filters__title">Filter</h2>
+
+        <div class="field">
+          <label class="field__label" for="q">Search</label>
+          <input class="field__input" type="search" id="q" name="q" value="<%= filters.q || '' %>"
+                 placeholder="Programme or keyword">
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="category">Category</label>
+          <select class="field__select" id="category" name="category">
+            <option value="">All categories</option>
+            <% Object.entries(categoryLabels).forEach(function (entry) { %>
+              <option value="<%= entry[0] %>" <%= filters.category === entry[0] ? 'selected' : '' %>>
+                <%= entry[1] %><% if (categoryCounts.get(entry[0])) { %> (<%= categoryCounts.get(entry[0]) %>)<% } %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="country">Destination</label>
+          <select class="field__select" id="country" name="country">
+            <option value="">All destinations</option>
+            <% countries.forEach(function (country) { %>
+              <option value="<%= country.slug %>" <%= filters.country === country.slug ? 'selected' : '' %>>
+                <%= country.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="checkbox">
+            <input type="checkbox" name="scholarships" value="on" <%= filters.scholarships === 'on' ? 'checked' : '' %>>
+            <span>Scholarships available</span>
+          </label>
+        </div>
+
+        <button class="button button--primary button--block" type="submit">Apply filters</button>
+        <a class="button button--ghost button--block" href="/opportunities">Clear</a>
+      </form>
+    </aside>
+
+    <div class="listing-layout__results">
+      <p class="listing-layout__count">
+        <%= results.total %> programme<%= results.total === 1 ? '' : 's' %>
+      </p>
+
+      <% if (!results.items.length) { %>
+        <%- include('../../partials/empty-state', {
+              heading: 'No programmes match those filters',
+              message: 'Try widening your search, or talk to a counsellor about options that are not listed publicly.',
+              actionHref: '/book-consultation',
+              actionLabel: 'Book a consultation'
+            }) %>
+      <% } else { %>
+        <ul class="listing">
+          <% results.items.forEach(function (opportunity) { %>
+            <li class="listing__item">
+              <div class="listing__body">
+                <p class="listing__eyebrow">
+                  <%= categoryLabels[opportunity.category] %> · <%= opportunity.country.name %>
+                </p>
+                <h2 class="listing__title">
+                  <a href="/opportunities/<%= opportunity.slug %>"><%= opportunity.title %></a>
+                </h2>
+                <p class="listing__summary"><%= format.truncate(opportunity.description, 200) %></p>
+
+                <dl class="listing__meta">
+                  <% if (opportunity.duration) { %>
+                    <div><dt>Duration</dt><dd><%= opportunity.duration %></dd></div>
+                  <% } %>
+                  <div>
+                    <dt>Tuition</dt>
+                    <dd><%= format.formatTuitionRange(opportunity.indicativeTuitionMin, opportunity.indicativeTuitionMax, opportunity.currency) %></dd>
+                  </div>
+                  <% if (opportunity.intakePeriods.length) { %>
+                    <div><dt>Intakes</dt><dd><%= opportunity.intakePeriods.join(', ') %></dd></div>
+                  <% } %>
+                </dl>
+
+                <% if (opportunity.scholarshipAvailable) { %>
+                  <p class="badge badge--positive">Scholarships available</p>
+                <% } %>
+              </div>
+
+              <div class="listing__actions">
+                <a class="button button--primary button--small" href="/opportunities/<%= opportunity.slug %>">
+                  View details
+                </a>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+
+        <%- include('../../partials/pagination', { results: results, baseUrl: '/opportunities', query: filters }) %>
+      <% } %>
+    </div>
+  </div>
+</section>

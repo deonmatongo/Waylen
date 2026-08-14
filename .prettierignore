@@ -1,0 +1,6 @@
+dist/
+node_modules/
+coverage/
+public/css/app.min.css
+public/uploads/
+prisma/migrations/

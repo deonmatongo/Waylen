@@ -1,0 +1,43 @@
+<% if (!applications.length) { %>
+  <%- include('../../partials/empty-state', {
+        heading: 'No applications yet',
+        message: 'Once your documents are approved, your counsellor will recommend a programme and create your application.',
+        actionHref: '/portal/documents',
+        actionLabel: 'Upload your documents'
+      }) %>
+<% } else { %>
+  <ul class="record-list">
+    <% applications.forEach(function (application) { %>
+      <li class="record-list__item">
+        <div class="record-list__body">
+          <p class="record-list__eyebrow"><code><%= application.reference %></code></p>
+          <h2 class="record-list__title">
+            <a href="/portal/applications/<%= application.id %>">
+              <%= application.programmeName || 'Application in preparation' %>
+            </a>
+          </h2>
+
+          <dl class="record-list__meta">
+            <% if (application.country) { %>
+              <div><dt>Destination</dt><dd><%= application.country.name %></dd></div>
+            <% } %>
+            <% if (application.intakePeriod) { %>
+              <div><dt>Intake</dt><dd><%= application.intakePeriod %></dd></div>
+            <% } %>
+            <div><dt>Stage</dt><dd><%= stageLabels[application.stage] %></dd></div>
+            <% if (application.applicationDeadline) { %>
+              <div><dt>Deadline</dt><dd><%= format.formatDate(application.applicationDeadline) %></dd></div>
+            <% } %>
+          </dl>
+        </div>
+
+        <div class="record-list__actions">
+          <span class="badge badge--neutral"><%= format.humaniseEnum(application.outcome) %></span>
+          <a class="button button--secondary button--small" href="/portal/applications/<%= application.id %>">
+            View
+          </a>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

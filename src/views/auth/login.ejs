@@ -1,0 +1,69 @@
+<h1 class="auth__title">Sign in</h1>
+<p class="auth__lede">Welcome back. Continue where you left off.</p>
+
+<% if (errors.form) { %>
+  <div class="field-error field-error--form" role="alert"><%= errors.form[0] %></div>
+<% } %>
+
+<form class="form" method="post" action="/login" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="field">
+    <label class="field__label" for="email">Email address</label>
+    <input class="field__input" type="email" id="email" name="email" autocomplete="email"
+           value="<%= values.email || '' %>" required
+           <%= errors.email ? 'aria-invalid="true" aria-describedby="email-error"' : '' %>>
+    <% if (errors.email) { %>
+      <p class="field-error" id="email-error"><%= errors.email[0] %></p>
+    <% } %>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="password">Password</label>
+    <input class="field__input" type="password" id="password" name="password"
+           autocomplete="current-password" required
+           <%= errors.password ? 'aria-invalid="true" aria-describedby="password-error"' : '' %>>
+    <% if (errors.password) { %>
+      <p class="field-error" id="password-error"><%= errors.password[0] %></p>
+    <% } %>
+  </div>
+
+  <button class="button button--primary button--block" type="submit">Sign in</button>
+</form>
+
+<p class="auth__links">
+  <a href="/forgot-password">Forgotten your password?</a>
+</p>
+<p class="auth__links">
+  New to Waylen? <a href="/register">Create an account</a>
+</p>
+
+<div class="demo-credentials">
+  <p class="demo-credentials__title">Demo accounts</p>
+  <table class="demo-credentials__table">
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Email</th>
+        <th>Password</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Admin</td>
+        <td>admin@waylen.com</td>
+        <td>123456789</td>
+      </tr>
+      <tr>
+        <td>Counsellor</td>
+        <td>counselor@waylen.com</td>
+        <td>123456789</td>
+      </tr>
+      <tr>
+        <td>Student</td>
+        <td>student@waylen.com</td>
+        <td>123456789</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

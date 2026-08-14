@@ -1,0 +1,95 @@
+<%# PRD §4.8, §4.9 — mission, story, team, partners and the credibility layer %>
+<%# institutions use to evaluate Waylen. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">About Waylen</h1>
+    <p class="page-hero__lede">
+      A trusted guide for people building international lives — credible enough
+      for institutions to work with, personal enough that you feel genuinely
+      accompanied, not processed.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner prose-layout">
+    <div class="prose">
+      <h2>Our mission</h2>
+      <p>
+        To walk with individuals through the entire international journey — not just
+        admissions — from first exploring opportunities, through applications, visas
+        and relocation, to building a career, a business and real financial standing
+        once they have arrived.
+      </p>
+
+      <h2>Our vision</h2>
+      <p>
+        To be the trusted guide behind every ambitious African's international
+        journey: helping people build career, wealth and status abroad, and keeping
+        them connected to guidance, opportunity and each other long after they have
+        arrived.
+      </p>
+
+      <h2>What we stand for</h2>
+      <ul>
+        <li><strong>Transparency</strong> — you always know exactly where your application stands.</li>
+        <li><strong>Standards</strong> — every document verified before anything is submitted.</li>
+        <li><strong>Accountability</strong> — one point of contact, start to finish.</li>
+        <li><strong>Longevity</strong> — a platform that is still useful years after you arrive.</li>
+      </ul>
+
+      <%- include('../partials/scaffold-notice', {
+            phase: 'Phase 1 — content',
+            detail: 'Team profiles, the founding story and regional presence will be authored in the admin CMS.'
+          }) %>
+    </div>
+
+    <aside class="prose-layout__aside">
+      <div class="panel">
+        <h2 class="panel__title">Working with us</h2>
+        <ul class="link-list">
+          <li><a href="/for-institutions">For institutions</a></li>
+          <li><a href="/for-partners">For partners</a></li>
+          <li><a href="/contact">Contact us</a></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<% if (partnerLogos.length) { %>
+  <section class="section section--muted">
+    <div class="section__inner">
+      <h2 class="section__title">Our institution &amp; partner network</h2>
+      <ul class="logo-strip__list logo-strip__list--grid">
+        <% partnerLogos.forEach(function (partner) { %>
+          <li class="logo-strip__item">
+            <img src="<%= partner.logoPath %>" alt="<%= partner.name %>" height="44" loading="lazy">
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+<% } %>
+
+<% if (testimonials.length) { %>
+  <section class="section">
+    <div class="section__inner">
+      <h2 class="section__title">What people say</h2>
+      <ul class="quote-grid">
+        <% testimonials.forEach(function (testimonial) { %>
+          <li class="quote">
+            <blockquote class="quote__body"><p><%= testimonial.quote %></p></blockquote>
+            <footer class="quote__attribution">
+              <span class="avatar" aria-hidden="true"><%= format.initials(testimonial.authorName) %></span>
+              <span>
+                <strong><%= testimonial.authorName %></strong>
+                <% if (testimonial.authorRole) { %><small><%= testimonial.authorRole %></small><% } %>
+              </span>
+            </footer>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+<% } %>

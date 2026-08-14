@@ -1,0 +1,103 @@
+<form class="filters filters--bar" method="get" action="/admin/appointments">
+  <div class="field">
+    <label class="field__label visually-hidden" for="status">Status</label>
+    <select class="field__select" id="status" name="status">
+      <option value="">All statuses</option>
+      <% ['REQUESTED','CONFIRMED','COMPLETED','CANCELLED','NO_SHOW'].forEach(function (status) { %>
+        <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>>
+          <%= format.humaniseEnum(status) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="from">From</label>
+    <input class="field__input" type="date" id="from" name="from" value="<%= filters.from || '' %>">
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/appointments">Clear</a>
+</form>
+
+<% if (!appointments.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No appointments match those filters' }) %>
+<% } else { %>
+  <ul class="review-list">
+    <% appointments.forEach(function (appointment) { %>
+      <li class="review-list__item">
+        <div class="review-list__body">
+          <p class="review-list__eyebrow">
+            <time datetime="<%= appointment.startsAt.toISOString() %>">
+              <%= format.formatDateTime(appointment.startsAt) %>
+            </time>
+            · <%= appointment.durationMinutes %> min
+            · <%= format.humaniseEnum(appointment.format) %>
+          </p>
+          <h2 class="review-list__title"><%= typeLabels[appointment.type] %></h2>
+
+          <p class="review-list__student">
+            <% if (appointment.studentProfile) { %>
+              <a href="/admin/students/<%= appointment.studentProfile.id %>">
+                <%= appointment.studentProfile.user.fullName %>
+              </a>
+              <small><%= appointment.studentProfile.reference %></small>
+            <% } else { %>
+              <%= appointment.guestName %>
+              <small><%= appointment.guestEmail %> · guest booking</small>
+            <% } %>
+          </p>
+
+          <p>
+            <span class="badge badge--<%= appointment.status === 'CONFIRMED' ? 'positive' : appointment.status === 'CANCELLED' ? 'negative' : 'neutral' %>">
+              <%= format.humaniseEnum(appointment.status) %>
+            </span>
+            <% if (appointment.counsellor) { %>
+              <small><%= appointment.counsellor.fullName %></small>
+            <% } %>
+          </p>
+
+          <% if (appointment.studentNotes) { %>
+            <p class="review-list__file"><%= appointment.studentNotes %></p>
+          <% } %>
+        </div>
+
+        <div class="review-list__decision">
+          <% if (appointment.status === 'REQUESTED') { %>
+            <form class="form form--tight" method="post" action="/admin/appointments/<%= appointment.id %>/confirm">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label class="field__label visually-hidden" for="counsellorId-<%= appointment.id %>">Counsellor</label>
+                <select class="field__select" id="counsellorId-<%= appointment.id %>" name="counsellorId">
+                  <option value="">Assign to me</option>
+                  <% counsellors.forEach(function (counsellor) { %>
+                    <option value="<%= counsellor.id %>"><%= counsellor.fullName %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <button class="button button--primary button--small button--block" type="submit">
+                Confirm &amp; create meeting
+              </button>
+            </form>
+          <% } %>
+
+          <% if (appointment.status === 'CONFIRMED') { %>
+            <form class="form form--tight" method="post" action="/admin/appointments/<%= appointment.id %>/complete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="button button--secondary button--small button--block" type="submit">
+                Mark completed
+              </button>
+            </form>
+          <% } %>
+
+          <% if (appointment.status === 'REQUESTED' || appointment.status === 'CONFIRMED') { %>
+            <form class="form form--tight" method="post" action="/admin/appointments/<%= appointment.id %>/cancel">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="link-button link-button--danger" type="submit">Cancel</button>
+            </form>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

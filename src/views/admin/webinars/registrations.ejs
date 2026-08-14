@@ -1,0 +1,21 @@
+<% if (!registrations.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No registrations yet' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Student</th><th scope="col">Attended</th><th scope="col">Registered</th></tr>
+    </thead>
+    <tbody>
+      <% registrations.forEach(function (registration) { %>
+        <tr>
+          <td><%= registration.fullName %></td>
+          <td><%= registration.email %></td>
+          <td><%= registration.phone || '—' %></td>
+          <td><%= registration.studentProfile ? registration.studentProfile.reference : 'Public sign-up' %></td>
+          <td><%= registration.attended ? 'Yes' : '—' %></td>
+          <td><%= format.formatDate(registration.createdAt) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

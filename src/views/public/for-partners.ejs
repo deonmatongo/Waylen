@@ -1,0 +1,74 @@
+<%# PRD §4.9, §6 — the partner-facing credibility page. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">For partners</h1>
+    <p class="page-hero__lede">
+      Insurance, financial, legal, relocation and career partners — one organised
+      platform where students, alumni, institutions and partners intersect.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <ul class="card-grid card-grid--2">
+      <li class="card card--feature">
+        <h2 class="card__title">A documented vetting standard</h2>
+        <p class="card__body">Published partner criteria and a visible vetting process — being listed means something.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">Structured referral tracking</h2>
+        <p class="card__body">Every referral logged against the student's file, so the value of the relationship is measurable.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">A premium brand presence</h2>
+        <p class="card__body">Placement on relevant country and service pages, clearly marked as a trusted partner.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">One coherent ecosystem</h2>
+        <p class="card__body">Not a scattered, ad-hoc network — a single platform your prospective customers already trust.</p>
+      </li>
+    </ul>
+
+    <h2 class="section__title">Partner categories</h2>
+    <ul class="pill-list">
+      <li class="pill">Insurance</li>
+      <li class="pill">Financial services</li>
+      <li class="pill">Wealth &amp; business building</li>
+      <li class="pill">Legal &amp; immigration</li>
+      <li class="pill">Accommodation &amp; relocation</li>
+      <li class="pill">Telecom &amp; banking on arrival</li>
+      <li class="pill">Language &amp; test centres</li>
+      <li class="pill">Career &amp; employers</li>
+      <li class="pill">Wellbeing &amp; community</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section--muted">
+  <div class="section__inner section__inner--narrow">
+    <h2 class="section__title">Propose a partnership</h2>
+
+    <form class="form" method="post" action="/contact">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="countryOfInterest" value="partner-enquiry">
+
+      <div class="field">
+        <label class="field__label" for="fullName">Your name</label>
+        <input class="field__input" type="text" id="fullName" name="fullName" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="email">Work email address</label>
+        <input class="field__input" type="email" id="email" name="email" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="message">Your organisation and what you offer</label>
+        <textarea class="field__textarea" id="message" name="message" rows="5" required></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Send enquiry</button>
+    </form>
+  </div>
+</section>

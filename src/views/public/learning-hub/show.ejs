@@ -1,0 +1,38 @@
+<article class="section">
+  <div class="section__inner section__inner--narrow">
+    <header class="article-head">
+      <p class="card__eyebrow">
+        <%= format.humaniseEnum(resource.type) %>
+        <% if (resource.publishedAt) { %> · <%= format.formatDate(resource.publishedAt) %><% } %>
+        <% if (resource.readMinutes) { %> · <%= resource.readMinutes %> min read<% } %>
+      </p>
+      <h1 class="article-head__title"><%= resource.title %></h1>
+      <% if (resource.excerpt) { %>
+        <p class="article-head__lede"><%= resource.excerpt %></p>
+      <% } %>
+    </header>
+
+    <% if (resource.coverImagePath) { %>
+      <img class="article__cover" src="<%= resource.coverImagePath %>" alt="" loading="eager">
+    <% } %>
+
+    <div class="prose">
+      <%# Body HTML is authored by Waylen staff through the admin CMS. %>
+      <%- resource.body %>
+    </div>
+
+    <% if (resource.filePath) { %>
+      <p class="article__download">
+        <a class="button button--primary" href="<%= resource.filePath %>" download>Download the resource</a>
+      </p>
+    <% } %>
+
+    <% if (resource.tags && resource.tags.length) { %>
+      <ul class="tag-list">
+        <% resource.tags.forEach(function (tag) { %>
+          <li><a class="chip" href="/learning-hub?tag=<%= encodeURIComponent(tag) %>"><%= tag %></a></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</article>

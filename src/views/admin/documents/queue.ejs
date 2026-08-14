@@ -1,0 +1,59 @@
+<%# PRD §5.4 — approve, reject, request resubmission, leave comments. %>
+<% if (!documents.length) { %>
+  <%- include('../../partials/empty-state', {
+        heading: 'The review queue is clear',
+        message: 'Nothing is waiting for review right now.'
+      }) %>
+<% } else { %>
+  <p class="listing-layout__count">
+    <%= documents.length %> document<%= documents.length === 1 ? '' : 's' %> awaiting review,
+    oldest first.
+  </p>
+
+  <ul class="review-list">
+    <% documents.forEach(function (document) { %>
+      <li class="review-list__item">
+        <div class="review-list__body">
+          <p class="review-list__eyebrow">
+            Waiting <%= format.relativeTime(document.createdAt) %>
+          </p>
+          <h2 class="review-list__title"><%= typeLabels[document.type] %></h2>
+          <p class="review-list__student">
+            <a href="/admin/students/<%= document.studentProfile.id %>">
+              <%= document.studentProfile.user.fullName %>
+            </a>
+            <small><%= document.studentProfile.reference %></small>
+          </p>
+          <p class="review-list__file">
+            <%= document.originalFilename %>
+            <small><%= format.formatFileSize(document.sizeBytes) %></small>
+          </p>
+
+          <a class="button button--secondary button--small" href="/admin/documents/<%= document.id %>/view"
+             target="_blank" rel="noopener">Open document</a>
+        </div>
+
+        <div class="review-list__decision">
+          <form class="form form--tight" method="post" action="/admin/documents/<%= document.id %>/approve">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="button button--primary button--small button--block" type="submit">Approve</button>
+          </form>
+
+          <form class="form form--tight" method="post" action="/admin/documents/<%= document.id %>/reject">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field">
+              <label class="field__label visually-hidden" for="notes-<%= document.id %>">
+                What needs correcting?
+              </label>
+              <textarea class="field__textarea" id="notes-<%= document.id %>" name="notes" rows="2"
+                        placeholder="What does the student need to correct?"></textarea>
+            </div>
+            <button class="button button--secondary button--small button--block" type="submit">
+              Request correction
+            </button>
+          </form>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

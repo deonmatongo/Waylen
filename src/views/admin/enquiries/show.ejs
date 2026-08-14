@@ -1,0 +1,83 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/enquiries">Enquiries</a>
+  <span aria-hidden="true">/</span>
+  <span><%= enquiry.fullName %></span>
+</nav>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Enquiry</h2>
+
+    <dl class="detail-list">
+      <div><dt>Name</dt><dd><%= enquiry.fullName %></dd></div>
+      <div><dt>Email</dt><dd><%= enquiry.email %></dd></div>
+      <div><dt>Phone</dt><dd><%= enquiry.phone || '—' %></dd></div>
+      <div><dt>Source</dt><dd><%= enquiry.source || '—' %></dd></div>
+      <div><dt>Interest</dt><dd><%= enquiry.opportunity ? enquiry.opportunity.title : (enquiry.countryOfInterest || '—') %></dd></div>
+      <div><dt>Received</dt><dd><%= format.formatDateTime(enquiry.createdAt) %></dd></div>
+      <div><dt>Handled</dt><dd><%= enquiry.handledAt ? format.formatDateTime(enquiry.handledAt) : 'Not yet' %></dd></div>
+    </dl>
+
+    <% if (enquiry.message) { %>
+      <div class="notice">
+        <p class="notice__title">Their message</p>
+        <p class="notice__body"><%= enquiry.message %></p>
+      </div>
+    <% } %>
+
+    <% if (enquiry.studentProfile) { %>
+      <p class="panel__footer">
+        Now a registered student:
+        <a href="/admin/students/<%= enquiry.studentProfile.id %>">
+          <%= enquiry.studentProfile.user.fullName %> (<%= enquiry.studentProfile.reference %>)
+        </a>
+      </p>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Update</h2>
+
+    <form class="form" method="post" action="/admin/enquiries/<%= enquiry.id %>/status">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% ['NEW','CONTACTED','QUALIFIED','CONVERTED','CLOSED'].forEach(function (status) { %>
+            <option value="<%= status %>" <%= enquiry.status === status ? 'selected' : '' %>>
+              <%= format.humaniseEnum(status) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="staffNotes">Staff notes</label>
+        <textarea class="field__textarea" id="staffNotes" name="staffNotes" rows="4"><%= enquiry.staffNotes || '' %></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Save</button>
+    </form>
+
+    <hr class="rule">
+
+    <form class="form form--inline" method="post" action="/admin/enquiries/<%= enquiry.id %>/assign">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="assignedToId">Assign to</label>
+        <select class="field__select" id="assignedToId" name="assignedToId">
+          <option value="">Unassigned</option>
+          <% counsellors.forEach(function (counsellor) { %>
+            <option value="<%= counsellor.id %>" <%= enquiry.assignedToId === counsellor.id ? 'selected' : '' %>>
+              <%= counsellor.fullName %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <button class="button button--secondary" type="submit">Assign</button>
+    </form>
+  </section>
+</div>

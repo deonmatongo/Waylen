@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title><%= title %> · <%= appName %> Portal</title>
+  <%# Authenticated surfaces are never indexed (see robots.txt too). %>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" href="/img/brand/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+
+  <%- typeof style !== 'undefined' ? style : '' %>
+</head>
+<body class="app app--portal">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <%- include('../partials/portal-topbar') %>
+
+  <div class="app__shell">
+    <%- include('../partials/portal-sidebar') %>
+
+    <main id="main" class="app__main">
+      <%- include('../partials/flash') %>
+
+      <header class="page-head">
+        <h1 class="page-head__title"><%= title %></h1>
+        <%- typeof pageActions !== 'undefined' ? pageActions : '' %>
+      </header>
+
+      <%- body %>
+    </main>
+  </div>
+
+  <script src="/js/app.js" defer></script>
+  <%- typeof script !== 'undefined' ? script : '' %>
+</body>
+</html>

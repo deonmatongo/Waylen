@@ -1,0 +1,47 @@
+<%# Back-office navigation — grouped by function. Role-restricted items are
+    hidden here for tidiness; the routes themselves are the actual guard. %>
+<nav class="app-sidebar" id="app-sidebar" aria-label="Admin navigation">
+  <div class="app-sidebar__brand">
+    <span class="app-sidebar__brand-name"><%= appName %></span>
+    <span class="app-sidebar__brand-tag">Back office</span>
+  </div>
+
+  <%
+    const filtered = adminNav.filter(function(item) {
+      return !item.role || item.role === currentUser.role;
+    });
+    const groups = [];
+    const seen = {};
+    filtered.forEach(function(item) {
+      const g = item.group || 'Other';
+      if (!seen[g]) { seen[g] = true; groups.push(g); }
+    });
+  %>
+
+  <% groups.forEach(function(group) { %>
+    <div class="app-sidebar__group">
+      <% if (group !== 'Overview') { %>
+        <span class="app-sidebar__group-label"><%= group %></span>
+      <% } %>
+      <ul class="app-sidebar__list">
+        <% filtered.filter(function(i){ return (i.group || 'Other') === group; }).forEach(function(item) { %>
+          <li>
+            <a class="app-sidebar__link<%= currentPath === item.href || (item.href !== '/admin' && currentPath.startsWith(item.href)) ? ' is-current' : '' %>"
+               href="<%= item.href %>"
+               <%= currentPath === item.href ? 'aria-current="page"' : '' %>>
+              <span class="app-sidebar__icon icon icon--<%= item.icon %>" aria-hidden="true"></span>
+              <span class="app-sidebar__label"><%= item.label %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  <% }) %>
+
+  <div class="app-sidebar__footer">
+    <a class="app-sidebar__link" href="/">
+      <span class="app-sidebar__icon icon icon--external" aria-hidden="true"></span>
+      <span class="app-sidebar__label">Main website</span>
+    </a>
+  </div>
+</nav>

@@ -1,0 +1,27 @@
+<header class="app-topbar">
+  <a class="app-topbar__brand" href="/portal">
+    <img src="/img/brand/logo.svg" alt="<%= appName %>" width="112" height="27">
+    <span class="app-topbar__label">Portal</span>
+  </a>
+
+  <button class="app-topbar__toggle" type="button" data-sidebar-toggle
+          aria-expanded="false" aria-controls="app-sidebar" aria-label="Toggle menu">
+    <span class="app-topbar__toggle-bar"></span>
+  </button>
+
+  <div class="app-topbar__actions">
+    <a class="app-topbar__icon-link" href="/portal/notifications" aria-label="Notifications">
+      <span aria-hidden="true">&#9788;</span>
+    </a>
+
+    <div class="app-topbar__user">
+      <span class="avatar" aria-hidden="true"><%= format.initials(currentUser.fullName) %></span>
+      <span class="app-topbar__name"><%= currentUser.fullName %></span>
+    </div>
+
+    <form method="post" action="/logout" class="app-topbar__logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="button button--ghost button--small" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>

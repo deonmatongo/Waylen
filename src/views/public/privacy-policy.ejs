@@ -1,0 +1,16 @@
+<section class="section">
+  <div class="section__inner section__inner--narrow prose">
+    <h1>Privacy policy</h1>
+
+    <%#
+      PRD §4.9 and §8.2 both require published data-protection statements —
+      institutional, financial and insurance partners will check for them.
+      This copy must be reviewed by a lawyer before launch, so it is left as an
+      explicit gap rather than filled with plausible-looking placeholder terms.
+    %>
+    <%- include('../partials/scaffold-notice', {
+          phase: 'Requires legal review',
+          detail: 'This page must be drafted with legal counsel before launch — it covers identity documents, financial data and GDPR obligations. It is deliberately left empty rather than filled with placeholder wording that could be mistaken for a real policy.'
+        }) %>
+  </div>
+</section>

@@ -1,0 +1,19 @@
+<h1 class="auth__title">Confirm your email</h1>
+<p class="auth__lede">
+  We have sent a confirmation link<% if (email) { %> to <strong><%= email %></strong><% } %>.
+  Open it to unlock your portal.
+</p>
+
+<div class="notice">
+  <p class="notice__body">
+    Cannot find it? Check your spam folder — confirmation emails sometimes land there.
+  </p>
+</div>
+
+<form class="form" method="post" action="/verify-email/resend">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (email) { %><input type="hidden" name="email" value="<%= email %>"><% } %>
+  <button class="button button--secondary button--block" type="submit">Send a new link</button>
+</form>
+
+<p class="auth__links"><a href="/">Back to the website</a></p>

@@ -1,0 +1,38 @@
+<%# PRD §5.2 — country packs, visa checklists, recorded webinars, templates. %>
+<% if (portalOnly.length) { %>
+  <section class="panel">
+    <h2 class="panel__title">For registered students</h2>
+    <ul class="mini-list">
+      <% portalOnly.forEach(function (resource) { %>
+        <li class="mini-list__item">
+          <a href="/portal/resources/<%= resource.slug %>">
+            <strong><%= resource.title %></strong>
+            <small><%= format.humaniseEnum(resource.type) %></small>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>
+
+<section class="panel">
+  <h2 class="panel__title">Guides &amp; articles</h2>
+
+  <% if (!results.items.length) { %>
+    <p class="panel__note">Nothing published yet.</p>
+  <% } else { %>
+    <ul class="mini-list">
+      <% results.items.forEach(function (resource) { %>
+        <li class="mini-list__item">
+          <a href="/portal/resources/<%= resource.slug %>">
+            <strong><%= resource.title %></strong>
+            <small>
+              <%= format.humaniseEnum(resource.type) %>
+              <% if (resource.readMinutes) { %> · <%= resource.readMinutes %> min<% } %>
+            </small>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>

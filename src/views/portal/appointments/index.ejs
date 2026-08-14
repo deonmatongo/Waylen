@@ -1,0 +1,64 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/portal/appointments/new">Book an appointment</a>
+</div>
+
+<section class="panel">
+  <h2 class="panel__title">Upcoming</h2>
+
+  <% if (!upcoming.length) { %>
+    <p class="panel__note">Nothing booked.</p>
+  <% } else { %>
+    <ul class="event-list">
+      <% upcoming.forEach(function (appointment) { %>
+        <li class="event-list__item">
+          <time class="event-list__when" datetime="<%= appointment.startsAt.toISOString() %>">
+            <%= format.formatDateTime(appointment.startsAt) %>
+          </time>
+          <p class="event-list__what">
+            <%= typeLabels[appointment.type] %>
+            <span class="badge badge--<%= appointment.status === 'CONFIRMED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(appointment.status) %>
+            </span>
+          </p>
+          <p class="event-list__who">
+            <%= appointment.durationMinutes %> minutes ·
+            <%= format.humaniseEnum(appointment.format) %>
+            <% if (appointment.counsellor) { %> · with <%= appointment.counsellor.fullName %><% } %>
+          </p>
+
+          <div class="event-list__actions">
+            <% if (appointment.meetingUrl) { %>
+              <a class="button button--secondary button--small" href="<%= appointment.meetingUrl %>"
+                 rel="noopener" target="_blank">Join meeting</a>
+            <% } %>
+            <form method="post" action="/portal/appointments/<%= appointment.id %>/cancel" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="link-button link-button--danger" type="submit">Cancel</button>
+            </form>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<% if (past.length) { %>
+  <section class="panel">
+    <h2 class="panel__title">Past appointments</h2>
+
+    <table class="table">
+      <thead>
+        <tr><th scope="col">When</th><th scope="col">Type</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        <% past.forEach(function (appointment) { %>
+          <tr>
+            <td><%= format.formatDateTime(appointment.startsAt) %></td>
+            <td><%= typeLabels[appointment.type] %></td>
+            <td><%= format.humaniseEnum(appointment.status) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<% } %>

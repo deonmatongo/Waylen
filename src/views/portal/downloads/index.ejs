@@ -1,0 +1,39 @@
+<%# PRD §5.2 — offer letters, acceptance letters, invoices, visa support %>
+<%# letters and travel guides issued by Waylen. %>
+<% if (!documents.length) { %>
+  <%- include('../../partials/empty-state', {
+        heading: 'Nothing to download yet',
+        message: 'Offer letters, acceptance letters and visa support letters will appear here as they are issued. You will be notified each time.'
+      }) %>
+<% } else { %>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Document</th>
+        <th scope="col">Type</th>
+        <th scope="col">Issued</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% documents.forEach(function (document) { %>
+        <tr>
+          <td>
+            <%= document.originalFilename %>
+            <small class="table__hint"><%= format.formatFileSize(document.sizeBytes) %></small>
+            <% if (document.reviewNotes) { %>
+              <p class="table__note"><%= document.reviewNotes %></p>
+            <% } %>
+          </td>
+          <td><%= typeLabels[document.type] %></td>
+          <td><%= format.formatDate(document.createdAt) %></td>
+          <td class="table__actions">
+            <a class="button button--secondary button--small" href="/portal/downloads/<%= document.id %>">
+              Download
+            </a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

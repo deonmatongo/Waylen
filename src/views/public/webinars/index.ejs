@@ -1,0 +1,70 @@
+<%# PRD §4.5 — browse, register, and watch recordings. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Webinars &amp; events</h1>
+    <p class="page-hero__lede">
+      Free live sessions on destinations, scholarships and visas — plus
+      recordings of everything you missed.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <h2 class="section__title">Coming up</h2>
+
+    <% if (!upcoming.length) { %>
+      <%- include('../../partials/empty-state', {
+            heading: 'No webinars scheduled right now',
+            message: 'New sessions are announced regularly. In the meantime, a counsellor can answer your questions directly.',
+            actionHref: '/book-consultation',
+            actionLabel: 'Book a consultation'
+          }) %>
+    <% } else { %>
+      <ul class="card-grid card-grid--3">
+        <% upcoming.forEach(function (webinar) { %>
+          <li class="card card--webinar">
+            <div class="card__content">
+              <time class="card__eyebrow" datetime="<%= webinar.startsAt.toISOString() %>">
+                <%= format.formatDateTime(webinar.startsAt) %>
+              </time>
+              <h3 class="card__title"><%= webinar.title %></h3>
+              <% if (webinar.description) { %>
+                <p class="card__body"><%= format.truncate(webinar.description, 130) %></p>
+              <% } %>
+              <p class="card__meta-line">
+                <%= format.humaniseEnum(webinar.format) %>
+                <% if (webinar.capacity) { %>
+                  · <%= Math.max(0, webinar.capacity - webinar._count.registrations) %> seats left
+                <% } %>
+              </p>
+              <a class="button button--primary button--small" href="/webinars/<%= webinar.slug %>">
+                Register
+              </a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</section>
+
+<% if (recordings.length) { %>
+  <section class="section section--muted">
+    <div class="section__inner">
+      <h2 class="section__title">Watch a recording</h2>
+
+      <ul class="card-grid card-grid--4">
+        <% recordings.forEach(function (webinar) { %>
+          <li class="card">
+            <div class="card__content">
+              <p class="card__eyebrow"><%= format.formatDate(webinar.startsAt) %></p>
+              <h3 class="card__title"><%= webinar.title %></h3>
+              <a class="card__link" href="/webinars/<%= webinar.slug %>">Watch</a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+<% } %>

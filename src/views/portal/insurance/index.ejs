@@ -1,0 +1,28 @@
+<%- include('../../partials/scaffold-notice', {
+      phase: 'Phase 2 — operations',
+      detail: 'Policy records render from real data. Purchase runs through a vetted insurance partner (PRD §6.1) and is enabled once an agreement is in place.'
+    }) %>
+<section class="panel">
+  <h2 class="panel__title">Your cover</h2>
+
+  <% if (!policies.length) { %>
+    <p class="panel__note">You do not have a policy with us yet.</p>
+    <a class="button button--primary" href="/portal/insurance/quote">Get a quote</a>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Plan</th><th scope="col">Policy number</th><th scope="col">Cover</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        <% policies.forEach(function (policy) { %>
+          <tr>
+            <td><%= policy.planName %></td>
+            <td><%= policy.policyNumber || '—' %></td>
+            <td><%= format.formatDate(policy.coverageStartsAt) %> – <%= format.formatDate(policy.coverageEndsAt) %></td>
+            <td><%= format.humaniseEnum(policy.status) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>

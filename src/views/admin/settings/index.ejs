@@ -1,0 +1,49 @@
+<section class="panel">
+  <%# Feature flags gate whole routes, so they must be set before boot and are %>
+  <%# read-only here. %>
+  <h2 class="panel__title">Feature flags</h2>
+  <p class="panel__note">
+    Set via environment variables and applied at boot — they gate entire route
+    trees, so they cannot be toggled at runtime.
+  </p>
+
+  <table class="table">
+    <thead><tr><th scope="col">Feature</th><th scope="col">State</th></tr></thead>
+    <tbody>
+      <% Object.entries(featureFlags).forEach(function (entry) { %>
+        <tr>
+          <td><%= format.humaniseEnum(entry[0].replace(/([A-Z])/g, '_$1').toUpperCase()) %></td>
+          <td>
+            <span class="badge badge--<%= entry[1] ? 'positive' : 'neutral' %>">
+              <%= entry[1] ? 'Enabled' : 'Disabled' %>
+            </span>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<% Object.entries(grouped).forEach(function (group) { %>
+  <section class="panel">
+    <h2 class="panel__title"><%= format.humaniseEnum(group[0]) %></h2>
+
+    <form class="form" method="post" action="/admin/settings">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <% group[1].forEach(function (setting) { %>
+        <div class="field">
+          <label class="field__label" for="<%= setting.key %>"><%= setting.key %></label>
+          <input class="field__input" type="text" id="<%= setting.key %>" name="<%= setting.key %>"
+                 value="<%= setting.value %>">
+        </div>
+      <% }) %>
+
+      <button class="button button--primary" type="submit">Save</button>
+    </form>
+  </section>
+<% }) %>
+
+<% if (!Object.keys(grouped).length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No settings configured', message: 'Operational settings — contact details, office addresses, social links — are seeded on first run.' }) %>
+<% } %>

@@ -1,0 +1,20 @@
+<% if (!faqs.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No FAQs yet' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr><th scope="col">Question</th><th scope="col">Topic</th><th scope="col">Country</th><th scope="col">Status</th><th scope="col">Order</th></tr>
+    </thead>
+    <tbody>
+      <% faqs.forEach(function (faq) { %>
+        <tr>
+          <td><%= faq.question %></td>
+          <td><%= faq.topic %></td>
+          <td><%= faq.country ? faq.country.name : 'General' %></td>
+          <td><%= format.humaniseEnum(faq.status) %></td>
+          <td><%= faq.displayOrder %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

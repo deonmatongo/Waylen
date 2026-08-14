@@ -1,0 +1,207 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/students">Students</a>
+  <span aria-hidden="true">/</span>
+  <span><%= student.user.fullName %></span>
+</nav>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Student</h2>
+
+    <dl class="detail-list">
+      <div><dt>Name</dt><dd><%= student.user.fullName %></dd></div>
+      <div><dt>Email</dt><dd><%= student.user.email %></dd></div>
+      <div><dt>Phone</dt><dd><%= student.user.phone || '—' %></dd></div>
+      <div><dt>Reference</dt><dd><code><%= student.reference %></code></dd></div>
+      <div><dt>Origin</dt><dd><%= student.countryOfOrigin ? student.countryOfOrigin.name : '—' %></dd></div>
+      <div><dt>Stage</dt><dd><%= stageLabels[student.currentStage] %></dd></div>
+      <div><dt>Email verified</dt><dd><%= student.user.emailVerifiedAt ? format.formatDate(student.user.emailVerifiedAt) : 'Not yet' %></dd></div>
+      <div><dt>Last signed in</dt><dd><%= student.user.lastLoginAt ? format.relativeTime(student.user.lastLoginAt) : 'Never' %></dd></div>
+      <div>
+        <dt>Destinations of interest</dt>
+        <dd>
+          <%= student.preferredDestinations.length
+                ? student.preferredDestinations.map(function (d) { return d.name; }).join(', ')
+                : '—' %>
+        </dd>
+      </div>
+      <% if (student.preferredCourses.length) { %>
+        <div><dt>Courses of interest</dt><dd><%= student.preferredCourses.join(', ') %></dd></div>
+      <% } %>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Counsellor</h2>
+
+    <form class="form form--inline" method="post" action="/admin/students/<%= student.id %>/assign-counsellor">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="counsellorId">Assigned counsellor</label>
+        <select class="field__select" id="counsellorId" name="counsellorId">
+          <option value="">Unassigned</option>
+          <% counsellors.forEach(function (counsellor) { %>
+            <option value="<%= counsellor.id %>"
+                    <%= student.assignedCounsellor && student.assignedCounsellor.id === counsellor.id ? 'selected' : '' %>>
+              <%= counsellor.fullName %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <button class="button button--primary" type="submit">Save</button>
+    </form>
+
+    <hr class="rule">
+
+    <%#
+      PRD §5.4 key operational requirement — Bee uploads offer letters,
+      acceptance letters and other official documents onto a student's file at
+      any stage, and the student is notified automatically.
+    %>
+    <h2 class="panel__title">Issue a document to this student</h2>
+
+    <form class="form" method="post" action="/admin/students/<%= student.id %>/documents"
+          enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="type">Document type</label>
+        <select class="field__select" id="type" name="type" required>
+          <option value="">Select a type</option>
+          <% issuableTypes.forEach(function (item) { %>
+            <option value="<%= item.value %>"><%= item.label %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="applicationId">Attach to an application (optional)</label>
+        <select class="field__select" id="applicationId" name="applicationId">
+          <option value="">Not application-specific</option>
+          <% student.applications.forEach(function (application) { %>
+            <option value="<%= application.id %>">
+              <%= application.reference %><% if (application.programmeName) { %> — <%= application.programmeName %><% } %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="document">File</label>
+        <input class="field__file" type="file" id="document" name="document" required
+               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="note">Note for the student (optional)</label>
+        <textarea class="field__textarea" id="note" name="note" rows="3"></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Upload &amp; notify student</button>
+    </form>
+  </section>
+</div>
+
+<section class="panel">
+  <h2 class="panel__title">Applications</h2>
+
+  <% if (!student.applications.length) { %>
+    <p class="panel__note">No applications yet.</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Reference</th><th scope="col">Programme</th><th scope="col">Country</th><th scope="col">Stage</th><th scope="col">Outcome</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+      </thead>
+      <tbody>
+        <% student.applications.forEach(function (application) { %>
+          <tr>
+            <td><code><%= application.reference %></code></td>
+            <td><%= application.programmeName || '—' %></td>
+            <td><%= application.country ? application.country.name : '—' %></td>
+            <td><%= stageLabels[application.stage] %></td>
+            <td><%= format.humaniseEnum(application.outcome) %></td>
+            <td class="table__actions">
+              <a class="link-button" href="/admin/applications/<%= application.id %>">Open</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Documents</h2>
+
+  <% if (!student.documents.length) { %>
+    <p class="panel__note">Nothing on file.</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Type</th><th scope="col">File</th><th scope="col">Status</th><th scope="col">Source</th><th scope="col">Date</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+      </thead>
+      <tbody>
+        <% student.documents.forEach(function (document) { %>
+          <tr>
+            <td><%= format.humaniseEnum(document.type) %></td>
+            <td>
+              <%= document.originalFilename %>
+              <small class="table__hint"><%= format.formatFileSize(document.sizeBytes) %></small>
+            </td>
+            <td>
+              <span class="badge badge--<%= document.status === 'APPROVED' ? 'positive' : document.status === 'NEEDS_CORRECTION' ? 'negative' : 'neutral' %>">
+                <%= format.humaniseEnum(document.status) %>
+              </span>
+            </td>
+            <td><%= document.isIssuedByWaylen ? 'Issued by Waylen' : 'Student upload' %></td>
+            <td><%= format.formatDate(document.createdAt) %></td>
+            <td class="table__actions">
+              <a class="link-button" href="/admin/documents/<%= document.id %>/view">View</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Internal note</h2>
+
+  <form class="form" method="post" action="/admin/students/<%= student.id %>/notes">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field">
+      <label class="field__label visually-hidden" for="body">Note</label>
+      <textarea class="field__textarea" id="body" name="body" rows="3"
+                placeholder="Visible to staff only — never shown to the student"></textarea>
+    </div>
+    <button class="button button--secondary" type="submit">Add note</button>
+  </form>
+</section>
+
+<%# PRD §8.2 — who accessed or changed this record. %>
+<section class="panel">
+  <h2 class="panel__title">Recent activity on this record</h2>
+
+  <% if (!auditTrail.length) { %>
+    <p class="panel__note">No recorded activity.</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Entity</th></tr>
+      </thead>
+      <tbody>
+        <% auditTrail.forEach(function (entry) { %>
+          <tr>
+            <td><%= format.formatDateTime(entry.createdAt) %></td>
+            <td><%= entry.actor ? entry.actor.fullName : 'System' %></td>
+            <td><%= format.humaniseEnum(entry.action) %></td>
+            <td><%= entry.entity %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>

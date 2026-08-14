@@ -1,0 +1,20 @@
+<%# PRD §5.3 — the seven-stage progress tracker. Shared by the portal and the %>
+<%# back-office so both always show the same thing. %>
+<ol class="tracker" aria-label="Application progress">
+  <% progress.forEach(function (step, index) { %>
+    <li class="tracker__step tracker__step--<%= step.status %>">
+      <span class="tracker__marker" aria-hidden="true"><%= index + 1 %></span>
+      <span class="tracker__body">
+        <span class="tracker__label"><%= step.label %></span>
+        <% if (step.reachedAt) { %>
+          <time class="tracker__date" datetime="<%= step.reachedAt.toISOString() %>">
+            <%= format.formatDate(step.reachedAt) %>
+          </time>
+        <% } %>
+      </span>
+      <% if (step.status === 'current') { %>
+        <span class="visually-hidden">(current stage)</span>
+      <% } %>
+    </li>
+  <% }) %>
+</ol>

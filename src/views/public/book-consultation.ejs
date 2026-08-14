@@ -1,0 +1,76 @@
+<%# PRD §A.13 — reachable before registration, so no account is required. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Book a free consultation</h1>
+    <p class="page-hero__lede">
+      A 45-minute session with a counsellor — online or in person — to get a
+      clear view of your options.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner section__inner--narrow">
+    <form class="form" method="post" action="/book-consultation" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="fullName">Full name</label>
+        <input class="field__input" type="text" id="fullName" name="fullName"
+               value="<%= values.fullName || '' %>" autocomplete="name" required>
+        <% if (errors.fullName) { %><p class="field-error"><%= errors.fullName[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="email">Email address</label>
+        <input class="field__input" type="email" id="email" name="email"
+               value="<%= values.email || '' %>" autocomplete="email" required>
+        <% if (errors.email) { %><p class="field-error"><%= errors.email[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="phone">Phone (optional)</label>
+        <input class="field__input" type="tel" id="phone" name="phone"
+               value="<%= values.phone || '' %>" autocomplete="tel">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="type">What would you like to discuss?</label>
+        <select class="field__select" id="type" name="type">
+          <% Object.entries(appointmentTypes).forEach(function (entry) { %>
+            <option value="<%= entry[0] %>" <%= values.type === entry[0] ? 'selected' : '' %>>
+              <%= entry[1] %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <fieldset class="field field--fieldset">
+        <legend class="field__label">How would you like to meet?</legend>
+        <label class="radio">
+          <input type="radio" name="format" value="ONLINE" checked>
+          <span>Online — we will send a Microsoft Teams link</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="format" value="IN_PERSON">
+          <span>In person at one of our offices</span>
+        </label>
+      </fieldset>
+
+      <div class="field">
+        <label class="field__label" for="startsAt">Preferred date and time</label>
+        <input class="field__input" type="datetime-local" id="startsAt" name="startsAt"
+               value="<%= values.startsAt || '' %>" required>
+        <p class="field__hint">We will confirm by email, or suggest the nearest available slot.</p>
+        <% if (errors.startsAt) { %><p class="field-error"><%= errors.startsAt[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="notes">Anything we should know beforehand? (optional)</label>
+        <textarea class="field__textarea" id="notes" name="notes" rows="4"><%= values.notes || '' %></textarea>
+      </div>
+
+      <button class="button button--primary button--large" type="submit">Request consultation</button>
+    </form>
+  </div>
+</section>

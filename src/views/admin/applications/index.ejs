@@ -1,0 +1,62 @@
+<form class="filters filters--bar" method="get" action="/admin/applications">
+  <div class="field">
+    <label class="field__label visually-hidden" for="stage">Stage</label>
+    <select class="field__select" id="stage" name="stage">
+      <option value="">All stages</option>
+      <% stages.forEach(function (stage) { %>
+        <option value="<%= stage.value %>" <%= filters.stage === stage.value ? 'selected' : '' %>>
+          <%= stage.label %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="outcome">Outcome</label>
+    <select class="field__select" id="outcome" name="outcome">
+      <option value="">All outcomes</option>
+      <% ['IN_PROGRESS','OFFER_UNCONDITIONAL','OFFER_CONDITIONAL','REJECTED','WITHDRAWN','DEFERRED','ENROLLED'].forEach(function (outcome) { %>
+        <option value="<%= outcome %>" <%= filters.outcome === outcome ? 'selected' : '' %>>
+          <%= format.humaniseEnum(outcome) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/applications">Clear</a>
+</form>
+
+<% if (!applications.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No applications match those filters' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Reference</th><th scope="col">Student</th><th scope="col">Programme</th>
+        <th scope="col">Country</th><th scope="col">Stage</th><th scope="col">Outcome</th>
+        <th scope="col">Deadline</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% applications.forEach(function (application) { %>
+        <tr>
+          <td><code><%= application.reference %></code></td>
+          <td>
+            <a href="/admin/students/<%= application.studentProfile.id %>">
+              <%= application.studentProfile.user.fullName %>
+            </a>
+          </td>
+          <td><%= application.programmeName || '—' %></td>
+          <td><%= application.country ? application.country.name : '—' %></td>
+          <td><span class="badge badge--neutral"><%= format.humaniseEnum(application.stage) %></span></td>
+          <td><%= format.humaniseEnum(application.outcome) %></td>
+          <td><%= format.formatDate(application.applicationDeadline) %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/applications/<%= application.id %>">Open</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

@@ -1,0 +1,195 @@
+<%#
+  PRD §5.2 — "Welcome, current application stage, outstanding actions,
+  notifications, upcoming appointments."
+%>
+<section class="dash-welcome">
+  <div class="dash-welcome__inner">
+    <p class="dash-welcome__greeting">Welcome back, <%= student.user.fullName.split(' ')[0] %></p>
+    <p class="dash-welcome__status">
+      <span class="dash-welcome__badge">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <%= stageLabel %>
+      </span>
+      <span>Ref: <code style="background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:4px;font-size:0.8em"><%= student.reference %></code></span>
+    </p>
+  </div>
+</section>
+
+<%# Progress tracker — PRD §5.3 %>
+<section class="panel">
+  <h2 class="panel__title">
+    <span class="panel__title-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Your progress
+    </span>
+  </h2>
+
+  <% if (progress) { %>
+    <%- include('../partials/progress-tracker', { progress: progress }) %>
+    <p class="panel__footer">
+      <a href="/portal/applications/<%= primaryApplication.id %>">View application details</a>
+    </p>
+  <% } else { %>
+    <p class="panel__note">
+      Your journey starts once your documents are uploaded and your counsellor has
+      recommended a programme.
+    </p>
+    <a class="button button--primary" href="/portal/documents">Upload your documents</a>
+  <% } %>
+</section>
+
+<div class="dash-grid">
+  <%# Outstanding actions — the most useful thing on the page. %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Outstanding actions
+      </span>
+    </h2>
+
+    <% if (!outstandingDocuments.length) { %>
+      <p class="panel__note panel__note--positive">
+        Nothing outstanding — every expected document is with us.
+      </p>
+    <% } else { %>
+      <p class="panel__note">
+        <%= outstandingDocuments.length %> document<%= outstandingDocuments.length === 1 ? '' : 's' %>
+        still needed before your application can be submitted.
+      </p>
+      <ul class="action-list">
+        <% outstandingDocuments.forEach(function (item) { %>
+          <li class="action-list__item">
+            <span><%= item.label %></span>
+            <a class="button button--secondary button--small" href="/portal/documents">Upload</a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <%# Upcoming appointments %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Upcoming appointments
+      </span>
+    </h2>
+
+    <% if (!appointments.length) { %>
+      <p class="panel__note">No appointments booked.</p>
+      <a class="button button--secondary button--small" href="/portal/appointments/new">Book a session</a>
+    <% } else { %>
+      <ul class="event-list">
+        <% appointments.forEach(function (appointment) { %>
+          <li class="event-list__item">
+            <time class="event-list__when" datetime="<%= appointment.startsAt.toISOString() %>">
+              <%= format.formatDateTime(appointment.startsAt) %>
+            </time>
+            <p class="event-list__what">
+              <%= format.humaniseEnum(appointment.type) %>
+              <span class="badge badge--<%= appointment.status === 'CONFIRMED' ? 'positive' : 'neutral' %>">
+                <%= format.humaniseEnum(appointment.status) %>
+              </span>
+            </p>
+            <% if (appointment.counsellor) { %>
+              <p class="event-list__who">With <%= appointment.counsellor.fullName %></p>
+            <% } %>
+            <% if (appointment.meetingUrl) { %>
+              <a class="event-list__link" href="<%= appointment.meetingUrl %>" rel="noopener" target="_blank">
+                Join the meeting
+              </a>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <%# Applications summary %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        My applications
+      </span>
+    </h2>
+
+    <% if (!applications.length) { %>
+      <p class="panel__note">No applications yet — your counsellor will create one once your documents are approved.</p>
+    <% } else { %>
+      <ul class="mini-list">
+        <% applications.slice(0, 4).forEach(function (application) { %>
+          <li class="mini-list__item">
+            <a href="/portal/applications/<%= application.id %>">
+              <strong><%= application.programmeName || application.reference %></strong>
+              <% if (application.country) { %><small><%= application.country.name %></small><% } %>
+            </a>
+            <span class="badge badge--neutral"><%= format.humaniseEnum(application.stage) %></span>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="panel__footer"><a href="/portal/applications">All applications</a></p>
+    <% } %>
+  </section>
+
+  <%# Notifications %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Recent updates
+      </span>
+    </h2>
+
+    <% if (!notifications.length) { %>
+      <p class="panel__note">Nothing new.</p>
+    <% } else { %>
+      <ul class="mini-list">
+        <% notifications.forEach(function (notification) { %>
+          <li class="mini-list__item<%= notification.readAt ? '' : ' is-unread' %>">
+            <a href="<%= notification.actionUrl || '/portal/notifications' %>">
+              <strong><%= notification.title %></strong>
+              <small><%= format.relativeTime(notification.createdAt) %></small>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="panel__footer"><a href="/portal/notifications">All notifications</a></p>
+    <% } %>
+  </section>
+
+  <%# Counsellor + messages %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Your counsellor
+      </span>
+    </h2>
+
+    <% if (student.assignedCounsellor) { %>
+      <div class="person">
+        <span class="avatar avatar--large" aria-hidden="true">
+          <%= format.initials(student.assignedCounsellor.fullName) %>
+        </span>
+        <div>
+          <p class="person__name"><%= student.assignedCounsellor.fullName %></p>
+          <% if (student.assignedCounsellor.staffProfile && student.assignedCounsellor.staffProfile.jobTitle) { %>
+            <p class="person__role"><%= student.assignedCounsellor.staffProfile.jobTitle %></p>
+          <% } %>
+        </div>
+      </div>
+      <a class="button button--secondary button--small" href="/portal/messages">
+        Send a message<% if (unreadMessages > 0) { %> (<%= unreadMessages %> unread)<% } %>
+      </a>
+    <% } else { %>
+      <p class="panel__note">
+        A counsellor will be assigned to you shortly. In the meantime you can message
+        the team directly.
+      </p>
+      <a class="button button--secondary button--small" href="/portal/messages">Message the team</a>
+    <% } %>
+  </section>
+</div>

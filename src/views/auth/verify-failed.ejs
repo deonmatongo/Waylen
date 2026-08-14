@@ -1,0 +1,11 @@
+<h1 class="auth__title">We could not confirm that link</h1>
+<p class="auth__lede"><%= message %></p>
+
+<form class="form" method="post" action="/verify-email/resend">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="field">
+    <label class="field__label" for="email">Your email address</label>
+    <input class="field__input" type="email" id="email" name="email" autocomplete="email" required>
+  </div>
+  <button class="button button--primary button--block" type="submit">Send a new link</button>
+</form>

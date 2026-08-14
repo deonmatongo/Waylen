@@ -1,0 +1,26 @@
+<header class="app-topbar app-topbar--admin">
+  <a class="app-topbar__brand" href="/admin">
+    <img src="/img/brand/logo.svg" alt="<%= appName %>" width="112" height="27">
+    <span class="app-topbar__label">Back office</span>
+  </a>
+
+  <button class="app-topbar__toggle" type="button" data-sidebar-toggle
+          aria-expanded="false" aria-controls="app-sidebar" aria-label="Toggle menu">
+    <span class="app-topbar__toggle-bar"></span>
+  </button>
+
+  <div class="app-topbar__actions">
+    <div class="app-topbar__user">
+      <span class="avatar" aria-hidden="true"><%= format.initials(currentUser.fullName) %></span>
+      <span class="app-topbar__name">
+        <%= currentUser.fullName %>
+        <small class="app-topbar__role"><%= format.humaniseEnum(currentUser.role) %></small>
+      </span>
+    </div>
+
+    <form method="post" action="/logout" class="app-topbar__logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="button button--ghost button--small" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>

@@ -1,0 +1,6 @@
+<%# Marks a screen whose backing feature belongs to a later PRD phase, so a %>
+<%# scaffold is never mistaken for finished work. Expects `phase` and `detail`. %>
+<div class="notice notice--scaffold">
+  <p class="notice__title">Scaffolded — <%= phase %></p>
+  <p class="notice__body"><%= detail %></p>
+</div>

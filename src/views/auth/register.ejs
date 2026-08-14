@@ -1,0 +1,101 @@
+<%# PRD §5.1 — sign-up captures name, email, password and country of origin, %>
+<%# plus the preferences that feed counsellor recommendations. %>
+<h1 class="auth__title">Create your account</h1>
+<p class="auth__lede">
+  A few details to get started. You will confirm your email before your portal opens.
+</p>
+
+<form class="form" method="post" action="/register" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="field">
+    <label class="field__label" for="fullName">Full name</label>
+    <input class="field__input" type="text" id="fullName" name="fullName" autocomplete="name"
+           value="<%= values.fullName || '' %>" required
+           <%= errors.fullName ? 'aria-invalid="true"' : '' %>>
+    <% if (errors.fullName) { %><p class="field-error"><%= errors.fullName[0] %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="email">Official email address</label>
+    <input class="field__input" type="email" id="email" name="email" autocomplete="email"
+           value="<%= values.email || '' %>" required
+           <%= errors.email ? 'aria-invalid="true"' : '' %>>
+    <% if (errors.email) { %><p class="field-error"><%= errors.email[0] %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="countryOfOrigin">Country of origin</label>
+    <select class="field__select" id="countryOfOrigin" name="countryOfOrigin">
+      <option value="">Select a country</option>
+      <% countries.forEach(function (country) { %>
+        <option value="<%= country.isoCode %>"
+                <%= values.countryOfOrigin === country.isoCode ? 'selected' : '' %>>
+          <%= country.name %>
+        </option>
+      <% }) %>
+    </select>
+    <% if (errors.countryOfOrigin) { %><p class="field-error"><%= errors.countryOfOrigin[0] %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="preferredStudyLevel">What are you looking for?</label>
+    <select class="field__select" id="preferredStudyLevel" name="preferredStudyLevel">
+      <option value="">Select a study level</option>
+      <option value="UNDERGRADUATE">Undergraduate degree</option>
+      <option value="POSTGRADUATE">Postgraduate degree</option>
+      <option value="DOCTORATE">Doctorate</option>
+      <option value="DIPLOMA">Diploma</option>
+      <option value="CERTIFICATION">Professional certification</option>
+      <option value="VOCATIONAL">Vocational training</option>
+      <option value="LANGUAGE">Language school</option>
+      <option value="EXECUTIVE">Executive education</option>
+    </select>
+  </div>
+
+  <fieldset class="field field--fieldset">
+    <legend class="field__label">Destinations you are considering</legend>
+    <div class="checkbox-grid">
+      <% countries.forEach(function (country) { %>
+        <label class="checkbox">
+          <input type="checkbox" name="preferredDestinations" value="<%= country.slug %>">
+          <span><%= country.name %></span>
+        </label>
+      <% }) %>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label class="field__label" for="password">Password</label>
+    <input class="field__input" type="password" id="password" name="password"
+           autocomplete="new-password" required
+           <%= errors.password ? 'aria-invalid="true"' : '' %>>
+    <p class="field__hint">At least 10 characters, with an uppercase letter and a number.</p>
+    <% if (errors.password) { %><p class="field-error"><%= errors.password[0] %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="passwordConfirmation">Confirm password</label>
+    <input class="field__input" type="password" id="passwordConfirmation" name="passwordConfirmation"
+           autocomplete="new-password" required
+           <%= errors.passwordConfirmation ? 'aria-invalid="true"' : '' %>>
+    <% if (errors.passwordConfirmation) { %>
+      <p class="field-error"><%= errors.passwordConfirmation[0] %></p>
+    <% } %>
+  </div>
+
+  <div class="field">
+    <label class="checkbox">
+      <input type="checkbox" name="acceptTerms" value="on" required>
+      <span>
+        I agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and
+        <a href="/privacy-policy" target="_blank" rel="noopener">privacy policy</a>.
+      </span>
+    </label>
+    <% if (errors.acceptTerms) { %><p class="field-error"><%= errors.acceptTerms[0] %></p><% } %>
+  </div>
+
+  <button class="button button--primary button--block" type="submit">Create account</button>
+</form>
+
+<p class="auth__links">Already have an account? <a href="/login">Sign in</a></p>

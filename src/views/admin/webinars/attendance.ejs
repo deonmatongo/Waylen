@@ -1,0 +1,10 @@
+<section class="panel">
+  <h2 class="panel__title"><%= webinar.title %></h2>
+  <p class="panel__note"><%= format.formatDateTime(webinar.startsAt) %></p>
+
+  <dl class="stat-row stat-row--cards">
+    <div class="stat stat--card"><dt class="stat__label">Registered</dt><dd class="stat__value"><%= total %></dd></div>
+    <div class="stat stat--card"><dt class="stat__label">Attended</dt><dd class="stat__value"><%= attended %></dd></div>
+    <div class="stat stat--card"><dt class="stat__label">Attendance rate</dt><dd class="stat__value"><%= attendanceRate %>%</dd></div>
+  </dl>
+</section>

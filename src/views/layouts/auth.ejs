@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title><%= title %> · <%= appName %></title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" href="/img/brand/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="auth">
+  <div class="auth__panel">
+    <a class="auth__brand" href="/">
+      <img src="/img/brand/logo.svg" alt="<%= appName %>" width="132" height="32">
+    </a>
+
+    <%- include('../partials/flash') %>
+    <%- body %>
+  </div>
+
+  <%# The right-hand panel carries the trust signals from PRD §2.8 — a sign-in %>
+  <%# page is still a place where credibility is judged. %>
+  <aside class="auth__aside" aria-hidden="true">
+    <blockquote class="auth__quote">
+      <p>“A trusted guide for people building international lives — education, career, wealth-building and life guidance.”</p>
+    </blockquote>
+  </aside>
+
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

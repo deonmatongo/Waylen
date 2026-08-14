@@ -1,0 +1,100 @@
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Your details</h2>
+
+    <form class="form" method="post" action="/portal/profile">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="fullName">Full name</label>
+        <input class="field__input" type="text" id="fullName" name="fullName"
+               value="<%= student.user.fullName %>" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="email">Email address</label>
+        <input class="field__input" type="email" id="email" value="<%= student.user.email %>" disabled>
+        <p class="field__hint">Contact us if you need to change your email address.</p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="phone">Phone</label>
+        <input class="field__input" type="tel" id="phone" name="phone"
+               value="<%= student.user.phone || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="city">City</label>
+        <input class="field__input" type="text" id="city" name="city" value="<%= student.city || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="preferredStudyLevel">Study level you are aiming for</label>
+        <select class="field__select" id="preferredStudyLevel" name="preferredStudyLevel">
+          <option value="">Not sure yet</option>
+          <% ['UNDERGRADUATE','POSTGRADUATE','DOCTORATE','DIPLOMA','CERTIFICATION','VOCATIONAL','LANGUAGE','EXECUTIVE'].forEach(function (level) { %>
+            <option value="<%= level %>" <%= student.preferredStudyLevel === level ? 'selected' : '' %>>
+              <%= format.humaniseEnum(level) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <fieldset class="field field--fieldset">
+        <legend class="field__label">Destinations you are considering</legend>
+        <div class="checkbox-grid">
+          <% const chosen = student.preferredDestinations.map(function (d) { return d.slug; }); %>
+          <% countries.forEach(function (country) { %>
+            <label class="checkbox">
+              <input type="checkbox" name="preferredDestinations" value="<%= country.slug %>"
+                     <%= chosen.indexOf(country.slug) !== -1 ? 'checked' : '' %>>
+              <span><%= country.name %></span>
+            </label>
+          <% }) %>
+        </div>
+      </fieldset>
+
+      <button class="button button--primary" type="submit">Save changes</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Change your password</h2>
+
+    <form class="form" method="post" action="/portal/profile/password">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="currentPassword">Current password</label>
+        <input class="field__input" type="password" id="currentPassword" name="currentPassword"
+               autocomplete="current-password" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="password">New password</label>
+        <input class="field__input" type="password" id="password" name="password"
+               autocomplete="new-password" required>
+        <p class="field__hint">At least 10 characters, with an uppercase letter and a number.</p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="passwordConfirmation">Confirm new password</label>
+        <input class="field__input" type="password" id="passwordConfirmation" name="passwordConfirmation"
+               autocomplete="new-password" required>
+      </div>
+
+      <button class="button button--primary" type="submit">Change password</button>
+    </form>
+
+    <hr class="rule">
+
+    <h2 class="panel__title">Your account</h2>
+    <dl class="detail-list">
+      <div><dt>Student reference</dt><dd><code><%= student.reference %></code></dd></div>
+      <% if (student.countryOfOrigin) { %>
+        <div><dt>Country of origin</dt><dd><%= student.countryOfOrigin.name %></dd></div>
+      <% } %>
+      <div><dt>Registered</dt><dd><%= format.formatDate(student.createdAt) %></dd></div>
+    </dl>
+  </section>
+</div>

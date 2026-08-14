@@ -1,0 +1,93 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/invoices">Invoices</a>
+  <span aria-hidden="true">/</span>
+  <span><%= invoice.number %></span>
+</nav>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Invoice</h2>
+
+    <dl class="detail-list">
+      <div>
+        <dt>Student</dt>
+        <dd>
+          <a href="/admin/students/<%= invoice.studentProfile.id %>">
+            <%= invoice.studentProfile.user.fullName %>
+          </a>
+        </dd>
+      </div>
+      <div><dt>Status</dt><dd><%= format.humaniseEnum(invoice.status) %></dd></div>
+      <div><dt>Total</dt><dd><%= format.formatMoney(invoice.totalMinor, invoice.currency) %></dd></div>
+      <div><dt>Paid</dt><dd><%= format.formatMoney(invoice.paidMinor, invoice.currency) %></dd></div>
+      <div><dt>Outstanding</dt><dd><%= format.formatMoney(invoice.totalMinor - invoice.paidMinor, invoice.currency) %></dd></div>
+      <div><dt>Due</dt><dd><%= format.formatDate(invoice.dueAt) %></dd></div>
+    </dl>
+
+    <table class="table">
+      <thead><tr><th scope="col">Description</th><th scope="col">Qty</th><th scope="col">Total</th></tr></thead>
+      <tbody>
+        <% invoice.lineItems.forEach(function (item) { %>
+          <tr>
+            <td><%= item.description %></td>
+            <td><%= item.quantity %></td>
+            <td><%= format.formatMoney(item.totalMinor, invoice.currency) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <%# Bank transfer, SWIFT and Revolut never arrive via webhook — PRD §8.1. %>
+    <h2 class="panel__title">Record a payment</h2>
+
+    <form class="form" method="post" action="/admin/invoices/<%= invoice.id %>/record-payment">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="method">Method</label>
+        <select class="field__select" id="method" name="method" required>
+          <% paymentMethods.forEach(function (method) { %>
+            <option value="<%= method %>"><%= format.humaniseEnum(method) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="amountMinor">Amount (in cents)</label>
+        <input class="field__input" type="number" id="amountMinor" name="amountMinor"
+               min="1" step="1" required
+               value="<%= invoice.totalMinor - invoice.paidMinor %>">
+        <p class="field__hint">
+          Outstanding: <%= format.formatMoney(invoice.totalMinor - invoice.paidMinor, invoice.currency) %>
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="manualReference">Bank/transfer reference</label>
+        <input class="field__input" type="text" id="manualReference" name="manualReference">
+      </div>
+
+      <button class="button button--primary" type="submit">Record payment</button>
+    </form>
+
+    <% if (invoice.payments.length) { %>
+      <hr class="rule">
+      <h2 class="panel__title">Payment history</h2>
+      <table class="table">
+        <thead><tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Reference</th></tr></thead>
+        <tbody>
+          <% invoice.payments.forEach(function (payment) { %>
+            <tr>
+              <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
+              <td><%= format.humaniseEnum(payment.method) %></td>
+              <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
+              <td><%= payment.manualReference || payment.providerReference || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+</div>

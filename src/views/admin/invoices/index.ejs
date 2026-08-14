@@ -1,0 +1,40 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/invoices/new">New invoice</a>
+</div>
+
+<% if (!invoices.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No invoices yet' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Number</th><th scope="col">Student</th><th scope="col">Total</th>
+        <th scope="col">Paid</th><th scope="col">Status</th><th scope="col">Due</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% invoices.forEach(function (invoice) { %>
+        <tr>
+          <td><code><%= invoice.number %></code></td>
+          <td>
+            <a href="/admin/students/<%= invoice.studentProfile.id %>">
+              <%= invoice.studentProfile.user.fullName %>
+            </a>
+          </td>
+          <td><%= format.formatMoney(invoice.totalMinor, invoice.currency) %></td>
+          <td><%= format.formatMoney(invoice.paidMinor, invoice.currency) %></td>
+          <td>
+            <span class="badge badge--<%= invoice.status === 'PAID' ? 'positive' : invoice.status === 'OVERDUE' ? 'negative' : 'neutral' %>">
+              <%= format.humaniseEnum(invoice.status) %>
+            </span>
+          </td>
+          <td><%= format.formatDate(invoice.dueAt) %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/invoices/<%= invoice.id %>">Open</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

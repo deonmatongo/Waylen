@@ -1,0 +1,66 @@
+<%# PRD §8.2 — the audit trail, super admin only. Append-only, no edit action. %>
+<form class="filters filters--bar" method="get" action="/admin/audit">
+  <div class="field">
+    <label class="field__label visually-hidden" for="entity">Entity</label>
+    <select class="field__select" id="entity" name="entity">
+      <option value="">All entities</option>
+      <% ['StudentProfile','Document','Application','Invoice','Payment','Referral','User','Appointment','Report'].forEach(function (entity) { %>
+        <option value="<%= entity %>" <%= filters.entity === entity ? 'selected' : '' %>><%= entity %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="action">Action</label>
+    <select class="field__select" id="action" name="action">
+      <option value="">All actions</option>
+      <% ['VIEW','CREATE','UPDATE','DELETE','DOWNLOAD','EXPORT','LOGIN','LOGIN_FAILED','LOGOUT'].forEach(function (action) { %>
+        <option value="<%= action %>" <%= filters.action === action ? 'selected' : '' %>>
+          <%= format.humaniseEnum(action) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/audit">Clear</a>
+</form>
+
+<p class="listing-layout__count"><%= results.total %> entries</p>
+
+<table class="table table--stacked table--dense">
+  <thead>
+    <tr>
+      <th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th>
+      <th scope="col">Entity</th><th scope="col">Changes</th><th scope="col">IP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% results.items.forEach(function (entry) { %>
+      <tr>
+        <td><%= format.formatDateTime(entry.createdAt) %></td>
+        <td>
+          <% if (entry.actor) { %>
+            <%= entry.actor.fullName %>
+            <small class="table__hint"><%= format.humaniseEnum(entry.actor.role) %></small>
+          <% } else { %>
+            System
+          <% } %>
+        </td>
+        <td><%= format.humaniseEnum(entry.action) %></td>
+        <td>
+          <%= entry.entity %>
+          <% if (entry.entityId) { %><small class="table__hint"><%= entry.entityId %></small><% } %>
+        </td>
+        <td>
+          <% if (entry.changes) { %>
+            <pre class="table__json"><code><%= JSON.stringify(entry.changes, null, 1) %></code></pre>
+          <% } else { %>—<% } %>
+        </td>
+        <td><%= entry.ipAddress || '—' %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<%- include('../../partials/pagination', { results: results, baseUrl: '/admin/audit', query: filters }) %>

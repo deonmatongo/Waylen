@@ -1,0 +1,39 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/content/opportunities/new">New opportunity</a>
+</div>
+
+<% if (!opportunities.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No listings yet', actionHref: '/admin/content/opportunities/new', actionLabel: 'Create the first one' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Title</th><th scope="col">Category</th><th scope="col">Country</th>
+        <th scope="col">Institution</th><th scope="col">Status</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% opportunities.forEach(function (opportunity) { %>
+        <tr>
+          <td>
+            <%= opportunity.title %>
+            <% if (opportunity.isFeatured) { %><span class="badge badge--positive">Featured</span><% } %>
+          </td>
+          <td><%= categoryLabels[opportunity.category] %></td>
+          <td><%= opportunity.country.name %></td>
+          <%# Staff-only column — this is exactly what PRD §4.2 keeps off public pages. %>
+          <td><%= opportunity.institution ? opportunity.institution.name : '<span class="table__hint">Not linked</span>' %></td>
+          <td>
+            <span class="badge badge--<%= opportunity.status === 'PUBLISHED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(opportunity.status) %>
+            </span>
+          </td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/content/opportunities/<%= opportunity.id %>/edit">Edit</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

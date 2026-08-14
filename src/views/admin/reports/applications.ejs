@@ -1,0 +1,18 @@
+<section class="panel">
+  <h2 class="panel__title">Outcomes</h2>
+
+  <table class="table">
+    <thead><tr><th scope="col">Outcome</th><th scope="col">Applications</th></tr></thead>
+    <tbody>
+      <% report.byOutcome.forEach(function (row) { %>
+        <tr><td><%= format.humaniseEnum(row.outcome) %></td><td><%= row.count %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Time to decision</h2>
+  <p class="stat__value"><%= report.averageDaysToDecision %> days</p>
+  <p class="panel__note">Average from submission to institution decision.</p>
+</section>

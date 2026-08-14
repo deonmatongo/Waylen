@@ -1,0 +1,42 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/portal/messages">Messages</a>
+  <span aria-hidden="true">/</span>
+  <span><%= thread.subject %></span>
+</nav>
+
+<section class="panel">
+  <ol class="thread">
+    <% thread.messages.forEach(function (message) { %>
+      <li class="thread__message thread__message--<%= message.sender.role === 'STUDENT' ? 'mine' : 'theirs' %>">
+        <header class="thread__meta">
+          <strong><%= message.sender.fullName %></strong>
+          <time datetime="<%= message.createdAt.toISOString() %>">
+            <%= format.formatDateTime(message.createdAt) %>
+          </time>
+        </header>
+        <p class="thread__body"><%= message.body %></p>
+      </li>
+    <% }) %>
+  </ol>
+</section>
+
+<% if (!thread.isClosed) { %>
+  <section class="panel">
+    <h2 class="panel__title">Reply</h2>
+
+    <form class="form" method="post" action="/portal/messages/<%= thread.id %>/reply">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label visually-hidden" for="body">Your reply</label>
+        <textarea class="field__textarea" id="body" name="body" rows="4" required></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Send reply</button>
+    </form>
+  </section>
+<% } else { %>
+  <div class="notice">
+    <p class="notice__body">This conversation is closed. Start a new one if you need anything else.</p>
+  </div>
+<% } %>

@@ -1,0 +1,78 @@
+<%# PRD §6.2 — referrals logged against the student's file. %>
+<form class="filters filters--bar" method="get" action="/admin/referrals">
+  <div class="field">
+    <label class="field__label visually-hidden" for="status">Status</label>
+    <select class="field__select" id="status" name="status">
+      <option value="">All statuses</option>
+      <% ['INITIATED','CONTACTED','IN_PROGRESS','CONVERTED','DECLINED','EXPIRED'].forEach(function (status) { %>
+        <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>>
+          <%= format.humaniseEnum(status) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="partnerId">Partner</label>
+    <select class="field__select" id="partnerId" name="partnerId">
+      <option value="">All partners</option>
+      <% partners.forEach(function (partner) { %>
+        <option value="<%= partner.id %>" <%= filters.partnerId === partner.id ? 'selected' : '' %>>
+          <%= partner.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/referrals">Clear</a>
+</form>
+
+<% if (!referrals.items.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No referrals yet' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Student</th><th scope="col">Partner</th><th scope="col">Source</th>
+        <th scope="col">Status</th><th scope="col">Created</th><th scope="col">Commission</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% referrals.items.forEach(function (referral) { %>
+        <tr>
+          <td>
+            <a href="/admin/students/<%= referral.studentProfile.id %>">
+              <%= referral.studentProfile.user.fullName %>
+            </a>
+          </td>
+          <td><%= referral.partner.name %></td>
+          <td><%= referral.sourceContext || '—' %></td>
+          <td><%= format.humaniseEnum(referral.status) %></td>
+          <td><%= format.formatDate(referral.createdAt) %></td>
+          <td>
+            <%= referral.commissionAmountMinor
+                  ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || 'EUR')
+                  : '—' %>
+          </td>
+          <td class="table__actions">
+            <form method="post" action="/admin/referrals/<%= referral.id %>/status" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <select class="field__select field__select--inline" name="status" aria-label="Update status">
+                <% ['INITIATED','CONTACTED','IN_PROGRESS','CONVERTED','DECLINED','EXPIRED'].forEach(function (status) { %>
+                  <option value="<%= status %>" <%= referral.status === status ? 'selected' : '' %>>
+                    <%= format.humaniseEnum(status) %>
+                  </option>
+                <% }) %>
+              </select>
+              <button class="link-button" type="submit">Update</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <%- include('../../partials/pagination', { results: referrals, baseUrl: '/admin/referrals', query: filters }) %>
+<% } %>

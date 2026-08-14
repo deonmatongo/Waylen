@@ -1,0 +1,73 @@
+<%# PRD §4.6 — curated and vetted, not a casual social feed. Phase 3. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Community &amp; professional network</h1>
+    <p class="page-hero__lede">
+      A vetted network of students, alumni and established African professionals
+      abroad — built around building career, wealth and business, not casual
+      social chat.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <% if (!isLive) { %>
+      <%- include('../partials/scaffold-notice', {
+            phase: 'Phase 3 — ecosystem',
+            detail: 'Community features are scheduled for Phase 3. This page presents the model and captures interest in the meantime.'
+          }) %>
+    <% } %>
+
+    <ul class="card-grid card-grid--2">
+      <li class="card card--feature">
+        <h2 class="card__title">Student &amp; alumni network</h2>
+        <p class="card__body">Spanning multiple African countries and destinations — people who have already made the journey you are starting.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">Mentorship programme</h2>
+        <p class="card__body">Established professionals and business owners abroad, paired with new applicants heading to the same country or city.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">Career &amp; business circles</h2>
+        <p class="card__body">Groups for people at the same stage — early career, business formation, leadership progression.</p>
+      </li>
+      <li class="card card--feature">
+        <h2 class="card__title">Regional meetups</h2>
+        <p class="card__body">Professional networking events across Africa and in host countries throughout Europe and beyond.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section--muted">
+  <div class="section__inner section__inner--narrow">
+    <h2 class="section__title">Register your interest</h2>
+    <p class="section__lede">
+      Tell us where you are in your journey and we will be in touch as the
+      network opens.
+    </p>
+
+    <form class="form" method="post" action="/contact">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="countryOfInterest" value="community">
+
+      <div class="field">
+        <label class="field__label" for="fullName">Full name</label>
+        <input class="field__input" type="text" id="fullName" name="fullName" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="email">Email address</label>
+        <input class="field__input" type="email" id="email" name="email" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="message">Where are you in your journey?</label>
+        <textarea class="field__textarea" id="message" name="message" rows="4" required></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Register interest</button>
+    </form>
+  </div>
+</section>

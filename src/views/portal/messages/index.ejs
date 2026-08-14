@@ -1,0 +1,43 @@
+<%# PRD §5.2 — secure, logged communication with the Waylen team. %>
+<section class="panel">
+  <h2 class="panel__title">Start a new conversation</h2>
+
+  <form class="form" method="post" action="/portal/messages">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label class="field__label" for="subject">Subject</label>
+      <input class="field__input" type="text" id="subject" name="subject" required>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="body">Message</label>
+      <textarea class="field__textarea" id="body" name="body" rows="5" required></textarea>
+    </div>
+
+    <button class="button button--primary" type="submit">Send</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Your conversations</h2>
+
+  <% if (!threads.length) { %>
+    <p class="panel__note">No conversations yet.</p>
+  <% } else { %>
+    <ul class="mini-list">
+      <% threads.forEach(function (thread) { %>
+        <li class="mini-list__item">
+          <a href="/portal/messages/<%= thread.id %>">
+            <strong><%= thread.subject %></strong>
+            <small>
+              <%= thread._count.messages %> message<%= thread._count.messages === 1 ? '' : 's' %>
+              · <%= format.relativeTime(thread.lastMessageAt) %>
+            </small>
+          </a>
+          <% if (thread.isClosed) { %><span class="badge badge--neutral">Closed</span><% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>

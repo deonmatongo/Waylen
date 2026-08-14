@@ -1,0 +1,16 @@
+<section class="panel">
+  <h2 class="panel__title">Applications by destination</h2>
+
+  <% if (!report.length) { %>
+    <p class="panel__note">No application data yet.</p>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th scope="col">Country</th><th scope="col">Applications</th></tr></thead>
+      <tbody>
+        <% report.forEach(function (row) { %>
+          <tr><td><%= row.country %></td><td><%= row.applications %></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>

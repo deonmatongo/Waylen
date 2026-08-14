@@ -1,0 +1,62 @@
+<%#
+  Email templates are deliberately table-based with inline styles: this is the
+  only markup that renders consistently across Gmail, Outlook and Apple Mail.
+%>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f4f5f7;padding:32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+             style="width:560px;max-width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;">
+
+        <tr>
+          <td style="padding:28px 32px 20px;border-bottom:1px solid #e8eaee;">
+            <p style="margin:0;font-size:18px;font-weight:700;color:#0b1b34;letter-spacing:-0.01em;">
+              <%= appName %>
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 32px;color:#22314d;font-size:15px;line-height:1.6;">
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0b1b34;">Welcome to <%= appName %></h1>
+            <p style="margin:0 0 14px;">Hello <%= fullName.split(' ')[0] %>,</p>
+            <p style="margin:0 0 14px;">
+              Your account is confirmed. Here is what happens next:
+            </p>
+            <ol style="margin:0 0 14px;padding-left:20px;">
+              <li style="margin-bottom:6px;">Upload your passport, transcripts and certificates.</li>
+              <li style="margin-bottom:6px;">Our team reviews and verifies each document.</li>
+              <li style="margin-bottom:6px;">Your counsellor recommends the right programme and institution.</li>
+              <li>We submit your application and track every response.</li>
+            </ol>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+              <tr>
+                <td style="background-color:#0b1b34;border-radius:8px;">
+                  <a href="<%= appUrl + '/portal/documents' %>"
+                     style="display:inline-block;padding:13px 26px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
+                    Upload my documents
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 32px 28px;border-top:1px solid #e8eaee;color:#6b7688;font-size:12px;line-height:1.5;">
+            <p style="margin:0 0 6px;">
+              &copy; <%= currentYear %> <%= appName %>. A trusted guide for people building international lives.
+            </p>
+            <p style="margin:0;">
+              <a href="<%= appUrl %>" style="color:#6b7688;">waylen.com</a>
+              &nbsp;·&nbsp;
+              <a href="<%= appUrl %>/privacy-policy" style="color:#6b7688;">Privacy policy</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

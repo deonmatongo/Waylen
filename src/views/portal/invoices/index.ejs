@@ -1,0 +1,36 @@
+<%- include('../../partials/scaffold-notice', {
+      phase: 'Phase 2 — operations',
+      detail: 'Invoices and payment history render from real data; the online payment flow (card, Apple Pay, Google Pay, and regional processors) is Phase 2.'
+    }) %>
+<% if (!invoices.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No invoices yet', message: 'Invoices for consultations, application fees and services will appear here.' }) %>
+<% } else { %>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Invoice</th><th scope="col">Description</th><th scope="col">Total</th>
+        <th scope="col">Paid</th><th scope="col">Status</th><th scope="col">Due</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% invoices.forEach(function (invoice) { %>
+        <tr>
+          <td><code><%= invoice.number %></code></td>
+          <td><%= invoice.description || '—' %></td>
+          <td><%= format.formatMoney(invoice.totalMinor, invoice.currency) %></td>
+          <td><%= format.formatMoney(invoice.paidMinor, invoice.currency) %></td>
+          <td>
+            <span class="badge badge--<%= invoice.status === 'PAID' ? 'positive' : invoice.status === 'OVERDUE' ? 'negative' : 'neutral' %>">
+              <%= format.humaniseEnum(invoice.status) %>
+            </span>
+          </td>
+          <td><%= format.formatDate(invoice.dueAt) %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/portal/invoices/<%= invoice.id %>">View</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

@@ -1,0 +1,44 @@
+<section class="panel">
+  <h2 class="panel__title">Coming up</h2>
+
+  <% if (!upcoming.length) { %>
+    <p class="panel__note">No sessions scheduled right now.</p>
+  <% } else { %>
+    <ul class="event-list">
+      <% upcoming.forEach(function (webinar) { %>
+        <li class="event-list__item">
+          <time class="event-list__when" datetime="<%= webinar.startsAt.toISOString() %>">
+            <%= format.formatDateTime(webinar.startsAt) %>
+          </time>
+          <p class="event-list__what"><%= webinar.title %></p>
+          <% if (webinar.description) { %>
+            <p class="event-list__who"><%= format.truncate(webinar.description, 140) %></p>
+          <% } %>
+
+          <div class="event-list__actions">
+            <form method="post" action="/portal/webinars/<%= webinar.id %>/register" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="button button--secondary button--small" type="submit">Register</button>
+            </form>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<% if (recordings.length) { %>
+  <section class="panel">
+    <h2 class="panel__title">Recordings</h2>
+    <ul class="mini-list">
+      <% recordings.forEach(function (webinar) { %>
+        <li class="mini-list__item">
+          <a href="<%= webinar.recordingUrl %>" rel="noopener" target="_blank">
+            <strong><%= webinar.title %></strong>
+            <small><%= format.formatDate(webinar.startsAt) %></small>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>

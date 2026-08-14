@@ -1,0 +1,64 @@
+<%- include('../../partials/scaffold-notice', {
+      phase: 'Phase 2 — operations',
+      detail: 'The invoice renders in full. Taking payment online is Phase 2 — bank transfer details are shown in the meantime.'
+    }) %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/portal/invoices">Invoices</a>
+  <span aria-hidden="true">/</span>
+  <span><%= invoice.number %></span>
+</nav>
+
+<section class="panel">
+  <dl class="detail-list">
+    <div><dt>Invoice number</dt><dd><code><%= invoice.number %></code></dd></div>
+    <div><dt>Status</dt><dd><%= format.humaniseEnum(invoice.status) %></dd></div>
+    <div><dt>Issued</dt><dd><%= format.formatDate(invoice.issuedAt) %></dd></div>
+    <div><dt>Due</dt><dd><%= format.formatDate(invoice.dueAt) %></dd></div>
+  </dl>
+
+  <table class="table">
+    <thead>
+      <tr><th scope="col">Description</th><th scope="col">Qty</th><th scope="col">Unit price</th><th scope="col">Total</th></tr>
+    </thead>
+    <tbody>
+      <% invoice.lineItems.forEach(function (item) { %>
+        <tr>
+          <td><%= item.description %></td>
+          <td><%= item.quantity %></td>
+          <td><%= format.formatMoney(item.unitPriceMinor, invoice.currency) %></td>
+          <td><%= format.formatMoney(item.totalMinor, invoice.currency) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+    <tfoot>
+      <tr><th scope="row" colspan="3">Subtotal</th><td><%= format.formatMoney(invoice.subtotalMinor, invoice.currency) %></td></tr>
+      <% if (invoice.taxMinor > 0) { %>
+        <tr><th scope="row" colspan="3">Tax</th><td><%= format.formatMoney(invoice.taxMinor, invoice.currency) %></td></tr>
+      <% } %>
+      <tr><th scope="row" colspan="3">Total</th><td><strong><%= format.formatMoney(invoice.totalMinor, invoice.currency) %></strong></td></tr>
+      <tr><th scope="row" colspan="3">Paid</th><td><%= format.formatMoney(invoice.paidMinor, invoice.currency) %></td></tr>
+      <tr><th scope="row" colspan="3">Outstanding</th><td><strong><%= format.formatMoney(invoice.totalMinor - invoice.paidMinor, invoice.currency) %></strong></td></tr>
+    </tfoot>
+  </table>
+</section>
+
+<% if (invoice.payments.length) { %>
+  <section class="panel">
+    <h2 class="panel__title">Payment history</h2>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        <% invoice.payments.forEach(function (payment) { %>
+          <tr>
+            <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
+            <td><%= format.humaniseEnum(payment.method) %></td>
+            <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
+            <td><%= format.humaniseEnum(payment.status) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<% } %>

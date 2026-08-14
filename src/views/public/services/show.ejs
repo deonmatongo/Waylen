@@ -1,0 +1,27 @@
+<article class="section">
+  <div class="section__inner prose-layout">
+    <div class="prose">
+      <h1><%= service.name %></h1>
+      <p class="article-head__lede"><%= service.summary %></p>
+
+      <%#
+        TODO(phase-1): move the long-form copy for each service into the CMS
+        (Resource with type ARTICLE, keyed by service slug) so staff can edit
+        it without a deploy — PRD §8.1.
+      %>
+      <%- include('../../partials/scaffold-notice', {
+            phase: 'Phase 1 — content',
+            detail: 'Long-form copy for this service will be authored in the admin CMS. The page structure, routing and navigation are complete.'
+          }) %>
+    </div>
+
+    <aside class="prose-layout__aside">
+      <div class="panel panel--sticky">
+        <h2 class="panel__title">Talk to us</h2>
+        <p class="panel__note">A counsellor can explain how this works for your situation.</p>
+        <a class="button button--primary button--block" href="/book-consultation">Book a consultation</a>
+        <a class="button button--secondary button--block" href="/contact">Send a message</a>
+      </div>
+    </aside>
+  </div>
+</article>

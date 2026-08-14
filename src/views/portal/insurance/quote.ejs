@@ -1,0 +1,13 @@
+<%- include('../../partials/scaffold-notice', {
+      phase: 'Phase 2 — operations',
+      detail: 'Quotes come from the contracted insurance partner. Until then a counsellor prepares them by hand.'
+    }) %>
+<section class="panel">
+  <% if (!quote) { %>
+    <p class="panel__note">
+      Message your counsellor with your travel dates and destination, and they will
+      prepare a quote for you.
+    </p>
+    <a class="button button--secondary" href="/portal/messages">Message your counsellor</a>
+  <% } %>
+</section>

@@ -1,0 +1,31 @@
+<%# Portal navigation — PRD §5.2 modules. Feature-gated items are filtered %>
+<%# out in middleware/locals.ts, so this template just renders what it gets. %>
+<nav class="app-sidebar" id="app-sidebar" aria-label="Portal navigation">
+  <div class="app-sidebar__brand">
+    <span class="app-sidebar__brand-name"><%= appName %></span>
+    <span class="app-sidebar__brand-tag">Client Portal</span>
+  </div>
+  <ul class="app-sidebar__list">
+    <% portalNav.forEach(function (item) { %>
+      <li>
+        <a class="app-sidebar__link<%= currentPath === item.href || (item.href !== '/portal' && currentPath.startsWith(item.href)) ? ' is-current' : '' %>"
+           href="<%= item.href %>"
+           <%= currentPath === item.href ? 'aria-current="page"' : '' %>>
+          <span class="app-sidebar__icon icon icon--<%= item.icon %>" aria-hidden="true"></span>
+          <span class="app-sidebar__label"><%= item.label %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+
+  <div class="app-sidebar__footer">
+    <a class="app-sidebar__link" href="/portal/profile">
+      <span class="app-sidebar__icon icon icon--user" aria-hidden="true"></span>
+      <span class="app-sidebar__label">My profile</span>
+    </a>
+    <a class="app-sidebar__link" href="/">
+      <span class="app-sidebar__icon icon icon--external" aria-hidden="true"></span>
+      <span class="app-sidebar__label">Main website</span>
+    </a>
+  </div>
+</nav>

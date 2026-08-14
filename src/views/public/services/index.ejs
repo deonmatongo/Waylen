@@ -1,0 +1,37 @@
+<%# PRD §4.7 — the full breadth of support, mapped to §6.1 partner categories. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Our services</h1>
+    <p class="page-hero__lede">
+      Education, career, wealth-building, relocation, legal and financial
+      support — guidance across the whole journey, not just admissions.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <ul class="card-grid card-grid--3">
+      <% services.forEach(function (service) { %>
+        <li class="card card--service">
+          <div class="card__content">
+            <span class="card__icon icon icon--<%= service.icon %>" aria-hidden="true"></span>
+            <h2 class="card__title"><%= service.name %></h2>
+            <p class="card__body"><%= service.summary %></p>
+            <a class="card__link" href="/services/<%= service.slug %>">Learn more</a>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</section>
+
+<section class="cta-banner">
+  <div class="cta-banner__inner">
+    <h2 class="cta-banner__title">Not sure where to start?</h2>
+    <p class="cta-banner__body">A 45-minute consultation will give you a clear view of your options.</p>
+    <div class="cta-banner__actions">
+      <a class="button button--primary button--large" href="/book-consultation">Book a consultation</a>
+    </div>
+  </div>
+</section>

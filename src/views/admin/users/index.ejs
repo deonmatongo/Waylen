@@ -1,0 +1,52 @@
+<% if (!users.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No staff accounts yet' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Name</th><th scope="col">Role</th><th scope="col">Status</th>
+        <th scope="col">Last signed in</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(function (user) { %>
+        <tr>
+          <td>
+            <%= user.fullName %>
+            <small class="table__hint"><%= user.email %></small>
+            <% if (user.staffProfile && user.staffProfile.jobTitle) { %>
+              <small class="table__hint"><%= user.staffProfile.jobTitle %></small>
+            <% } %>
+          </td>
+          <td><%= format.humaniseEnum(user.role) %></td>
+          <td>
+            <span class="badge badge--<%= user.status === 'ACTIVE' ? 'positive' : 'negative' %>">
+              <%= format.humaniseEnum(user.status) %>
+            </span>
+          </td>
+          <td><%= user.lastLoginAt ? format.relativeTime(user.lastLoginAt) : 'Never' %></td>
+          <td class="table__actions">
+            <form method="post" action="/admin/users/<%= user.id %>/role" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <select class="field__select field__select--inline" name="role" aria-label="Change role">
+                <% roles.forEach(function (role) { %>
+                  <option value="<%= role %>" <%= user.role === role ? 'selected' : '' %>>
+                    <%= format.humaniseEnum(role) %>
+                  </option>
+                <% }) %>
+              </select>
+              <button class="link-button" type="submit">Save</button>
+            </form>
+
+            <% if (user.status === 'ACTIVE') { %>
+              <form method="post" action="/admin/users/<%= user.id %>/suspend" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="link-button link-button--danger" type="submit">Suspend</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

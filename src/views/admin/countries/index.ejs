@@ -1,0 +1,42 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/countries/new">Add a country</a>
+</div>
+
+<p class="panel__note">
+  Adding a destination never requires a code change — PRD §8.1 requires the
+  platform to scale to new countries without a rebuild.
+</p>
+
+<% if (!countries.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No countries yet', actionHref: '/admin/countries/new', actionLabel: 'Add the first one' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Country</th><th scope="col">Code</th><th scope="col">Status</th>
+        <th scope="col">Featured</th><th scope="col">Programmes</th><th scope="col">Interested students</th>
+        <th scope="col">Order</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% countries.forEach(function (country) { %>
+        <tr>
+          <td><%= country.name %><small class="table__hint">/countries/<%= country.slug %></small></td>
+          <td><%= country.isoCode %></td>
+          <td>
+            <span class="badge badge--<%= country.status === 'PUBLISHED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(country.status) %>
+            </span>
+          </td>
+          <td><%= country.isFeatured ? 'Yes' : 'No' %></td>
+          <td><%= country._count.opportunities %></td>
+          <td><%= country._count.studentsTargeting %></td>
+          <td><%= country.displayOrder %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/countries/<%= country.id %>/edit">Edit</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

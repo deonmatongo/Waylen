@@ -1,0 +1,52 @@
+<%# PRD §4.4 — the platform's biggest long-term asset. %>
+<section class="page-hero">
+  <div class="section__inner">
+    <h1 class="page-hero__title">Learning Hub</h1>
+    <p class="page-hero__lede">
+      Guides, checklists and articles on choosing a programme, scholarships,
+      visas, budgeting, motivation letters, CVs and building a career abroad.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__inner">
+    <nav class="chip-nav" aria-label="Filter by type">
+      <a class="chip<%= !filters.type ? ' is-current' : '' %>" href="/learning-hub">Everything</a>
+      <% ['ARTICLE', 'COUNTRY_GUIDE', 'CHECKLIST', 'TEMPLATE', 'VIDEO', 'DOWNLOAD'].forEach(function (type) { %>
+        <a class="chip<%= filters.type === type ? ' is-current' : '' %>"
+           href="/learning-hub?type=<%= type %>"><%= format.humaniseEnum(type) %></a>
+      <% }) %>
+    </nav>
+
+    <% if (!results.items.length) { %>
+      <%- include('../../partials/empty-state', {
+            heading: 'Nothing published here yet',
+            message: 'New guides and articles are added regularly. Check back soon.'
+          }) %>
+    <% } else { %>
+      <ul class="card-grid card-grid--3">
+        <% results.items.forEach(function (resource) { %>
+          <li class="card card--article">
+            <% if (resource.coverImagePath) { %>
+              <img class="card__image" src="<%= resource.coverImagePath %>" alt="" width="480" height="270" loading="lazy">
+            <% } %>
+            <div class="card__content">
+              <p class="card__eyebrow">
+                <%= format.humaniseEnum(resource.type) %>
+                <% if (resource.readMinutes) { %> · <%= resource.readMinutes %> min read<% } %>
+              </p>
+              <h2 class="card__title"><%= resource.title %></h2>
+              <% if (resource.excerpt) { %>
+                <p class="card__body"><%= format.truncate(resource.excerpt, 130) %></p>
+              <% } %>
+              <a class="card__link" href="/learning-hub/<%= resource.slug %>">Read more</a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+
+      <%- include('../../partials/pagination', { results: results, baseUrl: '/learning-hub', query: filters }) %>
+    <% } %>
+  </div>
+</section>

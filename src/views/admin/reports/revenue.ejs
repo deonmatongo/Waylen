@@ -1,0 +1,34 @@
+<section class="panel">
+  <h2 class="panel__title">Invoiced by category</h2>
+
+  <% if (!report.byCategory.length) { %>
+    <p class="panel__note">No invoiced revenue recorded yet.</p>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th scope="col">Category</th><th scope="col">Line items</th><th scope="col">Total</th></tr></thead>
+      <tbody>
+        <% report.byCategory.forEach(function (row) { %>
+          <tr>
+            <td><%= format.humaniseEnum(row.category) %></td>
+            <td><%= row.count %></td>
+            <td><%= format.formatMoney(row.totalMinor) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Partner commissions</h2>
+    <p class="stat__value"><%= format.formatMoney(report.commissionsMinor) %></p>
+    <p class="panel__note">Across <%= report.commissionCount %> converted referrals.</p>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Outstanding</h2>
+    <p class="stat__value"><%= format.formatMoney(report.outstandingMinor) %></p>
+    <p class="panel__note">Invoiced but not yet paid.</p>
+  </section>
+</div>

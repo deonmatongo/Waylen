@@ -1,0 +1,40 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/webinars/new">New webinar</a>
+</div>
+
+<% if (!webinars.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No webinars yet', actionHref: '/admin/webinars/new', actionLabel: 'Create the first one' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Title</th><th scope="col">When</th><th scope="col">Format</th>
+        <th scope="col">Status</th><th scope="col">Registrations</th><th scope="col">Recording</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% webinars.forEach(function (webinar) { %>
+        <tr>
+          <td><%= webinar.title %></td>
+          <td><%= format.formatDateTime(webinar.startsAt) %></td>
+          <td><%= format.humaniseEnum(webinar.format) %></td>
+          <td>
+            <span class="badge badge--<%= webinar.status === 'PUBLISHED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(webinar.status) %>
+            </span>
+          </td>
+          <td>
+            <%= webinar._count.registrations %><% if (webinar.capacity) { %> / <%= webinar.capacity %><% } %>
+          </td>
+          <td><%= webinar.recordingUrl ? 'Yes' : '—' %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/webinars/<%= webinar.id %>/edit">Edit</a>
+            <a class="link-button" href="/admin/webinars/<%= webinar.id %>/registrations">Registrations</a>
+            <a class="link-button" href="/admin/webinars/<%= webinar.id %>/attendance">Attendance</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

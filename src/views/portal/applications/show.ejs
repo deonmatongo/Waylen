@@ -1,0 +1,95 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/portal/applications">My applications</a>
+  <span aria-hidden="true">/</span>
+  <span><%= application.reference %></span>
+</nav>
+
+<section class="panel">
+  <h2 class="panel__title">Progress</h2>
+  <%- include('../../partials/progress-tracker', { progress: progress }) %>
+</section>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Details</h2>
+
+    <dl class="detail-list">
+      <div><dt>Reference</dt><dd><code><%= application.reference %></code></dd></div>
+      <% if (application.programmeName) { %>
+        <div><dt>Programme</dt><dd><%= application.programmeName %></dd></div>
+      <% } %>
+      <% if (application.country) { %>
+        <div><dt>Destination</dt><dd><%= application.country.name %></dd></div>
+      <% } %>
+      <% if (application.studyLevel) { %>
+        <div><dt>Level</dt><dd><%= format.humaniseEnum(application.studyLevel) %></dd></div>
+      <% } %>
+      <% if (application.intakePeriod) { %>
+        <div><dt>Intake</dt><dd><%= application.intakePeriod %></dd></div>
+      <% } %>
+      <div><dt>Current stage</dt><dd><%= stageLabels[application.stage] %></dd></div>
+      <div><dt>Outcome</dt><dd><%= format.humaniseEnum(application.outcome) %></dd></div>
+      <% if (application.submittedAt) { %>
+        <div><dt>Submitted</dt><dd><%= format.formatDate(application.submittedAt) %></dd></div>
+      <% } %>
+      <% if (application.applicationDeadline) { %>
+        <div><dt>Deadline</dt><dd><%= format.formatDate(application.applicationDeadline) %></dd></div>
+      <% } %>
+    </dl>
+
+    <% if (application.studentNotes) { %>
+      <div class="notice">
+        <p class="notice__title">A note from your counsellor</p>
+        <p class="notice__body"><%= application.studentNotes %></p>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Timeline</h2>
+
+    <% if (!application.events.length) { %>
+      <p class="panel__note">No updates yet.</p>
+    <% } else { %>
+      <ol class="timeline">
+        <% application.events.forEach(function (event) { %>
+          <li class="timeline__item">
+            <time class="timeline__when" datetime="<%= event.createdAt.toISOString() %>">
+              <%= format.formatDateTime(event.createdAt) %>
+            </time>
+            <p class="timeline__what">
+              <strong><%= stageLabels[event.stage] %></strong>
+              <% if (event.note) { %><span><%= event.note %></span><% } %>
+            </p>
+          </li>
+        <% }) %>
+      </ol>
+    <% } %>
+  </section>
+</div>
+
+<% if (application.documents.length) { %>
+  <section class="panel">
+    <h2 class="panel__title">Documents attached to this application</h2>
+
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Document</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Uploaded</th></tr>
+      </thead>
+      <tbody>
+        <% application.documents.forEach(function (document) { %>
+          <tr>
+            <td><%= document.originalFilename %></td>
+            <td><%= format.humaniseEnum(document.type) %></td>
+            <td>
+              <span class="badge badge--<%= document.status === 'APPROVED' ? 'positive' : document.status === 'NEEDS_CORRECTION' ? 'negative' : 'neutral' %>">
+                <%= format.humaniseEnum(document.status) %>
+              </span>
+            </td>
+            <td><%= format.formatDate(document.createdAt) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<% } %>

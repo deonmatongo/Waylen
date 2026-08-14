@@ -1,0 +1,66 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/partners/new">Add a partner</a>
+</div>
+
+<form class="filters filters--bar" method="get" action="/admin/partners">
+  <div class="field">
+    <label class="field__label visually-hidden" for="category">Category</label>
+    <select class="field__select" id="category" name="category">
+      <option value="">All categories</option>
+      <% Object.entries(categoryLabels).forEach(function (entry) { %>
+        <option value="<%= entry[0] %>" <%= filters.category === entry[0] ? 'selected' : '' %>>
+          <%= entry[1] %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="status">Status</label>
+    <select class="field__select" id="status" name="status">
+      <option value="">All statuses</option>
+      <% ['PROSPECT','ACTIVE','INACTIVE','SUSPENDED'].forEach(function (status) { %>
+        <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>>
+          <%= format.humaniseEnum(status) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/partners">Clear</a>
+</form>
+
+<% if (!partners.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No partners yet', actionHref: '/admin/partners/new', actionLabel: 'Add the first one' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Partner</th><th scope="col">Category</th><th scope="col">Coverage</th>
+        <th scope="col">Status</th><th scope="col">Vetted</th><th scope="col">Public</th>
+        <th scope="col">Referrals</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% partners.forEach(function (partner) { %>
+        <tr>
+          <td><a href="/admin/partners/<%= partner.id %>"><%= partner.name %></a></td>
+          <td><%= categoryLabels[partner.category] %></td>
+          <td><%= partner.countries.map(function (c) { return c.name; }).join(', ') || '—' %></td>
+          <td>
+            <span class="badge badge--<%= partner.status === 'ACTIVE' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(partner.status) %>
+            </span>
+          </td>
+          <td><%= partner.vettedAt ? format.formatDate(partner.vettedAt) : 'Not yet' %></td>
+          <td><%= partner.isPubliclyListed ? 'Listed' : 'Hidden' %></td>
+          <td><%= partner._count.referrals %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/partners/<%= partner.id %>/edit">Edit</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

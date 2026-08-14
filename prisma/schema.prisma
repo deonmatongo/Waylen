@@ -1,0 +1,1087 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Waylen Platform — data model
+//
+// Structured around the three layers in PRD §3:
+//   1. Public Website     → public content entities (CMS-managed)
+//   2. Educational Portal → identity, applications, documents, money, comms
+//   3. Partner Ecosystem  → Partner + Referral, present from day one (PRD §6.3)
+//
+// PRD §8.2 requires an audit trail over student records — see AuditLog.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// IDENTITY & ACCESS  (PRD §5.1, §8.1)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum UserRole {
+  STUDENT
+  COUNSELLOR
+  ADMIN_STAFF
+  SUPER_ADMIN
+  AGENT // PRD §5.5 — later phase, modelled now so the schema does not preclude it
+  PARTNER // PRD §9.1 — future partner self-service portal
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         UserRole   @default(STUDENT)
+  status       UserStatus @default(PENDING_VERIFICATION)
+
+  // Email verification is required before portal access (PRD §5.1)
+  emailVerifiedAt        DateTime?
+  verificationToken      String?   @unique
+  verificationExpiresAt  DateTime?
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
+
+  // Future MFA support (PRD §8.1) — columns present, flow ships later
+  mfaEnabled Boolean @default(false)
+  mfaSecret  String?
+
+  lastLoginAt     DateTime?
+  failedLoginAt   DateTime?
+  failedLoginCount Int      @default(0)
+
+  studentProfile StudentProfile?
+  staffProfile   StaffProfile?
+
+  // Relations where this user is the actor rather than the subject
+  sentMessages      Message[]           @relation("MessageSender")
+  notifications     Notification[]
+  auditEntries      AuditLog[]          @relation("AuditActor")
+  documentReviews   Document[]          @relation("DocumentReviewer")
+  uploadedDocuments Document[]          @relation("DocumentUploader")
+  counselledStudents StudentProfile[]   @relation("AssignedCounsellor")
+  hostedAppointments Appointment[]      @relation("AppointmentCounsellor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role, status])
+  @@map("users")
+}
+
+/// Staff, counsellor, admin and (later) agent/partner-side metadata.
+model StaffProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobTitle String?
+  bio      String?
+  avatarPath String?
+  /// Region or country coverage — supports routing enquiries to the right person
+  regions  String @default("[]")
+  /// Set when role = AGENT (PRD §5.5) or PARTNER (PRD §9.1)
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("staff_profiles")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STUDENT  (PRD §5.1, §5.3)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum StudyLevel {
+  UNDERGRADUATE
+  POSTGRADUATE
+  DOCTORATE
+  DIPLOMA
+  CERTIFICATION
+  VOCATIONAL
+  LANGUAGE
+  EXECUTIVE
+}
+
+/// PRD §5.3 — the progress tracker stages, in order.
+enum ApplicationStage {
+  PROFILE_CREATED
+  DOCUMENTS_SUBMITTED
+  UNDER_REVIEW
+  APPLICATION_SUBMITTED
+  OFFER_RECEIVED
+  VISA_PROCESSING
+  ENROLLED
+}
+
+model StudentProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Human-readable reference used in correspondence with institutions
+  reference String @unique
+
+  countryOfOriginId String?
+  countryOfOrigin   Country? @relation("StudentOrigin", fields: [countryOfOriginId], references: [id], onDelete: SetNull)
+
+  dateOfBirth DateTime?
+  city        String?
+
+  // Captured at registration, feeds counsellor recommendations (PRD §5.1)
+  preferredStudyLevel   StudyLevel?
+  preferredCourses      String      @default("[]")
+  preferredDestinations Country[]   @relation("StudentDestinations")
+
+  assignedCounsellorId String?
+  assignedCounsellor   User?   @relation("AssignedCounsellor", fields: [assignedCounsellorId], references: [id], onDelete: SetNull)
+
+  /// Denormalised furthest stage reached — cheap dashboard + admin list reads
+  currentStage ApplicationStage @default(PROFILE_CREATED)
+
+  /// Set when the student was introduced by an agent (PRD §5.5)
+  referredByPartnerId String?
+  referredByPartner   Partner? @relation("PartnerSourcedStudents", fields: [referredByPartnerId], references: [id], onDelete: SetNull)
+
+  /// True once the student has arrived abroad — unlocks diaspora/community value (PRD §2.4)
+  isAlumni Boolean @default(false)
+
+  applications        Application[]
+  documents           Document[]
+  invoices            Invoice[]
+  appointments        Appointment[]
+  messageThreads      MessageThread[]
+  referrals           Referral[]
+  insurancePolicies   InsurancePolicy[]
+  webinarRegistrations WebinarRegistration[]
+  enquiries           Enquiry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([currentStage])
+  @@index([assignedCounsellorId])
+  @@map("student_profiles")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PUBLIC CONTENT  (PRD §4 — CMS-managed by non-technical staff, §8.1)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Country {
+  id     String        @id @default(cuid())
+  slug   String        @unique
+  name   String
+  /// ISO 3166-1 alpha-2
+  isoCode String       @unique
+  status PublishStatus @default(DRAFT)
+
+  /// Ordering on the destinations grid
+  displayOrder Int    @default(0)
+  isFeatured   Boolean @default(false)
+
+  heroImagePath String?
+  flagImagePath String?
+  summary       String?
+
+  // PRD §4.3 — the mini-encyclopaedia sections
+  educationOverview   String?
+  costOfLiving        String?
+  accommodation       String?
+  healthcare          String?
+  banking             String?
+  transportation      String?
+  studentLife         String?
+  workingWhileStudying String?
+  careerOpportunities String?
+  visaInformation     String?
+  popularProgrammes   String?
+
+  indicativeTuitionMin Int?
+  indicativeTuitionMax Int?
+  costOfLivingMonthly  Int?
+  /// ISO 4217 for the figures above
+  currency             String @default("EUR")
+
+  metaTitle       String?
+  metaDescription String?
+
+  opportunities     Opportunity[]
+  faqs              Faq[]
+  studentsFromHere  StudentProfile[] @relation("StudentOrigin")
+  studentsTargeting StudentProfile[] @relation("StudentDestinations")
+  partners          Partner[]        @relation("PartnerCountries")
+  applications      Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, displayOrder])
+  @@map("countries")
+}
+
+/// PRD §4.2 — the multi-pathway categories.
+enum OpportunityCategory {
+  UNIVERSITY_POSTGRADUATE
+  LANGUAGE_SCHOOL
+  CULINARY_SCHOOL
+  AVIATION_TRAINING
+  HEALTHCARE_NURSING
+  HOSPITALITY_TOURISM
+  BUSINESS_MANAGEMENT
+  INFORMATION_TECHNOLOGY
+  PROFESSIONAL_CERTIFICATION
+  VOCATIONAL_EXECUTIVE
+  EXCHANGE_SUMMER
+}
+
+/// A publicly listed programme. PRD §4.2: institution names are deliberately
+/// NOT public — `institutionId` is admin/counsellor-only and must never be
+/// serialised into a public view.
+model Opportunity {
+  id       String              @id @default(cuid())
+  slug     String              @unique
+  title    String
+  category OpportunityCategory
+  status   PublishStatus       @default(DRAFT)
+
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
+
+  description       String
+  entryRequirements String?
+  studyLevel        StudyLevel?
+  /// Free text: "3 years", "18 months"
+  duration          String?
+  intakePeriods     String   @default("[]")
+
+  indicativeTuitionMin Int?
+  indicativeTuitionMax Int?
+  currency             String @default("EUR")
+
+  scholarshipAvailable Boolean @default(false)
+  scholarshipDetails   String?
+
+  isFeatured Boolean @default(false)
+
+  /// PRIVATE — the actual institution behind this listing.
+  institutionId String?
+  institution   Partner? @relation("InstitutionOpportunities", fields: [institutionId], references: [id], onDelete: SetNull)
+
+  metaTitle       String?
+  metaDescription String?
+
+  applications Application[]
+  enquiries    Enquiry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, category])
+  @@index([countryId, status])
+  @@map("opportunities")
+}
+
+/// PRD §4.4 — Learning Hub: articles, guides, checklists, videos, downloads.
+enum ResourceType {
+  ARTICLE
+  COUNTRY_GUIDE
+  CHECKLIST
+  TEMPLATE
+  VIDEO
+  DOWNLOAD
+  WEBINAR_RECORDING
+}
+
+model Resource {
+  id     String        @id @default(cuid())
+  slug   String        @unique
+  title  String
+  type   ResourceType
+  status PublishStatus @default(DRAFT)
+
+  excerpt      String?
+  body         String?
+  coverImagePath String?
+  filePath     String?
+  externalUrl  String?
+  readMinutes  Int?
+
+  tags String   @default("[]")
+
+  /// PRD §5.2 Resource Library — true means portal-only, not public
+  requiresAuth Boolean @default(false)
+
+  metaTitle       String?
+  metaDescription String?
+  publishedAt     DateTime?
+  viewCount       Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, type, publishedAt])
+  @@map("resources")
+}
+
+model Faq {
+  id       String        @id @default(cuid())
+  question String
+  answer   String
+  /// Grouping key, e.g. "visas", "payments", "countries"
+  topic    String
+  status   PublishStatus @default(PUBLISHED)
+  displayOrder Int       @default(0)
+
+  countryId String?
+  country   Country? @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([topic, displayOrder])
+  @@map("faqs")
+}
+
+/// PRD §4.1 / §4.9 — success stories and testimonials, from students AND
+/// partner institutions.
+model Testimonial {
+  id         String        @id @default(cuid())
+  authorName String
+  authorRole String?
+  /// Which country they went to, for filtering
+  countryName String?
+  quote      String
+  rating     Int?
+  avatarPath String?
+  /// STUDENT | INSTITUTION | PARTNER
+  source     String        @default("STUDENT")
+  status     PublishStatus @default(DRAFT)
+  isFeatured Boolean       @default(false)
+  displayOrder Int         @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WEBINARS & EVENTS  (PRD §4.5, §5.2)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum EventFormat {
+  ONLINE
+  IN_PERSON
+  HYBRID
+}
+
+model Webinar {
+  id     String        @id @default(cuid())
+  slug   String        @unique
+  title  String
+  status PublishStatus @default(DRAFT)
+
+  description String?
+  format      EventFormat @default(ONLINE)
+  startsAt    DateTime
+  endsAt      DateTime
+  timezone    String   @default("UTC")
+  /// Physical address when format is IN_PERSON or HYBRID
+  location    String?
+  joinUrl     String?
+  coverImagePath String?
+
+  hostName     String?
+  capacity     Int?
+  recordingUrl String?
+
+  registrations WebinarRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startsAt])
+  @@map("webinars")
+}
+
+model WebinarRegistration {
+  id        String  @id @default(cuid())
+  webinarId String
+  webinar   Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  /// Registered students link through; public sign-ups only leave name + email
+  studentProfileId String?
+  studentProfile   StudentProfile? @relation(fields: [studentProfileId], references: [id], onDelete: SetNull)
+
+  fullName String
+  email    String
+  phone    String?
+
+  confirmationSentAt DateTime?
+  reminderSentAt     DateTime?
+  attended           Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([webinarId, email])
+  @@index([studentProfileId])
+  @@map("webinar_registrations")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// APPLICATIONS  (PRD §5.2, §5.4)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum ApplicationOutcome {
+  IN_PROGRESS
+  OFFER_UNCONDITIONAL
+  OFFER_CONDITIONAL
+  REJECTED
+  WITHDRAWN
+  DEFERRED
+  ENROLLED
+}
+
+model Application {
+  id        String @id @default(cuid())
+  reference String @unique
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  countryId String?
+  country   Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  /// The specific institution — counsellor-recommended, never public (PRD §4.2)
+  institutionId String?
+  institution   Partner? @relation("InstitutionApplications", fields: [institutionId], references: [id], onDelete: SetNull)
+
+  programmeName String?
+  studyLevel    StudyLevel?
+  intakePeriod  String?
+
+  stage   ApplicationStage   @default(PROFILE_CREATED)
+  outcome ApplicationOutcome @default(IN_PROGRESS)
+
+  submittedAt      DateTime?
+  decisionAt       DateTime?
+  institutionNotes String?
+  /// Visible to the student in My Applications
+  studentNotes     String?
+  applicationDeadline DateTime?
+
+  events    ApplicationEvent[]
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, stage])
+  @@index([stage, outcome])
+  @@map("applications")
+}
+
+/// Append-only timeline behind the Progress Tracker (PRD §5.3).
+model ApplicationEvent {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  stage       ApplicationStage
+  note        String?
+  /// User id of the staff member or student who triggered the change
+  actorId     String?
+  /// Whether the student sees this entry on their timeline
+  visibleToStudent Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId, createdAt])
+  @@map("application_events")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DOCUMENT CENTRE  (PRD §5.2, §5.4, §6.2, §8.2)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum DocumentType {
+  PASSPORT
+  DEGREE_CERTIFICATE
+  O_LEVEL_CERTIFICATE
+  ACADEMIC_TRANSCRIPT
+  CV
+  ENGLISH_PROFICIENCY
+  MOTIVATION_LETTER
+  REFERENCE_LETTER
+  PROOF_OF_FUNDS
+  BIRTH_CERTIFICATE
+  OTHER_SUPPORTING
+  // Issued BY Waylen — appear under Downloads, not uploads (PRD §5.2)
+  OFFER_LETTER
+  ACCEPTANCE_LETTER
+  VISA_SUPPORT_LETTER
+  INVOICE_COPY
+  TRAVEL_GUIDE
+  // Partner-linked (PRD §6.2)
+  INSURANCE_CERTIFICATE
+  LOAN_APPROVAL_LETTER
+}
+
+enum DocumentStatus {
+  UNDER_REVIEW
+  APPROVED
+  NEEDS_CORRECTION
+  EXPIRED
+}
+
+model Document {
+  id String @id @default(cuid())
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  type   DocumentType
+  status DocumentStatus @default(UNDER_REVIEW)
+
+  originalFilename String
+  /// Storage key, not a public URL. Files are served through an authorised
+  /// controller only — never from a static directory.
+  storageKey       String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String?
+  /// PRD §8.2 — documents are encrypted at rest; IV per file
+  encryptionIv     String?
+
+  /// True for documents Waylen issues to the student (Downloads section)
+  isIssuedByWaylen Boolean @default(false)
+
+  uploadedById String?
+  uploadedBy   User?   @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNotes  String?
+
+  expiresAt DateTime?
+  /// Set when a partner supplied it, e.g. an insurance certificate (PRD §6.2)
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, status])
+  @@index([status, type])
+  @@map("documents")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// APPOINTMENTS  (PRD §5.2)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum AppointmentType {
+  INITIAL_CONSULTATION
+  CAREER_GUIDANCE
+  APPLICATION_REVIEW
+  VISA_CONSULTATION
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Appointment {
+  id        String @id @default(cuid())
+  reference String @unique
+
+  studentProfileId String?
+  studentProfile   StudentProfile? @relation(fields: [studentProfileId], references: [id], onDelete: SetNull)
+
+  /// Public "Book a Free Consultation" bookings before registration (PRD A.13)
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
+
+  counsellorId String?
+  counsellor   User?   @relation("AppointmentCounsellor", fields: [counsellorId], references: [id], onDelete: SetNull)
+
+  type   AppointmentType
+  status AppointmentStatus @default(REQUESTED)
+  format EventFormat       @default(ONLINE)
+
+  startsAt DateTime
+  /// PRD §5.2 — sessions are 45 minutes
+  durationMinutes Int    @default(45)
+  timezone String   @default("UTC")
+  location String?
+
+  /// Microsoft Teams meeting created via Graph (PRD §5.2, §8.1)
+  meetingUrl        String?
+  meetingProviderId String?
+
+  isPaid    Boolean @default(false)
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  studentNotes String?
+  staffNotes   String?
+  reminderSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startsAt, status])
+  @@index([counsellorId, startsAt])
+  @@map("appointments")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INVOICING & PAYMENTS  (PRD §5.2, §5.4, §8.1)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  REVOLUT
+  SWIFT
+  APPLE_PAY
+  GOOGLE_PAY
+  PAYSTACK
+  FLUTTERWAVE
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Invoice {
+  id     String @id @default(cuid())
+  number String @unique
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Restrict)
+
+  status   InvoiceStatus @default(DRAFT)
+  currency String        @default("EUR")
+  /// All money is stored in minor units (cents) as integers — never floats
+  subtotalMinor Int
+  taxMinor      Int @default(0)
+  totalMinor    Int
+  paidMinor     Int @default(0)
+
+  description String?
+  issuedAt    DateTime?
+  dueAt       DateTime?
+  paidAt      DateTime?
+  reminderSentAt DateTime?
+
+  lineItems    InvoiceLineItem[]
+  payments     Payment[]
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, status])
+  @@index([status, dueAt])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description   String
+  quantity      Int @default(1)
+  unitPriceMinor Int
+  totalMinor    Int
+  /// e.g. CONSULTATION | APPLICATION_FEE | INSURANCE | CAREER_SESSION
+  category      String?
+
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  method     PaymentMethod
+  status     PaymentStatus @default(PENDING)
+  amountMinor Int
+  currency   String        @default("EUR")
+
+  /// Gateway identifiers — Stripe/Paystack/Flutterwave
+  provider           String?
+  providerReference  String?  @unique
+  /// Free text for manually reconciled transfers (SWIFT/Revolut/bank)
+  manualReference    String?
+  /// User id of the admin who recorded a manual payment
+  recordedById       String?
+
+  receiptPath String?
+  paidAt      DateTime?
+  failureReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId, status])
+  @@map("payments")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PARTNER ECOSYSTEM  (PRD §6 — Partner + Referral exist from day one, §6.3)
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum PartnerCategory {
+  INSURANCE
+  FINANCIAL_SERVICES
+  WEALTH_BUSINESS
+  LEGAL
+  INSTITUTION
+  ACCOMMODATION_RELOCATION
+  TELECOM_BANKING_ARRIVAL
+  LANGUAGE_TEST_CENTRE
+  CAREER_EMPLOYER
+  WELLBEING_COMMUNITY
+}
+
+enum PartnerStatus {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Partner {
+  id       String          @id @default(cuid())
+  slug     String          @unique
+  name     String
+  category PartnerCategory
+  status   PartnerStatus   @default(PROSPECT)
+
+  description String?
+  logoPath    String?
+  websiteUrl  String?
+
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+
+  /// Region / country coverage (PRD §6.2)
+  countries Country[] @relation("PartnerCountries")
+  regions   String    @default("[]")
+
+  /// Contract & commission terms — admin-only, never public
+  contractReference String?
+  contractStartsAt  DateTime?
+  contractEndsAt    DateTime?
+  commissionTerms   String?
+  commissionRateBps Int?
+
+  /// Whether this partner appears in public listings. Institutions are
+  /// display-only logos on Home/About and must not be listed as programmes.
+  isPubliclyListed Boolean @default(false)
+  isDisplayLogoOnly Boolean @default(false)
+  isFeatured       Boolean @default(false)
+  displayOrder     Int     @default(0)
+
+  /// Documented vetting standard (PRD §2.7)
+  vettedAt   DateTime?
+  vettingNotes String?
+
+  referrals            Referral[]
+  documents            Document[]
+  insurancePolicies    InsurancePolicy[]
+  staffAccounts        StaffProfile[]
+  sourcedStudents      StudentProfile[] @relation("PartnerSourcedStudents")
+  institutionOpportunities Opportunity[]  @relation("InstitutionOpportunities")
+  institutionApplications  Application[]  @relation("InstitutionApplications")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, status])
+  @@map("partners")
+}
+
+enum ReferralStatus {
+  INITIATED
+  CONTACTED
+  IN_PROGRESS
+  CONVERTED
+  DECLINED
+  EXPIRED
+}
+
+/// Logged against the student's file for follow-up and commission
+/// reconciliation (PRD §6.2).
+model Referral {
+  id String @id @default(cuid())
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  status ReferralStatus @default(INITIATED)
+  /// Where in the product the referral originated, e.g. "portal.insurance"
+  sourceContext String?
+  notes         String?
+
+  /// Commission attribution once converted
+  convertedAt        DateTime?
+  commissionAmountMinor Int?
+  commissionCurrency String?
+  commissionSettledAt DateTime?
+
+  /// User id of the staff member who created the referral
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([partnerId, status])
+  @@index([studentProfileId, createdAt])
+  @@map("referrals")
+}
+
+/// PRD §5.2 — insurance is sold in-portal today and migrates to vetted
+/// external partners as agreements are finalised.
+model InsurancePolicy {
+  id String @id @default(cuid())
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  planName     String
+  policyNumber String?
+  /// HEALTH | TRAVEL | COMBINED
+  coverageType String  @default("COMBINED")
+  coverageStartsAt DateTime?
+  coverageEndsAt   DateTime?
+
+  premiumMinor Int
+  currency     String @default("EUR")
+  /// PENDING | ACTIVE | EXPIRED | CANCELLED
+  status       String @default("PENDING")
+
+  certificateDocumentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, status])
+  @@map("insurance_policies")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// COMMUNICATION  (PRD §5.2, §5.4)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model MessageThread {
+  id      String @id @default(cuid())
+  subject String
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  isClosed     Boolean  @default(false)
+  lastMessageAt DateTime @default(now())
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, lastMessageAt])
+  @@map("message_threads")
+}
+
+model Message {
+  id       String        @id @default(cuid())
+  threadId String
+  thread   MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  body       String
+  readAt     DateTime?
+  /// Staff-only note, hidden from the student
+  isInternal Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([threadId, createdAt])
+  @@map("messages")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS // architected for later (PRD §5.2)
+  WHATSAPP // architected for later (PRD §5.2)
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channel NotificationChannel @default(IN_APP)
+  /// Event key, e.g. "document.approved", "application.stage_changed"
+  eventKey String
+  title    String
+  body     String?
+  /// Deep link into the portal
+  actionUrl String?
+
+  readAt DateTime?
+  sentAt DateTime?
+  failureReason String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@index([eventKey, sentAt])
+  @@map("notifications")
+}
+
+/// PRD §5.4 CRM — every enquiry, consultation and student linked end-to-end.
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  CLOSED
+}
+
+model Enquiry {
+  id String @id @default(cuid())
+
+  fullName String
+  email    String
+  phone    String?
+  message  String?
+  /// Which page or form produced it, e.g. "contact", "opportunity.enquire"
+  source   String?
+
+  countryOfInterest String?
+  opportunityId     String?
+  opportunity       Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  status EnquiryStatus @default(NEW)
+  /// Set once the enquiry becomes a registered student
+  studentProfileId String?
+  studentProfile   StudentProfile? @relation(fields: [studentProfileId], references: [id], onDelete: SetNull)
+
+  assignedToId String?
+  handledAt    DateTime?
+  staffNotes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("enquiries")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GOVERNANCE  (PRD §8.2 — audit trail and retention)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Append-only. Records who accessed or changed a student record.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorId String?
+  actor   User?   @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  /// VIEW | CREATE | UPDATE | DELETE | DOWNLOAD | LOGIN | LOGIN_FAILED | EXPORT
+  action String
+  /// Entity name, e.g. "Document", "StudentProfile"
+  entity String
+  entityId String?
+
+  /// The student whose record was touched, for per-student audit reads
+  studentProfileId String?
+
+  /// Field-level before/after, secrets redacted before write
+  changes Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([studentProfileId, createdAt])
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+/// Key/value settings editable by super admins — avoids redeploys for
+/// operational copy and toggles.
+model Setting {
+  key       String   @id
+  value     String
+  /// string | number | boolean | json
+  valueType String   @default("string")
+  group     String   @default("general")
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}

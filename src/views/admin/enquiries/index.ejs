@@ -1,0 +1,63 @@
+<%# PRD §5.4 CRM — every enquiry linked end-to-end. %>
+<form class="filters filters--bar" method="get" action="/admin/enquiries">
+  <div class="field">
+    <label class="field__label visually-hidden" for="q">Search</label>
+    <input class="field__input" type="search" id="q" name="q" value="<%= filters.q || '' %>"
+           placeholder="Name or email">
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="status">Status</label>
+    <select class="field__select" id="status" name="status">
+      <option value="">All statuses</option>
+      <% ['NEW','CONTACTED','QUALIFIED','CONVERTED','CLOSED'].forEach(function (status) { %>
+        <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>>
+          <%= format.humaniseEnum(status) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/enquiries">Clear</a>
+</form>
+
+<p class="listing-layout__count"><%= results.total %> enquir<%= results.total === 1 ? 'y' : 'ies' %></p>
+
+<% if (!results.items.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No enquiries match those filters' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">From</th><th scope="col">Source</th><th scope="col">Interest</th>
+        <th scope="col">Status</th><th scope="col">Received</th><th scope="col">Became student</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% results.items.forEach(function (enquiry) { %>
+        <tr>
+          <td>
+            <a href="/admin/enquiries/<%= enquiry.id %>"><%= enquiry.fullName %></a>
+            <small class="table__hint"><%= enquiry.email %></small>
+          </td>
+          <td><%= enquiry.source || '—' %></td>
+          <td><%= enquiry.opportunity ? enquiry.opportunity.title : (enquiry.countryOfInterest || '—') %></td>
+          <td>
+            <span class="badge badge--<%= enquiry.status === 'NEW' ? 'negative' : enquiry.status === 'CONVERTED' ? 'positive' : 'neutral' %>">
+              <%= format.humaniseEnum(enquiry.status) %>
+            </span>
+          </td>
+          <td><%= format.relativeTime(enquiry.createdAt) %></td>
+          <td><%= enquiry.studentProfile ? enquiry.studentProfile.reference : '—' %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/enquiries/<%= enquiry.id %>">Open</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <%- include('../../partials/pagination', { results: results, baseUrl: '/admin/enquiries', query: filters }) %>
+<% } %>

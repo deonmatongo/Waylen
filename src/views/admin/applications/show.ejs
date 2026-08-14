@@ -1,0 +1,123 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/applications">Applications</a>
+  <span aria-hidden="true">/</span>
+  <span><%= application.reference %></span>
+</nav>
+
+<section class="panel">
+  <h2 class="panel__title">Progress</h2>
+  <%- include('../../partials/progress-tracker', { progress: progress }) %>
+</section>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Details</h2>
+
+    <dl class="detail-list">
+      <div>
+        <dt>Student</dt>
+        <dd>
+          <a href="/admin/students/<%= application.studentProfile.id %>">
+            <%= application.studentProfile.user.fullName %>
+          </a>
+        </dd>
+      </div>
+      <div><dt>Programme</dt><dd><%= application.programmeName || '—' %></dd></div>
+      <div><dt>Country</dt><dd><%= application.country ? application.country.name : '—' %></dd></div>
+      <%# Institution is staff-only — never rendered on a public or portal page. %>
+      <div><dt>Institution</dt><dd><%= application.institution ? application.institution.name : 'Not yet matched' %></dd></div>
+      <div><dt>Intake</dt><dd><%= application.intakePeriod || '—' %></dd></div>
+      <div><dt>Submitted</dt><dd><%= format.formatDate(application.submittedAt) %></dd></div>
+      <div><dt>Decision</dt><dd><%= format.formatDate(application.decisionAt) %></dd></div>
+    </dl>
+
+    <% if (application.institutionNotes) { %>
+      <div class="notice">
+        <p class="notice__title">Institution correspondence</p>
+        <p class="notice__body"><%= application.institutionNotes %></p>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Update</h2>
+
+    <form class="form" method="post" action="/admin/applications/<%= application.id %>/stage">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="stage">Move to stage</label>
+        <select class="field__select" id="stage" name="stage" required>
+          <% stages.forEach(function (stage) { %>
+            <option value="<%= stage.value %>" <%= application.stage === stage.value ? 'selected' : '' %>>
+              <%= stage.label %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="note">Note (shown to the student)</label>
+        <textarea class="field__textarea" id="note" name="note" rows="3"></textarea>
+      </div>
+
+      <button class="button button--primary" type="submit">Update stage &amp; notify</button>
+    </form>
+
+    <hr class="rule">
+
+    <form class="form" method="post" action="/admin/applications/<%= application.id %>/outcome">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="outcome">Record outcome</label>
+        <select class="field__select" id="outcome" name="outcome" required>
+          <% ['IN_PROGRESS','OFFER_UNCONDITIONAL','OFFER_CONDITIONAL','REJECTED','WITHDRAWN','DEFERRED','ENROLLED'].forEach(function (outcome) { %>
+            <option value="<%= outcome %>" <%= application.outcome === outcome ? 'selected' : '' %>>
+              <%= format.humaniseEnum(outcome) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="institutionNotes">Institution notes (internal)</label>
+        <textarea class="field__textarea" id="institutionNotes" name="institutionNotes" rows="3"></textarea>
+      </div>
+
+      <button class="button button--secondary" type="submit">Save outcome</button>
+    </form>
+
+    <hr class="rule">
+
+    <%# Blocked until every document is approved — PRD §2.6. %>
+    <form class="form" method="post" action="/admin/applications/<%= application.id %>/submit">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <p class="panel__note">
+        Submitting requires every attached document to be approved.
+      </p>
+      <button class="button button--primary" type="submit">Mark as submitted to institution</button>
+    </form>
+  </section>
+</div>
+
+<section class="panel">
+  <h2 class="panel__title">Full timeline</h2>
+
+  <ol class="timeline">
+    <% application.events.forEach(function (event) { %>
+      <li class="timeline__item">
+        <time class="timeline__when" datetime="<%= event.createdAt.toISOString() %>">
+          <%= format.formatDateTime(event.createdAt) %>
+        </time>
+        <p class="timeline__what">
+          <strong><%= format.humaniseEnum(event.stage) %></strong>
+          <% if (event.note) { %><span><%= event.note %></span><% } %>
+          <% if (!event.visibleToStudent) { %>
+            <span class="badge badge--neutral">Internal</span>
+          <% } %>
+        </p>
+      </li>
+    <% }) %>
+  </ol>
+</section>

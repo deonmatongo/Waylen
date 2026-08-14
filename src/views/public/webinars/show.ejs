@@ -1,0 +1,62 @@
+<article class="section">
+  <div class="section__inner prose-layout">
+    <div class="prose">
+      <p class="card__eyebrow">
+        <time datetime="<%= webinar.startsAt.toISOString() %>">
+          <%= format.formatDateTime(webinar.startsAt) %>
+        </time>
+        · <%= format.humaniseEnum(webinar.format) %>
+      </p>
+      <h1><%= webinar.title %></h1>
+
+      <% if (webinar.description) { %><%- webinar.description %><% } %>
+
+      <% if (webinar.recordingUrl) { %>
+        <h2>Recording</h2>
+        <p><a class="button button--primary" href="<%= webinar.recordingUrl %>" rel="noopener" target="_blank">Watch the recording</a></p>
+      <% } %>
+    </div>
+
+    <aside class="prose-layout__aside">
+      <div class="panel panel--sticky">
+        <% if (webinar.startsAt > new Date()) { %>
+          <h2 class="panel__title">Reserve your seat</h2>
+
+          <% if (seatsLeft === 0) { %>
+            <p class="panel__note">This session is fully booked.</p>
+          <% } else { %>
+            <% if (seatsLeft !== null) { %>
+              <p class="panel__note"><%= seatsLeft %> seats remaining.</p>
+            <% } %>
+
+            <form class="form" method="post" action="/webinars/<%= webinar.slug %>/register">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+              <div class="field">
+                <label class="field__label" for="fullName">Your name</label>
+                <input class="field__input" type="text" id="fullName" name="fullName" required>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="email">Email address</label>
+                <input class="field__input" type="email" id="email" name="email" required>
+                <p class="field__hint">We will email your joining link and a reminder.</p>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="phone">Phone (optional)</label>
+                <input class="field__input" type="tel" id="phone" name="phone">
+              </div>
+
+              <button class="button button--primary button--block" type="submit">Register</button>
+            </form>
+          <% } %>
+        <% } else { %>
+          <h2 class="panel__title">This session has finished</h2>
+          <p class="panel__note">Browse upcoming sessions, or watch the recording if one is available.</p>
+          <a class="button button--secondary button--block" href="/webinars">All webinars</a>
+        <% } %>
+      </div>
+    </aside>
+  </div>
+</article>

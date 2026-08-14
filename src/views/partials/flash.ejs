@@ -1,0 +1,10 @@
+<%# One-shot messages carried across a redirect. Cleared on read. %>
+<% if (flashMessages && flashMessages.length) { %>
+  <div class="flash-stack" role="status" aria-live="polite">
+    <% flashMessages.forEach(function (flash) { %>
+      <div class="flash flash--<%= flash.type %>">
+        <p class="flash__message"><%= flash.message %></p>
+      </div>
+    <% }) %>
+  </div>
+<% } %>

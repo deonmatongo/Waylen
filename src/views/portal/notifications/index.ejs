@@ -1,0 +1,36 @@
+<% if (!notifications.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No notifications', message: 'Updates about your documents, applications and appointments will appear here.' }) %>
+<% } else { %>
+  <form method="post" action="/portal/notifications/read-all" class="page-actions">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="button button--ghost button--small" type="submit">Mark all as read</button>
+  </form>
+
+  <ul class="notification-list">
+    <% notifications.forEach(function (notification) { %>
+      <li class="notification-list__item<%= notification.readAt ? '' : ' is-unread' %>">
+        <div class="notification-list__body">
+          <p class="notification-list__title"><%= notification.title %></p>
+          <% if (notification.body) { %>
+            <p class="notification-list__text"><%= notification.body %></p>
+          <% } %>
+          <time class="notification-list__when" datetime="<%= notification.createdAt.toISOString() %>">
+            <%= format.relativeTime(notification.createdAt) %>
+          </time>
+        </div>
+
+        <div class="notification-list__actions">
+          <% if (notification.actionUrl) { %>
+            <a class="button button--secondary button--small" href="<%= notification.actionUrl %>">View</a>
+          <% } %>
+          <% if (!notification.readAt) { %>
+            <form method="post" action="/portal/notifications/<%= notification.id %>/read" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="link-button" type="submit">Mark read</button>
+            </form>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

@@ -1,0 +1,23 @@
+<% if (!testimonials.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No testimonials yet', message: 'PRD §A.10 allows placeholders until real student stories are available.' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr><th scope="col">Author</th><th scope="col">Source</th><th scope="col">Quote</th><th scope="col">Status</th><th scope="col">Featured</th></tr>
+    </thead>
+    <tbody>
+      <% testimonials.forEach(function (testimonial) { %>
+        <tr>
+          <td>
+            <%= testimonial.authorName %>
+            <% if (testimonial.authorRole) { %><small class="table__hint"><%= testimonial.authorRole %></small><% } %>
+          </td>
+          <td><%= format.humaniseEnum(testimonial.source) %></td>
+          <td><%= format.truncate(testimonial.quote, 90) %></td>
+          <td><%= format.humaniseEnum(testimonial.status) %></td>
+          <td><%= testimonial.isFeatured ? 'Yes' : 'No' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
