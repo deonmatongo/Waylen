@@ -29,7 +29,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "prepare": "husky || true"
+    "prepare": "prisma generate; husky || true"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
