@@ -1,0 +1,8 @@
+# Never upload locally-compiled output — Vercel must build from source
+# so that Prisma generates the correct Linux binaries and the
+# TypeScript is compiled in the target environment.
+dist/
+
+# Large / irrelevant
+node_modules/
+.claude/
