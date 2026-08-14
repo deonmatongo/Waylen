@@ -10,7 +10,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npm run build:clean && prisma generate && npm run build:ts && npm run build:views && npm run build:css",
+    "build": "npm run build:clean && npm run build:ts && npm run build:views && npm run build:css",
     "build:clean": "rimraf dist",
     "build:ts": "tsc -p tsconfig.build.json",
     "build:views": "copyfiles -u 1 \"src/views/**/*.ejs\" dist",

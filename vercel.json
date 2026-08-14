@@ -1,16 +1,15 @@
 {
   "version": 2,
-  "framework": null,
-  "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
-  "functions": {
-    "dist/server.js": {
-      "memory": 512,
-      "maxDuration": 30,
-      "includeFiles": "dist/**,public/**"
+  "installCommand": "npm install && npx prisma generate && npm run build:ts && npm run build:views",
+  "builds": [
+    {
+      "src": "dist/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**", "public/**"]
+      }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
