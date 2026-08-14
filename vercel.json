@@ -6,7 +6,7 @@
       "src": "dist/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**", "public/**"]
+        "includeFiles": ["dist/**", "public/**", "prisma/**", "node_modules/.prisma/**", "node_modules/@prisma/client/**"]
       }
     }
   ],

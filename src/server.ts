@@ -1,14 +1,70 @@
 /**
  * Process entry point: boots the HTTP server and owns the lifecycle.
  */
+import { execSync } from 'node:child_process';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { connectDatabase, disconnectDatabase, prisma } from './config/database.js';
 import { startScheduledJobs, stopScheduledJobs } from './jobs/index.js';
+import argon2 from 'argon2';
+
+async function applyMigrationsAndSeed(): Promise<void> {
+  // Run migrations so tables exist (critical for ephemeral SQLite on Vercel).
+  try {
+    execSync('npx prisma migrate deploy --skip-generate', {
+      stdio: 'pipe',
+      env: { ...process.env },
+    });
+    logger.info('Database migrations applied');
+  } catch (err) {
+    logger.warn({ err }, 'prisma migrate deploy failed — tables may already exist');
+  }
+
+  // Upsert demo accounts so demo credentials always work after a cold start.
+  const passwordHash = await argon2.hash('123456789', { type: argon2.argon2id });
+  const demoUsers = [
+    { email: 'admin@waylen.com', fullName: 'Admin User', role: 'SUPER_ADMIN' as const, jobTitle: 'Administrator' },
+    { email: 'counselor@waylen.com', fullName: 'Counselor User', role: 'COUNSELLOR' as const, jobTitle: 'Education Counsellor' },
+  ];
+  for (const u of demoUsers) {
+    try {
+      await prisma.user.upsert({
+        where: { email: u.email },
+        update: { passwordHash, status: 'ACTIVE', emailVerifiedAt: new Date() },
+        create: {
+          email: u.email,
+          fullName: u.fullName,
+          passwordHash,
+          role: u.role,
+          status: 'ACTIVE',
+          emailVerifiedAt: new Date(),
+          staffProfile: { create: { jobTitle: u.jobTitle, regions: '[]' } },
+        },
+      });
+    } catch { /* ignore — table may not exist if migration failed */ }
+  }
+  try {
+    await prisma.user.upsert({
+      where: { email: 'student@waylen.com' },
+      update: { passwordHash, status: 'ACTIVE', emailVerifiedAt: new Date() },
+      create: {
+        email: 'student@waylen.com',
+        fullName: 'Student User',
+        passwordHash,
+        role: 'STUDENT',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        studentProfile: { create: { reference: 'WYL-STU-DEMO001' } },
+      },
+    });
+  } catch { /* ignore */ }
+  logger.info('Demo accounts ready');
+}
 
 async function main(): Promise<void> {
   await connectDatabase();
+  await applyMigrationsAndSeed();
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {
