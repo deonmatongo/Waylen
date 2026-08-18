@@ -3,7 +3,11 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "sourceMap": false
+    "sourceMap": false,
+    // This config already excludes tests/ below — it must not require a
+    // devDependency's type declarations, since `npm install` in production
+    // mode (e.g. Vercel) does not install devDependencies.
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests", "prisma/seed.ts"]
