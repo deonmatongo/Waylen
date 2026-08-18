@@ -1,4 +1,9 @@
 <div class="page-actions">
+  <% if (pendingCount > 0) { %>
+    <a class="button button--secondary" href="/admin/invoices/pending">
+      <%= pendingCount %> payment<%= pendingCount === 1 ? '' : 's' %> awaiting confirmation
+    </a>
+  <% } %>
   <a class="button button--primary" href="/admin/invoices/new">New invoice</a>
 </div>
 

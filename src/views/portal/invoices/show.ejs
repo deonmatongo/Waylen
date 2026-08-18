@@ -1,12 +1,22 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 2 — operations',
-      detail: 'The invoice renders in full. Taking payment online is Phase 2 — bank transfer details are shown in the meantime.'
-    }) %>
+<% if (typeof autoPrint === 'undefined' || !autoPrint) { %>
+  <%- include('../../partials/scaffold-notice', {
+        phase: 'Phase 2 — online payment',
+        detail: 'The invoice renders in full and manual payments (bank transfer, SWIFT, Revolut, cash) are handled below. Card, Apple Pay and Google Pay checkout is Phase 2.'
+      }) %>
+<% } %>
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="/portal/invoices">Invoices</a>
   <span aria-hidden="true">/</span>
   <span><%= invoice.number %></span>
 </nav>
+
+<div class="page-actions">
+  <% if (invoice.payments.some(function (p) { return p.status === 'SUCCEEDED'; })) { %>
+    <a class="button button--secondary" href="/portal/invoices/<%= invoice.id %>/receipt" target="_blank" rel="noopener">
+      Print / save receipt
+    </a>
+  <% } %>
+</div>
 
 <section class="panel">
   <dl class="detail-list">
@@ -42,6 +52,54 @@
   </table>
 </section>
 
+<% if (['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status)) { %>
+  <section class="panel">
+    <h2 class="panel__title">Upload proof of payment</h2>
+    <p class="panel__note">
+      Paid by bank transfer, SWIFT, Revolut or cash? Attach your receipt or transfer
+      confirmation and we will confirm it against your invoice.
+    </p>
+
+    <%# CSRF token is on the query string, not just the hidden field below —
+        this is a multipart form, and the global CSRF check runs before
+        multer parses the body, so it never sees a `_csrf` body field. %>
+    <form class="form form--inline" method="post"
+          action="/portal/invoices/<%= invoice.id %>/proof-of-payment?_csrf=<%= encodeURIComponent(csrfToken) %>"
+          enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label class="field__label" for="method">Method</label>
+        <select class="field__select" id="method" name="method" required>
+          <option value="BANK_TRANSFER">Bank transfer</option>
+          <option value="SWIFT">SWIFT</option>
+          <option value="REVOLUT">Revolut</option>
+          <option value="CASH">Cash</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="amountMinor">Amount paid (in cents)</label>
+        <input class="field__input" type="number" id="amountMinor" name="amountMinor"
+               min="1" step="1" required value="<%= invoice.totalMinor - invoice.paidMinor %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="manualReference">Reference (optional)</label>
+        <input class="field__input" type="text" id="manualReference" name="manualReference">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="document">Receipt or confirmation</label>
+        <input class="field__file" type="file" id="document" name="document" required
+               accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx">
+      </div>
+
+      <button class="button button--primary" type="submit">Submit for confirmation</button>
+    </form>
+  </section>
+<% } %>
+
 <% if (invoice.payments.length) { %>
   <section class="panel">
     <h2 class="panel__title">Payment history</h2>
@@ -55,10 +113,18 @@
             <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
             <td><%= format.humaniseEnum(payment.method) %></td>
             <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
-            <td><%= format.humaniseEnum(payment.status) %></td>
+            <td>
+              <span class="badge badge--<%= payment.status === 'SUCCEEDED' ? 'positive' : payment.status === 'FAILED' ? 'negative' : 'neutral' %>">
+                <%= format.humaniseEnum(payment.status) %>
+              </span>
+            </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
   </section>
+<% } %>
+
+<% if (typeof autoPrint !== 'undefined' && autoPrint) { %>
+  <script>window.onload = function () { window.print(); };</script>
 <% } %>

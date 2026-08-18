@@ -150,10 +150,10 @@ export const PUBLIC_NAV = [
     children: [
       { label: 'University Applications', href: '/services/university-applications', description: 'Programme selection, documents & submission' },
       { label: 'Career Guidance', href: '/services/career-guidance', description: 'Assessments, coaching and long-term career planning' },
+      { label: 'Consultation Booking', href: '/book-consultation', description: 'Free 45-minute session with an advisor', highlight: true },
       { label: 'Document Review', href: '/services/document-review', description: 'Every document verified before it is submitted' },
       { label: 'Student Insurance', href: '/services/student-insurance', description: 'Health and travel cover through vetted providers' },
       { label: 'Wealth & Business', href: '/services/wealth-and-business', description: 'Credit, mortgages and company formation abroad' },
-      { label: 'Book a Consultation', href: '/book-consultation', description: 'Free 45-minute session with an advisor', highlight: true },
     ],
   },
   { label: 'Opportunities', href: '/opportunities' },

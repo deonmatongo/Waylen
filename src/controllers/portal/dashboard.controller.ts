@@ -10,8 +10,10 @@ import { findStudentByUserId } from '../../models/student.model.js';
 import { applicationService } from '../../services/application.service.js';
 import { documentService } from '../../services/document.service.js';
 import { notificationService } from '../../services/notification.service.js';
+import { billingService } from '../../services/billing.service.js';
 import { DOCUMENT_TYPE_LABELS, APPLICATION_STAGE_LABELS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { features } from '../../config/env.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const userId = req.currentUser!.id;
@@ -19,7 +21,7 @@ export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(userId);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const [applications, outstandingTypes, notifications, appointments, unreadMessages] =
+  const [applications, outstandingTypes, notifications, appointments, unreadMessages, outstandingBalance] =
     await Promise.all([
       applicationService.listForStudent(student.id),
       documentService.outstandingRequirements(student.id),
@@ -54,6 +56,7 @@ export async function index(req: Request, res: Response): Promise<void> {
           senderId: { not: userId },
         },
       }),
+      features.payments ? billingService.outstandingBalance(student.id) : Promise.resolve(null),
     ]);
 
   // The tracker shown on the dashboard follows the most recent application;
@@ -77,6 +80,7 @@ export async function index(req: Request, res: Response): Promise<void> {
     notifications,
     appointments,
     unreadMessages,
+    outstandingBalance,
     stageLabel: APPLICATION_STAGE_LABELS[student.currentStage],
   });
 }

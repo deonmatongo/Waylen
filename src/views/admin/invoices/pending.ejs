@@ -1,0 +1,68 @@
+<%# PRD §8.1 — confirm or reject a student-submitted proof of payment. %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/invoices">Invoices</a>
+  <span aria-hidden="true">/</span>
+  <span>Pending payments</span>
+</nav>
+
+<% if (!payments.length) { %>
+  <%- include('../../partials/empty-state', {
+        heading: 'Nothing awaiting confirmation',
+        message: 'Submitted proofs of payment will appear here.'
+      }) %>
+<% } else { %>
+  <p class="listing-layout__count">
+    <%= payments.length %> payment<%= payments.length === 1 ? '' : 's' %> awaiting confirmation,
+    oldest first.
+  </p>
+
+  <ul class="review-list">
+    <% payments.forEach(function (payment) { %>
+      <li class="review-list__item">
+        <div class="review-list__body">
+          <p class="review-list__eyebrow">
+            Waiting <%= format.relativeTime(payment.createdAt) %>
+          </p>
+          <h2 class="review-list__title">
+            <%= format.formatMoney(payment.amountMinor, payment.currency) %>
+            via <%= format.humaniseEnum(payment.method) %>
+          </h2>
+          <p class="review-list__student">
+            <a href="/admin/students/<%= payment.invoice.studentProfile.id %>">
+              <%= payment.invoice.studentProfile.user.fullName %>
+            </a>
+            <small><%= payment.invoice.studentProfile.reference %></small>
+          </p>
+          <p class="review-list__file">
+            Invoice <a href="/admin/invoices/<%= payment.invoice.id %>"><%= payment.invoice.number %></a>
+            <% if (payment.manualReference) { %><small>Ref: <%= payment.manualReference %></small><% } %>
+          </p>
+
+          <a class="button button--secondary button--small" href="/admin/invoices/payments/<%= payment.id %>/receipt"
+             target="_blank" rel="noopener">Open receipt</a>
+        </div>
+
+        <div class="review-list__decision">
+          <form class="form form--tight" method="post" action="/admin/invoices/payments/<%= payment.id %>/confirm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="button button--primary button--small button--block" type="submit">Confirm</button>
+          </form>
+
+          <form class="form form--tight" method="post" action="/admin/invoices/payments/<%= payment.id %>/reject">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field">
+              <label class="field__label visually-hidden" for="reason-<%= payment.id %>">
+                Why couldn't this be confirmed?
+              </label>
+              <textarea class="field__textarea" id="reason-<%= payment.id %>" name="reason" rows="2"
+                        placeholder="What went wrong with this payment?"></textarea>
+            </div>
+            <button class="button button--secondary button--small button--block" type="submit">
+              Reject
+            </button>
+          </form>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

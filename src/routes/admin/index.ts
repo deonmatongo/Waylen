@@ -95,6 +95,14 @@ adminRouter.use('/invoices', requireFeature('payments'));
 adminRouter.get('/invoices', asyncHandler(invoiceController.index));
 adminRouter.get('/invoices/new', asyncHandler(invoiceController.create));
 adminRouter.post('/invoices', asyncHandler(invoiceController.store));
+adminRouter.get('/invoices/pending', asyncHandler(invoiceController.pendingQueue));
+adminRouter.get(
+  '/invoices/payments/:id/receipt',
+  audit({ action: 'VIEW', entity: 'Payment', entityId: (req) => req.params.id }),
+  asyncHandler(invoiceController.viewProofOfPayment),
+);
+adminRouter.post('/invoices/payments/:id/confirm', asyncHandler(invoiceController.confirmPayment));
+adminRouter.post('/invoices/payments/:id/reject', asyncHandler(invoiceController.rejectPayment));
 adminRouter.get('/invoices/:id', asyncHandler(invoiceController.show));
 adminRouter.post('/invoices/:id/send', asyncHandler(invoiceController.send));
 adminRouter.post('/invoices/:id/record-payment', asyncHandler(invoiceController.recordPayment));

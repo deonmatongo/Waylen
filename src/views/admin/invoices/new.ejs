@@ -1,12 +1,76 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 2 — operations',
-      detail: 'The line-item builder is scaffolded; billingService.createInvoice already allocates gap-free invoice numbers inside the insert transaction.'
-    }) %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/invoices">Invoices</a>
+  <span aria-hidden="true">/</span>
+  <span>New invoice</span>
+</nav>
 
 <section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
+  <form class="form" method="post" action="/admin/invoices">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label class="field__label" for="studentProfileId">Student</label>
+      <select class="field__select" id="studentProfileId" name="studentProfileId" required>
+        <option value="">Select a student</option>
+        <% students.forEach(function (student) { %>
+          <option value="<%= student.id %>" <%= values.studentProfileId === student.id ? 'selected' : '' %>>
+            <%= student.user.fullName %> — <%= student.reference %>
+          </option>
+        <% }) %>
+      </select>
+      <% if (errors.studentProfileId) { %><p class="field__error"><%= errors.studentProfileId[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="description">Description</label>
+      <input class="field__input" type="text" id="description" name="description"
+             value="<%= values.description || '' %>" placeholder="e.g. Application support — Autumn intake">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="currency">Currency</label>
+        <input class="field__input" type="text" id="currency" name="currency" maxlength="3"
+               value="<%= values.currency || 'EUR' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="dueAt">Due date</label>
+        <input class="field__input" type="date" id="dueAt" name="dueAt" value="<%= values.dueAt || '' %>">
+      </div>
+    </div>
+
+    <h2 class="panel__title">Line items</h2>
+    <% if (errors.lineItems) { %><p class="field__error"><%= errors.lineItems[0] %></p><% } %>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Description</th><th scope="col">Qty</th>
+          <th scope="col">Unit price (in cents)</th><th scope="col">Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (let i = 0; i < 6; i++) { %>
+          <tr>
+            <td>
+              <input class="field__input" type="text" name="description[]" placeholder="e.g. Application fee">
+            </td>
+            <td>
+              <input class="field__input" type="number" name="quantity[]" min="1" value="1">
+            </td>
+            <td>
+              <input class="field__input" type="number" name="unitPriceMinor[]" min="0">
+            </td>
+            <td>
+              <input class="field__input" type="text" name="category[]" placeholder="Optional">
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+    <p class="field__hint">Blank rows are ignored. Prices are in minor units — 5000 means €50.00.</p>
+
+    <button class="button button--primary" type="submit">Create invoice</button>
+  </form>
 </section>

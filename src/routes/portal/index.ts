@@ -71,6 +71,14 @@ portalRouter.post(
   requireFeature('payments'),
   asyncHandler(invoiceController.startPayment),
 );
+portalRouter.post(
+  '/invoices/:id/proof-of-payment',
+  requireFeature('payments'),
+  uploadRateLimiter,
+  singleDocument,
+  audit({ action: 'CREATE', entity: 'Payment', entityId: (req) => req.params.id }),
+  asyncHandler(invoiceController.uploadProof),
+);
 portalRouter.get('/invoices/:id/receipt', requireFeature('payments'), asyncHandler(invoiceController.receipt));
 
 // ── Appointments (PRD §5.2 — 45 min, Teams) ────────────────────────────────

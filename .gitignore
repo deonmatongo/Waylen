@@ -47,3 +47,7 @@ coverage/
 .DS_Store
 Thumbs.db
 *.swp
+.vercel
+
+# Locally stored uploads (encrypted documents, proofs of payment) — never committed
+storage/

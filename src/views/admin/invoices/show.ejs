@@ -4,6 +4,28 @@
   <span><%= invoice.number %></span>
 </nav>
 
+<div class="page-actions">
+  <% if (invoice.status === 'DRAFT') { %>
+    <form class="inline-form" method="post" action="/admin/invoices/<%= invoice.id %>/send">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="button button--primary" type="submit">Send to student</button>
+    </form>
+  <% } %>
+  <% if (['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status)) { %>
+    <form class="inline-form" method="post" action="/admin/invoices/<%= invoice.id %>/remind">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="button button--secondary" type="submit">Send reminder</button>
+    </form>
+  <% } %>
+  <% if (invoice.paidMinor === 0 && invoice.status !== 'VOID') { %>
+    <form class="inline-form" method="post" action="/admin/invoices/<%= invoice.id %>/void"
+          onsubmit="return confirm('Void this invoice? This cannot be undone.');">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="button button--ghost" type="submit">Void</button>
+    </form>
+  <% } %>
+</div>
+
 <div class="dash-grid dash-grid--2">
   <section class="panel">
     <h2 class="panel__title">Invoice</h2>

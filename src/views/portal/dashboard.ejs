@@ -39,6 +39,23 @@
 </section>
 
 <div class="dash-grid">
+  <%# Outstanding balance — PRD §5.2. %>
+  <% if (outstandingBalance && outstandingBalance.totalOutstandingMinor > 0) { %>
+    <section class="panel">
+      <h2 class="panel__title">
+        <span class="panel__title-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Balance due
+        </span>
+      </h2>
+      <p class="panel__note">
+        <%= format.formatMoney(outstandingBalance.totalOutstandingMinor, outstandingBalance.currency) %>
+        outstanding<% if (outstandingBalance.nextDueAt) { %>, next due <%= format.formatDate(outstandingBalance.nextDueAt) %><% } %>.
+      </p>
+      <a class="button button--secondary button--small" href="/portal/invoices">View invoices</a>
+    </section>
+  <% } %>
+
   <%# Outstanding actions — the most useful thing on the page. %>
   <section class="panel">
     <h2 class="panel__title">

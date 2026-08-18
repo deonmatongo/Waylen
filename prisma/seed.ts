@@ -841,6 +841,86 @@ async function seedStudent(
     },
   });
 
+  // Invoicing — one open invoice with a payment awaiting confirmation, and one
+  // already partially paid, so the Finances screens have real data (PRD §5.2).
+  const applicationFeeInvoice = await prisma.invoice.create({
+    data: {
+      number: `INV-${new Date().getFullYear()}-00001`,
+      studentProfileId: profile.id,
+      status: 'SENT',
+      currency: 'EUR',
+      subtotalMinor: 25_000,
+      totalMinor: 25_000,
+      description: 'Application support — Autumn intake',
+      issuedAt: new Date(Date.now() - 10 * 86_400_000),
+      dueAt: new Date(Date.now() + 14 * 86_400_000),
+      lineItems: {
+        create: [
+          {
+            description: 'Application support fee',
+            quantity: 1,
+            unitPriceMinor: 25_000,
+            totalMinor: 25_000,
+            category: 'APPLICATION_FEE',
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      invoiceId: applicationFeeInvoice.id,
+      method: 'BANK_TRANSFER',
+      status: 'PENDING',
+      amountMinor: 25_000,
+      currency: 'EUR',
+      manualReference: 'TRF-SEED-0001',
+      // Seeded metadata only — no file is written to storage, so opening this
+      // receipt will (correctly) 404, same as the seeded documents above.
+      receiptPath: `documents/${profile.id}/seed-proof-of-payment.enc`,
+    },
+  });
+
+  const careerGuidanceInvoice = await prisma.invoice.create({
+    data: {
+      number: `INV-${new Date().getFullYear()}-00002`,
+      studentProfileId: profile.id,
+      status: 'PARTIALLY_PAID',
+      currency: 'EUR',
+      subtotalMinor: 15_000,
+      totalMinor: 15_000,
+      paidMinor: 7_500,
+      description: 'Career guidance package',
+      issuedAt: new Date(Date.now() - 20 * 86_400_000),
+      dueAt: new Date(Date.now() + 7 * 86_400_000),
+      lineItems: {
+        create: [
+          {
+            description: 'Career guidance sessions (3x)',
+            quantity: 3,
+            unitPriceMinor: 5_000,
+            totalMinor: 15_000,
+            category: 'CAREER_SESSION',
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      invoiceId: careerGuidanceInvoice.id,
+      method: 'REVOLUT',
+      status: 'SUCCEEDED',
+      amountMinor: 7_500,
+      currency: 'EUR',
+      manualReference: 'RVLT-SEED-0002',
+      recordedById: counsellorId,
+      paidAt: new Date(Date.now() - 15 * 86_400_000),
+    },
+  });
+
   // A partner referral, so the ecosystem layer has data from day one (PRD §6.3).
   const insurerId = partners.get('europa-student-cover');
   if (insurerId) {

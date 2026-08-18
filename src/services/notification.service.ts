@@ -28,6 +28,7 @@ export type NotificationEvent =
   | 'invoice.issued'
   | 'invoice.reminder'
   | 'payment.received'
+  | 'payment.proof_rejected'
   | 'message.received';
 
 /**
@@ -51,6 +52,7 @@ const CHANNELS_BY_EVENT: Record<NotificationEvent, NotificationChannel[]> = {
   'invoice.issued': ['EMAIL', 'IN_APP'],
   'invoice.reminder': ['EMAIL'],
   'payment.received': ['EMAIL', 'IN_APP'],
+  'payment.proof_rejected': ['EMAIL', 'IN_APP'],
   'message.received': ['IN_APP', 'EMAIL'],
 };
 

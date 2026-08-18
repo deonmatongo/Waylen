@@ -767,7 +767,9 @@ model Payment {
   /// User id of the admin who recorded a manual payment
   recordedById       String?
 
-  receiptPath String?
+  receiptPath     String?
+  /// SHA-256 of the receipt file, checked on retrieval (mirrors Document.checksumSha256)
+  receiptChecksum String?
   paidAt      DateTime?
   failureReason String?
 
