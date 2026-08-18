@@ -62,7 +62,10 @@
     %>
     <h2 class="panel__title">Issue a document to this student</h2>
 
-    <form class="form" method="post" action="/admin/students/<%= student.id %>/documents"
+    <%# CSRF token is on the query string, not just the hidden field below —
+        this is a multipart form, and the global CSRF check runs before
+        multer parses the body, so it never sees a `_csrf` body field. %>
+    <form class="form" method="post" action="/admin/students/<%= student.id %>/documents?_csrf=<%= encodeURIComponent(csrfToken) %>"
           enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 

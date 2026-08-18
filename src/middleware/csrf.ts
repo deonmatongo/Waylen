@@ -18,10 +18,19 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   // Forms post `_csrf`; fetch/XHR callers send the header. Express types
   // `req.body` as `any`, so narrow explicitly rather than trusting it.
+  //
+  // This middleware is mounted globally, ahead of every route's `multer`
+  // middleware — for a `multipart/form-data` submission (file uploads),
+  // `req.body` is therefore never populated yet when this runs. Those forms
+  // carry the token on the query string instead, appended to the form
+  // `action` (see portal/documents, portal/invoices/show, admin/students/show).
   getTokenFromRequest: (req) => {
     const body = req.body as Record<string, unknown> | undefined;
     const fromBody = body?._csrf;
     if (typeof fromBody === 'string') return fromBody;
+
+    const fromQuery = req.query._csrf;
+    if (typeof fromQuery === 'string') return fromQuery;
 
     const fromHeader = req.headers['x-csrf-token'];
     return typeof fromHeader === 'string' ? fromHeader : undefined;

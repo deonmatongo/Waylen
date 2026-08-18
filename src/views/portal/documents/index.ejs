@@ -15,7 +15,11 @@
     visible to you and the Waylen team.
   </p>
 
-  <form class="form form--inline" method="post" action="/portal/documents" enctype="multipart/form-data">
+  <%# CSRF token is on the query string, not just the hidden field below —
+      this is a multipart form, and the global CSRF check runs before
+      multer parses the body, so it never sees a `_csrf` body field. %>
+  <form class="form form--inline" method="post" action="/portal/documents?_csrf=<%= encodeURIComponent(csrfToken) %>"
+        enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="field">
