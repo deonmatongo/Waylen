@@ -1,3 +1,42 @@
+<section class="panel">
+  <h2 class="panel__title">Invite a staff member</h2>
+  <p class="panel__note">
+    They'll get an email to choose their own password — nobody here sets it for them.
+  </p>
+
+  <form class="form form--inline" method="post" action="/admin/users">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label class="field__label" for="fullName">Full name</label>
+      <input class="field__input" type="text" id="fullName" name="fullName" required value="<%= values.fullName || '' %>">
+      <% if (errors.fullName) { %><p class="field__error"><%= errors.fullName[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="email">Email</label>
+      <input class="field__input" type="email" id="email" name="email" required value="<%= values.email || '' %>">
+      <% if (errors.email) { %><p class="field__error"><%= errors.email[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="role">Role</label>
+      <select class="field__select" id="role" name="role" required>
+        <% roles.forEach(function (role) { %>
+          <option value="<%= role %>" <%= values.role === role ? 'selected' : '' %>><%= format.humaniseEnum(role) %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="jobTitle">Job title (optional)</label>
+      <input class="field__input" type="text" id="jobTitle" name="jobTitle" value="<%= values.jobTitle || '' %>">
+    </div>
+
+    <button class="button button--primary" type="submit">Send invite</button>
+  </form>
+</section>
+
 <% if (!users.length) { %>
   <%- include('../../partials/empty-state', { heading: 'No staff accounts yet' }) %>
 <% } else { %>

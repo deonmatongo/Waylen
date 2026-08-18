@@ -4,11 +4,15 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../config/database.js';
 import { UserRole } from '@prisma/client';
+import { authService } from '../../services/auth.service.js';
 import { auditService } from '../../services/audit.service.js';
+import { inviteStaffSchema } from '../../validators/user.validator.js';
 import { ValidationError } from '../../utils/errors.js';
 
-export async function index(req: Request, res: Response): Promise<void> {
-  const users = await prisma.user.findMany({
+const STAFF_ROLE_OPTIONS = Object.values(UserRole).filter((r) => r !== 'STUDENT');
+
+function listStaffUsers() {
+  return prisma.user.findMany({
     where: { role: { not: 'STUDENT' } },
     select: {
       id: true,
@@ -22,19 +26,46 @@ export async function index(req: Request, res: Response): Promise<void> {
     },
     orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
   });
+}
+
+export async function index(req: Request, res: Response): Promise<void> {
+  const users = await listStaffUsers();
 
   res.render('admin/users/index', {
     title: 'Staff accounts',
     layout: 'layouts/admin',
     users,
-    roles: Object.values(UserRole).filter((r) => r !== 'STUDENT'),
+    roles: STAFF_ROLE_OPTIONS,
+    values: {},
+    errors: {},
   });
 }
 
 export async function store(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): invite a staff member by email rather than setting a
-  // password on their behalf.
-  req.flash('info', 'Staff invitations are wired up in Phase 1.');
+  const parsed = inviteStaffSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/users/index', {
+      title: 'Staff accounts',
+      layout: 'layouts/admin',
+      users: await listStaffUsers(),
+      roles: STAFF_ROLE_OPTIONS,
+      values: req.body,
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const user = await authService.inviteStaff(parsed.data);
+
+  await auditService.record({
+    actorId: req.currentUser!.id,
+    action: 'CREATE',
+    entity: 'User',
+    entityId: user.id,
+    changes: { email: user.email, role: user.role },
+  });
+
+  req.flash('success', `Invited ${user.fullName} — they'll get an email to set up their account.`);
   res.redirect('/admin/users');
 }
 

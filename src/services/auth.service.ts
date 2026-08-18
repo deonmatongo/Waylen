@@ -1,6 +1,7 @@
 /**
  * Registration, sign-in, verification and password reset (PRD §5.1).
  */
+import type { UserRole } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
@@ -12,6 +13,8 @@ import { notificationService } from './notification.service.js';
 
 const VERIFICATION_TTL_HOURS = 48;
 const RESET_TTL_MINUTES = 60;
+/** Staff have longer to act on an invite than a "forgot password" link. */
+const INVITE_TTL_HOURS = 24 * 7;
 /** Consecutive failures before the account is temporarily locked. */
 const MAX_FAILED_LOGINS = 8;
 const LOCKOUT_MINUTES = 15;
@@ -272,6 +275,50 @@ export const authService = {
     });
 
     logger.info({ userId: user.id }, 'Password reset completed');
+  },
+
+  /**
+   * Creates a staff account and emails an invite link so they choose their
+   * own password — an admin never sets one on their behalf (PRD §5.4).
+   */
+  async inviteStaff(input: { email: string; fullName: string; role: UserRole; jobTitle?: string }) {
+    const email = input.email.trim().toLowerCase();
+
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (existing) throw new ConflictError('An account already exists for that email address.');
+
+    const token = generateToken();
+    // Nobody knows this password — the account is unusable until the invite
+    // link is used to set a real one via the same passwordResetToken flow.
+    const passwordHash = await hashPassword(generateToken());
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        fullName: input.fullName.trim(),
+        passwordHash,
+        role: input.role,
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        passwordResetToken: token,
+        passwordResetExpiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 3600_000),
+        staffProfile: { create: { jobTitle: input.jobTitle ?? null, regions: '[]' } },
+      },
+    });
+
+    await mailService.send({
+      to: user.email,
+      subject: `You're invited to join ${env.APP_NAME}`,
+      template: 'invite-staff',
+      data: {
+        fullName: user.fullName,
+        inviteUrl: `${env.APP_URL}/reset-password/${token}`,
+        expiresInDays: Math.round(INVITE_TTL_HOURS / 24),
+      },
+    });
+
+    logger.info({ userId: user.id, role: user.role }, 'Staff member invited');
+    return user;
   },
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
