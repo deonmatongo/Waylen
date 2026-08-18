@@ -68,9 +68,13 @@ export const reportService = {
   async applicationConversion() {
     const [byOutcome, avgDaysToOffer] = await Promise.all([
       prisma.application.groupBy({ by: ['outcome'], _count: { _all: true } }),
-      // Average days from submission to decision, for applications that got one.
+      // Average days from submission to decision, for applications that got
+      // one. SQLite stores DateTime as milliseconds-since-epoch integers, so
+      // the difference divided by a day in ms gives the day count directly —
+      // no EXTRACT/EPOCH (that's Postgres syntax, and this project runs on
+      // SQLite, prisma/schema.prisma's actual datasource).
       prisma.$queryRaw<{ avg_days: number | null }[]>`
-        SELECT AVG(EXTRACT(EPOCH FROM ("decisionAt" - "submittedAt")) / 86400) AS avg_days
+        SELECT AVG(("decisionAt" - "submittedAt") / 86400000.0) AS avg_days
         FROM applications
         WHERE "submittedAt" IS NOT NULL AND "decisionAt" IS NOT NULL
       `,
