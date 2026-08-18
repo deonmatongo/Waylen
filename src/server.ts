@@ -122,6 +122,21 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   app(req, res);
 }
 
+// Registered unconditionally (main()'s copies below only run on a
+// traditional host) — without this, an unhandled rejection anywhere in a
+// request has no listener, and modern Node's default response is to crash
+// the process outright with nothing logged. On Vercel that kills the warm
+// container the next request lands on, surfacing as an unexplained 500.
+// Logging and carrying on is deliberate here: there is no server to drain
+// and no signal to forward, and killing the process mid-request is worse
+// than leaving the container up for the next invocation.
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason }, 'Unhandled promise rejection');
+});
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'Uncaught exception');
+});
+
 async function main(): Promise<void> {
   const app = await getApp();
   const server = app.listen(env.PORT, () => {
