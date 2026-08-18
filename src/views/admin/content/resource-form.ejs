@@ -1,12 +1,109 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 1 — foundation',
-      detail: 'The editor UI is scaffolded; storeResource/updateResource in content.controller.ts persist it.'
-    }) %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/content/resources">Learning Hub content</a>
+  <span aria-hidden="true">/</span>
+  <span><%= resource ? resource.title : 'New resource' %></span>
+</nav>
 
-<section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
-</section>
+<form class="form" method="post"
+      action="<%= resource ? `/admin/content/resources/${resource.id}` : '/admin/content/resources' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="title">Title</label>
+        <input class="field__input" type="text" id="title" name="title" required value="<%= values.title || '' %>">
+        <% if (errors.title) { %><p class="field__error"><%= errors.title[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="type">Type</label>
+        <select class="field__select" id="type" name="type" required>
+          <% ['ARTICLE','COUNTRY_GUIDE','CHECKLIST','TEMPLATE','VIDEO','DOWNLOAD','WEBINAR_RECORDING'].forEach(function (type) { %>
+            <option value="<%= type %>" <%= values.type === type ? 'selected' : '' %>><%= format.humaniseEnum(type) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% ['DRAFT','PUBLISHED','ARCHIVED'].forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="excerpt">Excerpt</label>
+      <textarea class="field__textarea" id="excerpt" name="excerpt" rows="2"
+                placeholder="Shown on the Learning Hub listing"><%= values.excerpt || '' %></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="body">Body</label>
+      <textarea class="field__textarea" id="body" name="body" rows="10"><%= values.body || '' %></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="coverImagePath">Cover image URL</label>
+        <input class="field__input" type="text" id="coverImagePath" name="coverImagePath" value="<%= values.coverImagePath || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="filePath">Downloadable file URL</label>
+        <input class="field__input" type="text" id="filePath" name="filePath" value="<%= values.filePath || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="externalUrl">External / video URL</label>
+        <input class="field__input" type="text" id="externalUrl" name="externalUrl" value="<%= values.externalUrl || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="readMinutes">Read time (minutes)</label>
+        <input class="field__input" type="number" id="readMinutes" name="readMinutes" min="1" value="<%= values.readMinutes || '' %>">
+      </div>
+    </div>
+
+    <%
+      // Stored as a JSON array string; a failed submission instead carries
+      // back the plain comma-separated text the user typed.
+      var tagsDisplay = values.tags || '';
+      if (typeof tagsDisplay === 'string' && tagsDisplay.trim().startsWith('[')) {
+        try { tagsDisplay = JSON.parse(tagsDisplay).join(', '); } catch (e) { /* leave as-is */ }
+      }
+    %>
+    <div class="field">
+      <label class="field__label" for="tags">Tags</label>
+      <input class="field__input" type="text" id="tags" name="tags" value="<%= tagsDisplay %>"
+             placeholder="Comma-separated, e.g. visas, poland, checklist">
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="requiresAuth">
+        <input type="checkbox" id="requiresAuth" name="requiresAuth" <%= values.requiresAuth ? 'checked' : '' %>>
+        Portal-only — hidden from the public Learning Hub
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">SEO</h2>
+    <div class="field">
+      <label class="field__label" for="metaTitle">Meta title</label>
+      <input class="field__input" type="text" id="metaTitle" name="metaTitle" maxlength="70" value="<%= values.metaTitle || '' %>">
+    </div>
+    <div class="field">
+      <label class="field__label" for="metaDescription">Meta description</label>
+      <textarea class="field__textarea" id="metaDescription" name="metaDescription" rows="2" maxlength="160"><%= values.metaDescription || '' %></textarea>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= resource ? 'Save changes' : 'Create resource' %></button>
+    <a class="button button--ghost" href="/admin/content/resources">Cancel</a>
+  </div>
+</form>

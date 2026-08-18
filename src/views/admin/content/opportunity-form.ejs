@@ -1,12 +1,153 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 1 — foundation',
-      detail: 'The editor UI is scaffolded; storeOpportunity/updateOpportunity in content.controller.ts persist it.'
-    }) %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/content/opportunities">Opportunity listings</a>
+  <span aria-hidden="true">/</span>
+  <span><%= opportunity ? opportunity.title : 'New opportunity' %></span>
+</nav>
 
-<section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
-</section>
+<form class="form" method="post"
+      action="<%= opportunity ? `/admin/content/opportunities/${opportunity.id}` : '/admin/content/opportunities' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="title">Title</label>
+        <input class="field__input" type="text" id="title" name="title" required value="<%= values.title || '' %>">
+        <% if (errors.title) { %><p class="field__error"><%= errors.title[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="category">Category</label>
+        <select class="field__select" id="category" name="category" required>
+          <% Object.keys(categoryLabels).forEach(function (key) { %>
+            <option value="<%= key %>" <%= values.category === key ? 'selected' : '' %>><%= categoryLabels[key] %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% ['DRAFT','PUBLISHED','ARCHIVED'].forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="countryId">Country</label>
+        <select class="field__select" id="countryId" name="countryId" required>
+          <option value="">Select a country</option>
+          <% countries.forEach(function (country) { %>
+            <option value="<%= country.id %>" <%= values.countryId === country.id ? 'selected' : '' %>><%= country.name %></option>
+          <% }) %>
+        </select>
+        <% if (errors.countryId) { %><p class="field__error"><%= errors.countryId[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="institutionId">Institution (private — never shown publicly)</label>
+        <select class="field__select" id="institutionId" name="institutionId">
+          <option value="">None on file</option>
+          <% institutions.forEach(function (institution) { %>
+            <option value="<%= institution.id %>" <%= values.institutionId === institution.id ? 'selected' : '' %>><%= institution.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="studyLevel">Study level</label>
+        <select class="field__select" id="studyLevel" name="studyLevel">
+          <option value="">Not specified</option>
+          <% ['UNDERGRADUATE','POSTGRADUATE','DOCTORATE','DIPLOMA','CERTIFICATION','VOCATIONAL'].forEach(function (level) { %>
+            <option value="<%= level %>" <%= values.studyLevel === level ? 'selected' : '' %>><%= format.humaniseEnum(level) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="duration">Duration</label>
+        <input class="field__input" type="text" id="duration" name="duration" placeholder="e.g. 18 months" value="<%= values.duration || '' %>">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="description">Description</label>
+      <textarea class="field__textarea" id="description" name="description" rows="6" required><%= values.description || '' %></textarea>
+      <% if (errors.description) { %><p class="field__error"><%= errors.description[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="entryRequirements">Entry requirements</label>
+      <textarea class="field__textarea" id="entryRequirements" name="entryRequirements" rows="4"><%= values.entryRequirements || '' %></textarea>
+    </div>
+
+    <%
+      var intakeDisplay = values.intakePeriods || '';
+      if (typeof intakeDisplay === 'string' && intakeDisplay.trim().startsWith('[')) {
+        try { intakeDisplay = JSON.parse(intakeDisplay).join(', '); } catch (e) { /* leave as-is */ }
+      }
+    %>
+    <div class="field">
+      <label class="field__label" for="intakePeriods">Intake periods</label>
+      <input class="field__input" type="text" id="intakePeriods" name="intakePeriods" value="<%= intakeDisplay %>"
+             placeholder="Comma-separated, e.g. September, January">
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Costs & scholarships</h2>
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="indicativeTuitionMin">Tuition from (in cents)</label>
+        <input class="field__input" type="number" id="indicativeTuitionMin" name="indicativeTuitionMin" min="0" value="<%= values.indicativeTuitionMin ?? '' %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="indicativeTuitionMax">Tuition to (in cents)</label>
+        <input class="field__input" type="number" id="indicativeTuitionMax" name="indicativeTuitionMax" min="0" value="<%= values.indicativeTuitionMax ?? '' %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="currency">Currency</label>
+        <input class="field__input" type="text" id="currency" name="currency" maxlength="3" value="<%= values.currency || 'EUR' %>">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="scholarshipAvailable">
+        <input type="checkbox" id="scholarshipAvailable" name="scholarshipAvailable" <%= values.scholarshipAvailable ? 'checked' : '' %>>
+        Scholarship available
+      </label>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="scholarshipDetails">Scholarship details</label>
+      <textarea class="field__textarea" id="scholarshipDetails" name="scholarshipDetails" rows="3"><%= values.scholarshipDetails || '' %></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="isFeatured">
+        <input type="checkbox" id="isFeatured" name="isFeatured" <%= values.isFeatured ? 'checked' : '' %>>
+        Feature on the Opportunities page
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">SEO</h2>
+    <div class="field">
+      <label class="field__label" for="metaTitle">Meta title</label>
+      <input class="field__input" type="text" id="metaTitle" name="metaTitle" maxlength="70" value="<%= values.metaTitle || '' %>">
+    </div>
+    <div class="field">
+      <label class="field__label" for="metaDescription">Meta description</label>
+      <textarea class="field__textarea" id="metaDescription" name="metaDescription" rows="2" maxlength="160"><%= values.metaDescription || '' %></textarea>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= opportunity ? 'Save changes' : 'Create opportunity' %></button>
+    <a class="button button--ghost" href="/admin/content/opportunities">Cancel</a>
+  </div>
+</form>

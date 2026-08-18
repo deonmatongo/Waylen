@@ -1,12 +1,174 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 3 — ecosystem',
-      detail: 'The editor UI is scaffolded; store/update in partner.controller.ts persist it, including admin-only contract and commission terms.'
-    }) %>
+<%
+  function toDateInput(v) {
+    if (!v) return '';
+    var d = (v instanceof Date) ? v : new Date(v);
+    if (isNaN(d.getTime())) return typeof v === 'string' ? v : '';
+    return d.toISOString().slice(0, 10);
+  }
+  var selectedCountryIds = partner && partner.countries
+    ? partner.countries.map(function (c) { return c.id; })
+    : (Array.isArray(values.countryIds) ? values.countryIds : (values.countryIds ? [values.countryIds] : []));
+%>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/partners">Partner directory</a>
+  <span aria-hidden="true">/</span>
+  <span><%= partner ? partner.name : 'Add a partner' %></span>
+</nav>
 
-<section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
-</section>
+<form class="form" method="post" action="<%= partner ? `/admin/partners/${partner.id}` : '/admin/partners' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <h2 class="panel__title">Basics</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="name">Partner name</label>
+        <input class="field__input" type="text" id="name" name="name" required value="<%= values.name || '' %>">
+        <% if (errors.name) { %><p class="field__error"><%= errors.name[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="category">Category</label>
+        <select class="field__select" id="category" name="category" required>
+          <% Object.keys(categoryLabels).forEach(function (key) { %>
+            <option value="<%= key %>" <%= values.category === key ? 'selected' : '' %>><%= categoryLabels[key] %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% ['PROSPECT','ACTIVE','INACTIVE','SUSPENDED'].forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="description">Description</label>
+      <textarea class="field__textarea" id="description" name="description" rows="3"><%= values.description || '' %></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="logoPath">Logo URL</label>
+        <input class="field__input" type="text" id="logoPath" name="logoPath" value="<%= values.logoPath || '' %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="websiteUrl">Website</label>
+        <input class="field__input" type="text" id="websiteUrl" name="websiteUrl" value="<%= values.websiteUrl || '' %>">
+      </div>
+    </div>
+
+    <fieldset class="field field--fieldset">
+      <legend class="field__label">Countries covered</legend>
+      <div class="checkbox-grid">
+        <% countries.forEach(function (country) { %>
+          <label class="checkbox">
+            <input type="checkbox" name="countryIds" value="<%= country.id %>"
+                   <%= selectedCountryIds.indexOf(country.id) !== -1 ? 'checked' : '' %>>
+            <%= country.name %>
+          </label>
+        <% }) %>
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Contact</h2>
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="contactName">Contact name</label>
+        <input class="field__input" type="text" id="contactName" name="contactName" value="<%= values.contactName || '' %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="contactEmail">Contact email</label>
+        <input class="field__input" type="email" id="contactEmail" name="contactEmail" value="<%= values.contactEmail || '' %>">
+        <% if (errors.contactEmail) { %><p class="field__error"><%= errors.contactEmail[0] %></p><% } %>
+      </div>
+      <div class="field">
+        <label class="field__label" for="contactPhone">Contact phone</label>
+        <input class="field__input" type="text" id="contactPhone" name="contactPhone" value="<%= values.contactPhone || '' %>">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Contract &amp; commission — admin-only, never shown publicly</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="contractReference">Contract reference</label>
+        <input class="field__input" type="text" id="contractReference" name="contractReference" value="<%= values.contractReference || '' %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="contractStartsAt">Contract starts</label>
+        <input class="field__input" type="date" id="contractStartsAt" name="contractStartsAt" value="<%= toDateInput(values.contractStartsAt) %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="contractEndsAt">Contract ends</label>
+        <input class="field__input" type="date" id="contractEndsAt" name="contractEndsAt" value="<%= toDateInput(values.contractEndsAt) %>">
+      </div>
+      <div class="field">
+        <label class="field__label" for="commissionRateBps">Commission (basis points)</label>
+        <input class="field__input" type="number" id="commissionRateBps" name="commissionRateBps" min="0" max="10000"
+               value="<%= values.commissionRateBps ?? '' %>">
+        <p class="field__hint">100 basis points = 1%</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="commissionTerms">Commission terms</label>
+      <textarea class="field__textarea" id="commissionTerms" name="commissionTerms" rows="3"><%= values.commissionTerms || '' %></textarea>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Vetting &amp; visibility</h2>
+
+    <div class="field">
+      <label class="field__label" for="markVetted">
+        <input type="checkbox" id="markVetted" name="markVetted" <%= (partner && partner.vettedAt) || values.markVetted ? 'checked' : '' %>>
+        Vetted — meets the documented partner standard
+      </label>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="vettingNotes">Vetting notes</label>
+      <textarea class="field__textarea" id="vettingNotes" name="vettingNotes" rows="2"><%= values.vettingNotes || '' %></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="isPubliclyListed">
+          <input type="checkbox" id="isPubliclyListed" name="isPubliclyListed" <%= values.isPubliclyListed ? 'checked' : '' %>>
+          Publicly listed
+        </label>
+      </div>
+      <div class="field">
+        <label class="field__label" for="isDisplayLogoOnly">
+          <input type="checkbox" id="isDisplayLogoOnly" name="isDisplayLogoOnly" <%= values.isDisplayLogoOnly ? 'checked' : '' %>>
+          Logo-only display (no listing)
+        </label>
+      </div>
+      <div class="field">
+        <label class="field__label" for="isFeatured">
+          <input type="checkbox" id="isFeatured" name="isFeatured" <%= values.isFeatured ? 'checked' : '' %>>
+          Featured
+        </label>
+      </div>
+      <div class="field">
+        <label class="field__label" for="displayOrder">Display order</label>
+        <input class="field__input" type="number" id="displayOrder" name="displayOrder" value="<%= values.displayOrder ?? 0 %>">
+      </div>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= partner ? 'Save changes' : 'Add partner' %></button>
+    <a class="button button--ghost" href="/admin/partners">Cancel</a>
+  </div>
+</form>

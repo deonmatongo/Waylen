@@ -1,12 +1,111 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 1 — foundation',
-      detail: 'The editor UI is scaffolded; store/update in webinar.controller.ts persist it.'
-    }) %>
+<%
+  function toDatetimeLocal(v) {
+    if (!v) return '';
+    var d = (v instanceof Date) ? v : new Date(v);
+    if (isNaN(d.getTime())) return typeof v === 'string' ? v : '';
+    return d.toISOString().slice(0, 16);
+  }
+%>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/webinars">Webinars</a>
+  <span aria-hidden="true">/</span>
+  <span><%= webinar ? webinar.title : 'New webinar' %></span>
+</nav>
 
-<section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
-</section>
+<form class="form" method="post" action="<%= webinar ? `/admin/webinars/${webinar.id}` : '/admin/webinars' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <div class="field">
+      <label class="field__label" for="title">Title</label>
+      <input class="field__input" type="text" id="title" name="title" required value="<%= values.title || '' %>">
+      <% if (errors.title) { %><p class="field__error"><%= errors.title[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="description">Description</label>
+      <textarea class="field__textarea" id="description" name="description" rows="4"><%= values.description || '' %></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% ['DRAFT','PUBLISHED','ARCHIVED'].forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="format">Format</label>
+        <select class="field__select" id="format" name="format" required>
+          <% ['ONLINE','IN_PERSON','HYBRID'].forEach(function (fmt) { %>
+            <option value="<%= fmt %>" <%= values.format === fmt ? 'selected' : '' %>><%= format.humaniseEnum(fmt) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="timezone">Timezone</label>
+        <input class="field__input" type="text" id="timezone" name="timezone" value="<%= values.timezone || 'UTC' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="capacity">Capacity</label>
+        <input class="field__input" type="number" id="capacity" name="capacity" min="1" value="<%= values.capacity || '' %>">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="startsAt">Starts at</label>
+        <input class="field__input" type="datetime-local" id="startsAt" name="startsAt" required
+               value="<%= toDatetimeLocal(values.startsAt) %>">
+        <% if (errors.startsAt) { %><p class="field__error"><%= errors.startsAt[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="endsAt">Ends at</label>
+        <input class="field__input" type="datetime-local" id="endsAt" name="endsAt" required
+               value="<%= toDatetimeLocal(values.endsAt) %>">
+        <% if (errors.endsAt) { %><p class="field__error"><%= errors.endsAt[0] %></p><% } %>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="location">Location</label>
+        <input class="field__input" type="text" id="location" name="location"
+               placeholder="Physical address, when in-person or hybrid" value="<%= values.location || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="joinUrl">Join URL</label>
+        <input class="field__input" type="text" id="joinUrl" name="joinUrl" value="<%= values.joinUrl || '' %>">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="hostName">Host</label>
+        <input class="field__input" type="text" id="hostName" name="hostName" value="<%= values.hostName || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="coverImagePath">Cover image URL</label>
+        <input class="field__input" type="text" id="coverImagePath" name="coverImagePath" value="<%= values.coverImagePath || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="recordingUrl">Recording URL</label>
+        <input class="field__input" type="text" id="recordingUrl" name="recordingUrl" value="<%= values.recordingUrl || '' %>">
+      </div>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= webinar ? 'Save changes' : 'Create webinar' %></button>
+    <a class="button button--ghost" href="/admin/webinars">Cancel</a>
+  </div>
+</form>

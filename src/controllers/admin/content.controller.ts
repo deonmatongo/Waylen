@@ -2,9 +2,12 @@
  * Content management (PRD §5.4, §8.1 — a CMS for non-technical staff).
  */
 import type { Request, Response } from 'express';
+import slugify from 'slugify';
 import { prisma } from '../../config/database.js';
 import { OPPORTUNITY_CATEGORY_LABELS } from '../../config/constants.js';
-import { NotFoundError } from '../../utils/errors.js';
+import { NotFoundError, ConflictError } from '../../utils/errors.js';
+import { resourceSchema } from '../../validators/resource.validator.js';
+import { opportunitySchema } from '../../validators/opportunity.validator.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const [resourceCount, opportunityCount, faqCount, testimonialCount] = await Promise.all([
@@ -54,8 +57,31 @@ export async function createResource(req: Request, res: Response): Promise<void>
 }
 
 export async function storeResource(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): validate with resourceSchema, slugify the title and persist.
-  req.flash('info', 'Resource authoring is wired up in Phase 1.');
+  const parsed = resourceSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/resource-form', {
+      title: 'New resource',
+      layout: 'layouts/admin',
+      resource: null,
+      values: req.body,
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const slug = slugify(parsed.data.title, { lower: true, strict: true });
+  const existing = await prisma.resource.findUnique({ where: { slug }, select: { id: true } });
+  if (existing) throw new ConflictError('A resource with that title already exists.');
+
+  const resource = await prisma.resource.create({
+    data: {
+      ...parsed.data,
+      slug,
+      publishedAt: parsed.data.status === 'PUBLISHED' ? new Date() : null,
+    },
+  });
+
+  req.flash('success', `${resource.title} has been created.`);
   res.redirect('/admin/content/resources');
 }
 
@@ -73,8 +99,32 @@ export async function editResource(req: Request, res: Response): Promise<void> {
 }
 
 export async function updateResource(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): validate and persist the edit.
-  req.flash('info', 'Resource editing is wired up in Phase 1.');
+  const resource = await prisma.resource.findUnique({ where: { id: req.params.id as string } });
+  if (!resource) throw new NotFoundError('That resource could not be found.');
+
+  const parsed = resourceSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/resource-form', {
+      title: `Edit: ${resource.title}`,
+      layout: 'layouts/admin',
+      resource,
+      values: { ...req.body, id: resource.id },
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const justPublished = parsed.data.status === 'PUBLISHED' && !resource.publishedAt;
+
+  await prisma.resource.update({
+    where: { id: resource.id },
+    data: {
+      ...parsed.data,
+      ...(justPublished ? { publishedAt: new Date() } : {}),
+    },
+  });
+
+  req.flash('success', `${parsed.data.title} has been updated.`);
   res.redirect('/admin/content/resources');
 }
 
@@ -125,8 +175,37 @@ export async function createOpportunity(req: Request, res: Response): Promise<vo
 }
 
 export async function storeOpportunity(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): validate with opportunitySchema and persist.
-  req.flash('info', 'Opportunity authoring is wired up in Phase 1.');
+  const [countries, institutions] = await Promise.all([
+    prisma.country.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.partner.findMany({
+      where: { category: 'INSTITUTION' },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
+
+  const parsed = opportunitySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/opportunity-form', {
+      title: 'New opportunity',
+      layout: 'layouts/admin',
+      opportunity: null,
+      countries,
+      institutions,
+      categoryLabels: OPPORTUNITY_CATEGORY_LABELS,
+      values: req.body,
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const slug = slugify(parsed.data.title, { lower: true, strict: true });
+  const existing = await prisma.opportunity.findUnique({ where: { slug }, select: { id: true } });
+  if (existing) throw new ConflictError('An opportunity with that title already exists.');
+
+  const opportunity = await prisma.opportunity.create({ data: { ...parsed.data, slug } });
+
+  req.flash('success', `${opportunity.title} has been created.`);
   res.redirect('/admin/content/opportunities');
 }
 
@@ -156,8 +235,36 @@ export async function editOpportunity(req: Request, res: Response): Promise<void
 }
 
 export async function updateOpportunity(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): validate and persist the edit.
-  req.flash('info', 'Opportunity editing is wired up in Phase 1.');
+  const opportunity = await prisma.opportunity.findUnique({ where: { id: req.params.id as string } });
+  if (!opportunity) throw new NotFoundError('That opportunity could not be found.');
+
+  const [countries, institutions] = await Promise.all([
+    prisma.country.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.partner.findMany({
+      where: { category: 'INSTITUTION' },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
+
+  const parsed = opportunitySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/opportunity-form', {
+      title: `Edit: ${opportunity.title}`,
+      layout: 'layouts/admin',
+      opportunity,
+      countries,
+      institutions,
+      categoryLabels: OPPORTUNITY_CATEGORY_LABELS,
+      values: { ...req.body, id: opportunity.id },
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  await prisma.opportunity.update({ where: { id: opportunity.id }, data: parsed.data });
+
+  req.flash('success', `${parsed.data.title} has been updated.`);
   res.redirect('/admin/content/opportunities');
 }
 
