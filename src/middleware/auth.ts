@@ -19,7 +19,7 @@ export async function loadCurrentUser(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  if (!req.session.userId) return next();
+  if (!req.session?.userId) return next();
 
   try {
     const user = await prisma.user.findUnique({
@@ -37,7 +37,7 @@ export async function loadCurrentUser(
 
     // Session outlived the account, or the account was suspended.
     if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
-      req.session.destroy(() => undefined);
+      req.session = null;
       return next();
     }
 
@@ -52,7 +52,7 @@ export async function loadCurrentUser(
 /** Requires a signed-in, email-verified account. */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (!req.currentUser) {
-    req.session.returnTo = req.originalUrl;
+    req.session!.returnTo = req.originalUrl;
     res.redirect('/login');
     return;
   }

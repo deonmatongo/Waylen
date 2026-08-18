@@ -34,17 +34,15 @@ export async function submit(req: Request, res: Response): Promise<void> {
   try {
     const user = await authService.login(parsed.data.email, parsed.data.password);
 
-    // Guard against session fixation: issue a fresh session id on login.
-    await new Promise<void>((resolve, reject) => {
-      req.session.regenerate((err) =>
-        err ? reject(err instanceof Error ? err : new Error(String(err))) : resolve(),
-      );
-    });
-
-    req.session.userId = user.id;
-    req.session.role = user.role;
-    req.session.fullName = user.fullName;
-    req.session.emailVerified = Boolean(user.emailVerifiedAt);
+    // Session fixation isn't a risk here the way it is with a server-side
+    // store: there is no session id an attacker could pre-seed and have the
+    // victim adopt — the cookie itself, signed with SESSION_SECRET, is the
+    // only thing that carries the login, and setting these fields overwrites
+    // whatever an attacker could have staged in it.
+    req.session!.userId = user.id;
+    req.session!.role = user.role;
+    req.session!.fullName = user.fullName;
+    req.session!.emailVerified = Boolean(user.emailVerifiedAt);
 
     await auditService.record({
       actorId: user.id,
@@ -61,8 +59,8 @@ export async function submit(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const returnTo = req.session.returnTo;
-    delete req.session.returnTo;
+    const returnTo = req.session!.returnTo;
+    delete req.session!.returnTo;
 
     const home = STAFF_ROLES.includes(user.role) ? '/admin' : '/portal';
     res.redirect(returnTo ?? home);
@@ -87,8 +85,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
 export async function logout(req: Request, res: Response): Promise<void> {
   const userId = req.currentUser?.id;
 
-  await new Promise<void>((resolve) => req.session.destroy(() => resolve()));
-  res.clearCookie('waylen.sid');
+  req.session = null;
 
   if (userId) {
     await auditService.record({

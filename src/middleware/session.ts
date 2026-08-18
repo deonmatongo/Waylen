@@ -1,61 +1,47 @@
 /**
- * Server-side sessions backed by PostgreSQL.
+ * Sessions, signed into the cookie itself rather than kept server-side.
  *
- * Sessions live in the database rather than memory so the app can run more
- * than one instance and survive restarts without logging students out.
+ * This app's database is SQLite with no shared, persistent store available
+ * across instances (the same reason migrations/seed re-run on every cold
+ * start) — a server-side session store (in-memory or SQLite-backed) would
+ * only be visible to whichever single instance wrote it, so a request
+ * landed on a different instance would look logged out. A signed cookie
+ * carries the session with it, so it works the same regardless of which
+ * instance handles the request. `cookie-session` signs (HMAC via `keys`)
+ * so a client cannot forge or edit `role` etc. without knowing
+ * SESSION_SECRET, but does not encrypt the payload — nothing sensitive
+ * (passwords, tokens) belongs in session data, only the fields already
+ * used here.
  */
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
+import cookieSession from 'cookie-session';
 import type { RequestHandler } from 'express';
 import type { UserRole } from '@prisma/client';
 import { env } from '../config/env.js';
-import { logger } from '../config/logger.js';
 
-const PgStore = connectPgSimple(session);
-
-declare module 'express-session' {
-  interface SessionData {
-    userId?: string;
-    role?: UserRole;
-    fullName?: string;
-    /** Set after email verification so guarded routes can check cheaply. */
-    emailVerified?: boolean;
-    /** Where to send the user after a successful login. */
-    returnTo?: string;
-    flash?: { type: 'success' | 'error' | 'info' | 'warning'; message: string }[];
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace CookieSessionInterfaces {
+    interface CookieSessionObject {
+      userId?: string;
+      role?: UserRole;
+      fullName?: string;
+      /** Set after email verification so guarded routes can check cheaply. */
+      emailVerified?: boolean;
+      /** Where to send the user after a successful login. */
+      returnTo?: string;
+      flash?: { type: 'success' | 'error' | 'info' | 'warning'; message: string }[];
+    }
   }
 }
 
 export function sessionMiddleware(): RequestHandler {
-  const isSqlite = env.DATABASE_URL.startsWith('file:');
-
-  const store = isSqlite
-    ? undefined
-    : (() => {
-        const s = new PgStore({
-          conString: env.DATABASE_URL,
-          tableName: 'user_sessions',
-          createTableIfMissing: true,
-          pruneSessionInterval: 60 * 15,
-          errorLog: (...args: unknown[]) => logger.error({ args }, 'Session store error'),
-        });
-        s.on('error', (err: Error) => logger.error({ err }, 'Session store error'));
-        return s;
-      })();
-
-  return session({
+  return cookieSession({
     name: 'waylen.sid',
-    secret: env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    rolling: true,
-    store,
-    cookie: {
-      httpOnly: true,
-      secure: env.isProduction,
-      sameSite: 'lax',
-      maxAge: env.SESSION_TTL_HOURS * 60 * 60 * 1000,
-      path: '/',
-    },
+    keys: [env.SESSION_SECRET],
+    maxAge: env.SESSION_TTL_HOURS * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: env.isProduction,
+    sameSite: 'lax',
+    path: '/',
   });
 }
