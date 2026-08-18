@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install && npx prisma generate && npm run build:ts && npm run build:views",
+  "installCommand": "npm install --include=dev && npx prisma generate && npm run build:ts && npm run build:views",
   "functions": {
     "api/index.js": {
       "includeFiles": "{dist/**,public/**,prisma/**,node_modules/.prisma/**,node_modules/@prisma/client/**}"
