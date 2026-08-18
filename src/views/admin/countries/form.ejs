@@ -1,12 +1,153 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 1 — foundation',
-      detail: 'The editor UI is scaffolded; store/update in country.controller.ts persist it. Adding a country must never need a code change (PRD §8.1).'
-    }) %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/countries">Countries</a>
+  <span aria-hidden="true">/</span>
+  <span><%= country ? country.name : 'Add a country' %></span>
+</nav>
 
-<section class="panel">
-  <p class="panel__note">
-    Route, controller action and navigation are in place. The form fields map
-    directly onto the Prisma model — see
-    <code>prisma/schema.prisma</code>.
-  </p>
-</section>
+<form class="form" method="post" action="<%= country ? `/admin/countries/${country.id}` : '/admin/countries' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <h2 class="panel__title">Basics</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="name">Country name</label>
+        <input class="field__input" type="text" id="name" name="name" required
+               value="<%= values.name || '' %>">
+        <% if (errors.name) { %><p class="field__error"><%= errors.name[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="isoCode">ISO code</label>
+        <input class="field__input" type="text" id="isoCode" name="isoCode" required maxlength="2"
+               style="text-transform:uppercase" value="<%= values.isoCode || '' %>">
+        <p class="field__hint">2-letter ISO 3166-1 code, e.g. PL</p>
+        <% if (errors.isoCode) { %><p class="field__error"><%= errors.isoCode[0] %></p><% } %>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% statuses.forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>>
+              <%= format.humaniseEnum(status) %>
+            </option>
+          <% }) %>
+        </select>
+        <% if (errors.status) { %><p class="field__error"><%= errors.status[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="displayOrder">Display order</label>
+        <input class="field__input" type="number" id="displayOrder" name="displayOrder" step="1"
+               value="<%= values.displayOrder ?? 0 %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="isFeatured">
+          <input type="checkbox" id="isFeatured" name="isFeatured" <%= values.isFeatured ? 'checked' : '' %>>
+          Feature on the destinations grid
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="summary">Summary</label>
+      <textarea class="field__textarea" id="summary" name="summary" rows="3"
+                placeholder="A short intro shown on the destinations grid"><%= values.summary || '' %></textarea>
+      <% if (errors.summary) { %><p class="field__error"><%= errors.summary[0] %></p><% } %>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="heroImagePath">Hero image URL</label>
+        <input class="field__input" type="text" id="heroImagePath" name="heroImagePath"
+               value="<%= values.heroImagePath || '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="flagImagePath">Flag image URL</label>
+        <input class="field__input" type="text" id="flagImagePath" name="flagImagePath"
+               value="<%= values.flagImagePath || '' %>">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Costs</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="indicativeTuitionMin">Tuition from (in cents)</label>
+        <input class="field__input" type="number" id="indicativeTuitionMin" name="indicativeTuitionMin" min="0"
+               value="<%= values.indicativeTuitionMin ?? '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="indicativeTuitionMax">Tuition to (in cents)</label>
+        <input class="field__input" type="number" id="indicativeTuitionMax" name="indicativeTuitionMax" min="0"
+               value="<%= values.indicativeTuitionMax ?? '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="costOfLivingMonthly">Cost of living / month (in cents)</label>
+        <input class="field__input" type="number" id="costOfLivingMonthly" name="costOfLivingMonthly" min="0"
+               value="<%= values.costOfLivingMonthly ?? '' %>">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="currency">Currency</label>
+        <input class="field__input" type="text" id="currency" name="currency" maxlength="3"
+               value="<%= values.currency || 'EUR' %>">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Destination guide</h2>
+    <p class="panel__note">Long-form sections shown on the country's public page. All optional.</p>
+
+    <% [
+      ['educationOverview', 'Education overview'],
+      ['costOfLiving', 'Cost of living'],
+      ['accommodation', 'Accommodation'],
+      ['healthcare', 'Healthcare'],
+      ['banking', 'Banking'],
+      ['transportation', 'Transportation'],
+      ['studentLife', 'Student life'],
+      ['workingWhileStudying', 'Working while studying'],
+      ['careerOpportunities', 'Career opportunities'],
+      ['visaInformation', 'Visa information'],
+      ['popularProgrammes', 'Popular programmes'],
+    ].forEach(function (section) { %>
+      <div class="field">
+        <label class="field__label" for="<%= section[0] %>"><%= section[1] %></label>
+        <textarea class="field__textarea" id="<%= section[0] %>" name="<%= section[0] %>" rows="4"><%= values[section[0]] || '' %></textarea>
+      </div>
+    <% }) %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">SEO</h2>
+
+    <div class="field">
+      <label class="field__label" for="metaTitle">Meta title</label>
+      <input class="field__input" type="text" id="metaTitle" name="metaTitle" maxlength="70"
+             value="<%= values.metaTitle || '' %>">
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="metaDescription">Meta description</label>
+      <textarea class="field__textarea" id="metaDescription" name="metaDescription" rows="2"
+                maxlength="160"><%= values.metaDescription || '' %></textarea>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= country ? 'Save changes' : 'Add country' %></button>
+    <a class="button button--ghost" href="/admin/countries">Cancel</a>
+  </div>
+</form>
