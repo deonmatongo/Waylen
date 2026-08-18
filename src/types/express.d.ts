@@ -3,6 +3,7 @@
  */
 import type { UserRole, UserStatus, ApplicationStage } from '@prisma/client';
 import type { FlashType } from '../middleware/flash.js';
+import type { SessionData } from '../middleware/session.js';
 
 export interface CurrentUser {
   id: string;
@@ -25,6 +26,7 @@ declare global {
       currentUser?: CurrentUser;
       /** Queues a one-shot message to display after a redirect. */
       flash: (type: FlashType, message: string) => void;
+      session: SessionData | null;
     }
   }
 }
