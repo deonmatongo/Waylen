@@ -1,9 +1,18 @@
 /**
- * Process entry point: boots the HTTP server and owns the lifecycle.
+ * Process entry point.
+ *
+ * On a traditional host this boots a long-running HTTP server and owns its
+ * lifecycle. On Vercel there is no process to keep alive — the platform
+ * invokes the default export directly, once per request, potentially against
+ * a fresh container each time. `process.env.VERCEL` (set automatically by
+ * the platform) is what tells this file which mode it's in; `getApp()` does
+ * the one-time async setup (DB connect, migrate, seed) either way, memoized
+ * so a warm serverless container does not repeat it per request.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
@@ -88,15 +97,39 @@ async function applyMigrationsAndSeed(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
-  await connectDatabase();
-  await applyMigrationsAndSeed();
+type ExpressApp = ReturnType<typeof createApp>;
 
-  const app = createApp();
+let appPromise: Promise<ExpressApp> | null = null;
+
+/** One-time setup, memoized — safe to call on every request. */
+function getApp(): Promise<ExpressApp> {
+  if (!appPromise) {
+    appPromise = (async () => {
+      await connectDatabase();
+      await applyMigrationsAndSeed();
+      return createApp();
+    })();
+  }
+  return appPromise;
+}
+
+/**
+ * Vercel's Node runtime invokes this directly per request; a traditional
+ * host never calls it (it calls `main()` below instead).
+ */
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const app = await getApp();
+  app(req, res);
+}
+
+async function main(): Promise<void> {
+  const app = await getApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`${env.APP_NAME} listening on ${env.APP_URL} (${env.NODE_ENV})`);
   });
 
+  // In-process `setInterval` jobs assume a long-lived process — meaningless
+  // on serverless, where `main()` never runs at all (see below).
   startScheduledJobs();
 
   // Graceful shutdown: stop accepting connections, drain, then close the pool.
@@ -138,7 +171,12 @@ async function main(): Promise<void> {
   });
 }
 
-void main().catch((err) => {
-  logger.fatal({ err }, 'Failed to start server');
-  process.exit(1);
-});
+// Vercel imports this module for its default export and never runs it as a
+// script — calling `main()` there would start a server that immediately gets
+// discarded, and register signal handlers a serverless container never fires.
+if (!process.env.VERCEL) {
+  void main().catch((err) => {
+    logger.fatal({ err }, 'Failed to start server');
+    process.exit(1);
+  });
+}
