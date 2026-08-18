@@ -20,6 +20,7 @@ import { sessionMiddleware } from './middleware/session.js';
 import { csrfProtection, exposeCsrfToken } from './middleware/csrf.js';
 import { attachLocals } from './middleware/locals.js';
 import { flashMiddleware } from './middleware/flash.js';
+import { safeRedirects } from './middleware/safeRedirect.js';
 import { globalRateLimiter } from './middleware/rateLimit.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { registerRoutes } from './routes/index.js';
@@ -101,6 +102,7 @@ export function createApp(): Express {
   app.use(csrfProtection);
   app.use(exposeCsrfToken);
   app.use(attachLocals);
+  app.use(safeRedirects);
 
   // ── Liveness probe ───────────────────────────────────────────────────────
   app.get('/healthz', (_req, res) => {
