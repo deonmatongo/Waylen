@@ -17,6 +17,16 @@ import { customAlphabet } from 'nanoid';
 const prisma = new PrismaClient();
 const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 
+/**
+ * Real content (countries, partners, opportunities, resources, webinars,
+ * settings) is safe and idempotent to seed in any environment, production
+ * included — that's the point of this flag. The demo staff/student accounts
+ * below share one hardcoded password and are gated out of production so
+ * `npm run db:seed` can never hand out real admin access with a password
+ * that's sitting in plain text in this file's git history.
+ */
+const isProduction = process.env.NODE_ENV === 'production';
+
 /** Development-only password. Production accounts are created via invitation. */
 const DEV_PASSWORD = 'WaylenDev2026!';
 
@@ -1047,17 +1057,29 @@ async function seedSettings() {
 }
 
 async function main() {
-  console.log('\nSeeding Waylen development database…\n');
+  console.log(`\nSeeding Waylen ${isProduction ? 'production' : 'development'} database…\n`);
 
+  // Real content — safe in every environment.
   const countries = await seedCountries();
-  const staff = await seedStaff();
   const partners = await seedPartners(countries);
   await seedOpportunities(countries, partners);
   await seedContent();
   await seedWebinars();
-  await seedStudent(countries, staff, partners);
   await seedEnquiries();
   await seedSettings();
+
+  if (isProduction) {
+    console.log(`
+Done. Production mode: skipped the demo staff/student accounts — they share
+one hardcoded password that's in this file's git history, so they're never
+created outside development. Invite real staff from /admin/users.
+`);
+    return;
+  }
+
+  // Demo accounts — development only (see isProduction above).
+  const staff = await seedStaff();
+  await seedStudent(countries, staff, partners);
 
   console.log(`
 Done. Development sign-ins (password: ${DEV_PASSWORD})
