@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270">
+  <defs>
+    <linearGradient id="g" x1="32.9%" y1="3.0%" x2="67.1%" y2="97.0%">
+      <stop offset="0%" stop-color="#142243"/>
+      <stop offset="100%" stop-color="#2847d8"/>
+    </linearGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="translate(9 9)">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff" fill-opacity="0.12"/>
+    </pattern>
+  </defs>
+  <rect width="480" height="270" fill="url(#g)"/>
+  <rect width="480" height="270" fill="url(#dots)"/>
+  <circle cx="440" cy="40" r="90" fill="#ffffff" fill-opacity="0.05"/>
+  <text x="28" y="216" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" fill="#ffffff" fill-opacity="0.96">Estonia</text>
+  <text x="28" y="240" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#ffffff" fill-opacity="0.55">STUDY DESTINATION</text>
+</svg>

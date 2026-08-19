@@ -36,6 +36,7 @@ const DESTINATIONS = [
     slug: 'poland',
     name: 'Poland',
     flag: 'poland.png',
+    hero: 'poland-hero.svg',
     summary:
       'Affordable, well-regarded universities with a growing number of English-taught programmes, and a straightforward student visa route.',
     tuitionMin: 200_000,
@@ -49,6 +50,7 @@ const DESTINATIONS = [
     slug: 'ireland',
     name: 'Ireland',
     flag: 'ireland.svg',
+    hero: 'ireland-hero.svg',
     summary:
       'English-speaking, EU-based, with a two-year post-study work visa and a strong technology and pharmaceutical sector.',
     tuitionMin: 900_000,
@@ -62,6 +64,7 @@ const DESTINATIONS = [
     slug: 'canada',
     name: 'Canada',
     flag: 'canada.svg',
+    hero: 'canada-hero.svg',
     summary:
       'A clear pathway from study to work to permanent residency, with strong institutional recognition worldwide.',
     tuitionMin: 1_100_000,
@@ -75,6 +78,7 @@ const DESTINATIONS = [
     slug: 'latvia',
     name: 'Latvia',
     flag: 'latvia.png',
+    hero: 'latvia-hero.svg',
     summary:
       'Low tuition and living costs inside the EU, with respected aviation, IT and business programmes.',
     tuitionMin: 250_000,
@@ -88,6 +92,7 @@ const DESTINATIONS = [
     slug: 'lithuania',
     name: 'Lithuania',
     flag: 'lithuania.png',
+    hero: 'lithuania-hero.svg',
     summary:
       'Strong engineering and life-sciences programmes, small class sizes and one of the EU\'s more affordable capitals.',
     tuitionMin: 250_000,
@@ -101,6 +106,7 @@ const DESTINATIONS = [
     slug: 'romania',
     name: 'Romania',
     flag: 'romania.svg',
+    hero: 'romania-hero.svg',
     summary:
       'Well-established medical and dental schools with English-taught tracks, at a fraction of Western European cost.',
     tuitionMin: 300_000,
@@ -114,6 +120,7 @@ const DESTINATIONS = [
     slug: 'bulgaria',
     name: 'Bulgaria',
     flag: 'bulgaria.svg',
+    hero: 'bulgaria-hero.svg',
     summary:
       'EU degrees at low cost, with growing hospitality, medicine and business programmes taught in English.',
     tuitionMin: 280_000,
@@ -121,6 +128,19 @@ const DESTINATIONS = [
     livingCost: 50_000,
     featured: false,
     order: 7,
+  },
+  {
+    isoCode: 'EE',
+    slug: 'estonia',
+    name: 'Estonia',
+    flag: 'estonia.svg',
+    hero: 'estonia-hero.svg',
+    summary: 'A small Baltic nation with a strong digital economy.',
+    tuitionMin: 250_000,
+    tuitionMax: 600_000,
+    livingCost: 65_000,
+    featured: false,
+    order: 8,
   },
 ] as const;
 
@@ -130,12 +150,17 @@ async function seedCountries() {
   for (const destination of DESTINATIONS) {
     const country = await prisma.country.upsert({
       where: { isoCode: destination.isoCode },
-      update: { flagImagePath: `/img/countries/${destination.flag}` },
+      // Never overwrite flag/hero on an existing row — an admin may already
+      // have replaced the seed placeholder with real photography, and a
+      // reseed must not silently revert that. Missing images are backfilled
+      // separately below, only where the column is still empty.
+      update: {},
       create: {
         isoCode: destination.isoCode,
         slug: destination.slug,
         name: destination.name,
         flagImagePath: `/img/countries/${destination.flag}`,
+        heroImagePath: `/img/countries/${destination.hero}`,
         status: 'PUBLISHED',
         summary: destination.summary,
         isFeatured: destination.featured,
@@ -170,6 +195,16 @@ async function seedCountries() {
     });
 
     countries.set(destination.isoCode, country.id);
+
+    // Backfill only — never touches a row that already has an image set.
+    await prisma.country.updateMany({
+      where: { isoCode: destination.isoCode, flagImagePath: null },
+      data: { flagImagePath: `/img/countries/${destination.flag}` },
+    });
+    await prisma.country.updateMany({
+      where: { isoCode: destination.isoCode, heroImagePath: null },
+      data: { heroImagePath: `/img/countries/${destination.hero}` },
+    });
 
     // A couple of FAQs per destination (PRD §4.3).
     const faqs = [
