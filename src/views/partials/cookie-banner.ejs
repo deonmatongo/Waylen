@@ -1,13 +1,68 @@
-<%# PRD §8.2 — cookie notice. We set no analytics/marketing cookies, only
-    strictly-necessary ones (session, CSRF protection, theme preference), so
-    this is a notice rather than a consent gate — see /privacy-policy §6. %>
-<div class="cookie-banner" data-cookie-banner hidden>
-  <p class="cookie-banner__text">
-    We use essential cookies to keep you signed in, protect your session and
-    remember your theme preference. We don't use analytics or advertising
-    cookies. See our <a href="/privacy-policy">privacy policy</a> for details.
-  </p>
-  <button class="button button--primary button--small" type="button" data-cookie-dismiss>
-    Got it
-  </button>
+<%#
+  PRD §8.2 — cookie notice. Today we only set strictly-necessary cookies
+  (session, CSRF protection, theme preference) and no analytics/marketing
+  cookies, so "Accept all" and "Necessary only" currently behave the same —
+  but the choice is genuinely persisted (see initCookieBanner in app.js),
+  so an analytics category added later has a real preference to check
+  rather than needing this UI rebuilt.
+%>
+<div class="cookie-consent" data-cookie-banner hidden role="region" aria-label="Cookie notice">
+  <div class="cookie-consent__card">
+    <div class="cookie-consent__header">
+      <span class="cookie-consent__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+          <path d="M21 12a9 9 0 1 1-9-9c.28 0 .5.24.46.52A3 3 0 0 0 16 7a3 3 0 0 0 3 3 3 3 0 0 0 .48-.04c.28-.04.52.18.52.46Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="9" cy="10" r="1.1" fill="currentColor"/>
+          <circle cx="9.5" cy="15" r="1.1" fill="currentColor"/>
+          <circle cx="14" cy="16.5" r="1.1" fill="currentColor"/>
+        </svg>
+      </span>
+      <h2 class="cookie-consent__title">We use cookies</h2>
+    </div>
+
+    <p class="cookie-consent__text">
+      Only strictly-necessary cookies — to keep you signed in, protect your
+      session and remember your theme. No analytics or advertising cookies.
+      Read our <a href="/privacy-policy">privacy policy</a> for details.
+    </p>
+
+    <div class="cookie-consent__actions">
+      <button class="button button--ghost button--small" type="button" data-cookie-manage
+              aria-expanded="false" aria-controls="cookie-consent-prefs">
+        Manage preferences
+      </button>
+      <button class="button button--secondary button--small" type="button" data-cookie-necessary-only>
+        Necessary only
+      </button>
+      <button class="button button--primary button--small" type="button" data-cookie-accept-all>
+        Accept all
+      </button>
+    </div>
+
+    <div class="cookie-consent__prefs" id="cookie-consent-prefs" data-cookie-prefs hidden>
+      <div class="cookie-consent__pref">
+        <div>
+          <p class="cookie-consent__pref-title">Necessary</p>
+          <p class="cookie-consent__pref-desc">Session, security and theme cookies. Always on — the site can't work without them.</p>
+        </div>
+        <span class="toggle toggle--locked" aria-hidden="true"><span class="toggle__thumb"></span></span>
+      </div>
+
+      <div class="cookie-consent__pref">
+        <div>
+          <label class="cookie-consent__pref-title" for="cookie-pref-analytics">Analytics</label>
+          <p class="cookie-consent__pref-desc">We don't currently use analytics cookies. This stays off unless you turn it on.</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="cookie-pref-analytics" data-cookie-analytics>
+          <span class="toggle__thumb"></span>
+        </label>
+      </div>
+
+      <button class="button button--primary button--small" type="button" data-cookie-save>
+        Save preferences
+      </button>
+    </div>
+  </div>
 </div>

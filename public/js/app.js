@@ -444,6 +444,40 @@
     targets.forEach(function (el) { io.observe(el); });
   }
 
+  /**
+   * Loops the "Live client dashboard" mockup's application-progress stages so
+   * the panel reads as active rather than a static screenshot. Purely
+   * decorative (the panel is aria-hidden) — never touches real data.
+   */
+  function initHeroJourney() {
+    var stages = document.querySelectorAll('.cp-journey__stage');
+    if (stages.length < 2) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var startIndex = Array.prototype.findIndex.call(stages, function (stage) {
+      return stage.classList.contains('cp-journey__stage--active');
+    });
+    if (startIndex === -1) return;
+
+    var sequence = [];
+    for (var i = startIndex; i < stages.length; i++) sequence.push(i);
+    sequence.push(null); // every stage complete — hold here briefly before looping
+
+    var step = 0;
+    function render(activeIndex) {
+      stages.forEach(function (stage, i) {
+        stage.classList.remove('cp-journey__stage--active');
+        stage.classList.toggle('cp-journey__stage--done', activeIndex === null || i < activeIndex);
+        if (i === activeIndex) stage.classList.add('cp-journey__stage--active');
+      });
+    }
+
+    setInterval(function () {
+      step = (step + 1) % sequence.length;
+      render(sequence[step]);
+    }, 2600);
+  }
+
   /** Safety net for browsers that ignore the `autoplay` attribute on first paint. */
   function initHeroVideo() {
     var video = document.querySelector('.cp-hero__video');
@@ -458,31 +492,78 @@
     video.addEventListener('canplay', start);
   }
 
-  /** Cookie notice: shown once per browser until dismissed. */
+/**
+   * Cookie consent. Shown once per browser until a real choice is recorded —
+   * "Accept all" / "Necessary only" / a saved custom preference all write a
+   * JSON record (`{necessary, analytics, decidedAt}`) to localStorage, not
+   * just a dismissed flag. There is no analytics integration to gate yet, but
+   * any that gets added later should read `cookieConsent().analytics` before
+   * loading, so this UI never needs rebuilding to become "real".
+   */
+  var COOKIE_CONSENT_KEY = 'waylen-cookie-consent';
+
+  function readCookieConsent() {
+    try {
+      var raw = window.localStorage.getItem(COOKIE_CONSENT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null; // Private browsing, corrupted value, storage disabled, etc.
+    }
+  }
+
+  function writeCookieConsent(analytics) {
+    var record = { necessary: true, analytics: Boolean(analytics), decidedAt: Date.now() };
+    try {
+      window.localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(record));
+    } catch (err) {
+      /* Can't persist — the banner will just show again next visit. */
+    }
+    return record;
+  }
+
   function initCookieBanner() {
     var banner = document.querySelector('[data-cookie-banner]');
-    if (!banner) return;
-
-    var STORAGE_KEY = 'waylen-cookie-notice-dismissed';
-    var dismissed;
-    try {
-      dismissed = window.localStorage.getItem(STORAGE_KEY) === '1';
-    } catch (err) {
-      dismissed = false; // Private browsing etc. — fail open and just show it.
-    }
-    if (dismissed) return;
+    if (!banner || readCookieConsent()) return;
 
     banner.hidden = false;
 
-    var dismissButton = banner.querySelector('[data-cookie-dismiss]');
-    if (dismissButton) {
-      dismissButton.addEventListener('click', function () {
-        banner.hidden = true;
-        try {
-          window.localStorage.setItem(STORAGE_KEY, '1');
-        } catch (err) {
-          /* nothing to persist without storage — it will just show again next visit */
-        }
+    var prefsPanel = banner.querySelector('[data-cookie-prefs]');
+    var manageButton = banner.querySelector('[data-cookie-manage]');
+    var analyticsToggle = banner.querySelector('[data-cookie-analytics]');
+
+    function closeBanner() {
+      banner.hidden = true;
+    }
+
+    if (manageButton && prefsPanel) {
+      manageButton.addEventListener('click', function () {
+        var willOpen = prefsPanel.hidden;
+        prefsPanel.hidden = !willOpen;
+        manageButton.setAttribute('aria-expanded', String(willOpen));
+      });
+    }
+
+    var acceptAllButton = banner.querySelector('[data-cookie-accept-all]');
+    if (acceptAllButton) {
+      acceptAllButton.addEventListener('click', function () {
+        writeCookieConsent(true);
+        closeBanner();
+      });
+    }
+
+    var necessaryOnlyButton = banner.querySelector('[data-cookie-necessary-only]');
+    if (necessaryOnlyButton) {
+      necessaryOnlyButton.addEventListener('click', function () {
+        writeCookieConsent(false);
+        closeBanner();
+      });
+    }
+
+    var saveButton = banner.querySelector('[data-cookie-save]');
+    if (saveButton) {
+      saveButton.addEventListener('click', function () {
+        writeCookieConsent(analyticsToggle && analyticsToggle.checked);
+        closeBanner();
       });
     }
   }
@@ -496,6 +577,7 @@
     initFlashDismiss();
     initScrollReveal();
     initHeroVideo();
+    initHeroJourney();
     initCookieBanner();
   }
 

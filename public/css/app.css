@@ -790,14 +790,14 @@ hr.rule {
 }
 
 .button--primary {
-  background-color: var(--corp-navy);
-  border-color: var(--corp-navy);
+  background-color: var(--accent);
+  border-color: var(--accent);
   color: var(--white);
 }
 
 .button--primary:hover {
-  background-color: var(--corp-navy-mid);
-  border-color: var(--corp-navy-mid);
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: var(--white);
 }
 
@@ -3939,15 +3939,15 @@ hr.rule {
 .btn--corp-gold {
   background: var(--corp-gold);
   border-color: var(--corp-gold);
-  color: var(--corp-navy);
+  color: var(--white);
   font-weight: 700;
 }
 
 .btn--corp-gold:hover {
   background: var(--corp-gold-lt);
   border-color: var(--corp-gold-lt);
-  color: var(--corp-navy);
-  box-shadow: 0 4px 18px rgba(197, 160, 40, 0.35);
+  color: var(--white);
+  box-shadow: 0 4px 18px rgba(40, 71, 216, 0.35);
 }
 
 /* Ghost — transparent on dark */
@@ -4165,10 +4165,36 @@ hr.rule {
   border-color: var(--corp-gold);
 }
 
+.cp-journey__dot,
+.cp-journey__stage + .cp-journey__stage::before {
+  transition: background 0.5s var(--ease-motion), border-color 0.5s var(--ease-motion);
+}
+
 .cp-journey__stage--active .cp-journey__dot {
   background: #fff;
   border-color: #fff;
   box-shadow: 0 0 0 4px rgba(255,255,255,0.15);
+}
+
+.cp-journey__stage--active .cp-journey__dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: #fff;
+  animation: cp-journey-ping 1.8s var(--ease-motion) infinite;
+}
+
+@keyframes cp-journey-ping {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-journey__stage--active .cp-journey__dot::after {
+    animation: none;
+    display: none;
+  }
 }
 
 .cp-journey__name {
@@ -5239,10 +5265,10 @@ hr.rule {
    ══════════════════════════════════════════════════════════════════════════ */
 
 .app {
-  --app-accent: #3ecf8e;
-  --app-accent-hover: #34b87d;
-  --app-accent-bg: #ecfdf5;
-  --app-accent-ink: #0f6b45;
+  --app-accent: #2847d8;
+  --app-accent-hover: #1f3474;
+  --app-accent-bg: #eef2ff;
+  --app-accent-ink: #1f3474;
   --app-ink: #171717;
   --app-ink-muted: #6b6b6f;
   --app-border: #e4e4e7;
@@ -5492,13 +5518,13 @@ hr.rule {
 .app .button--primary {
   background-color: var(--app-accent);
   border-color: var(--app-accent);
-  color: var(--app-ink);
+  color: var(--white);
 }
 
 .app .button--primary:hover {
   background-color: var(--app-accent-hover);
   border-color: var(--app-accent-hover);
-  color: var(--app-ink);
+  color: var(--white);
 }
 
 .app .button--secondary {
@@ -5510,7 +5536,7 @@ hr.rule {
 .app .button--secondary:hover {
   background-color: var(--app-accent);
   border-color: var(--app-accent);
-  color: var(--app-ink);
+  color: var(--white);
 }
 
 .app .button--ghost {
@@ -5526,7 +5552,7 @@ hr.rule {
 
 .app .link-button {
   color: var(--app-accent-ink);
-  border-bottom-color: rgba(15, 107, 69, 0.3);
+  border-bottom-color: rgba(31, 52, 116, 0.3);
 }
 
 .app .link-button:hover {
@@ -5579,7 +5605,7 @@ hr.rule {
 
 .app .field__select:focus {
   background-color: var(--app-bg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233ecf8e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232847d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .app .field__file {
@@ -5835,14 +5861,14 @@ html[data-motion-ready] .reveal.is-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.34;
+  opacity: 0.6;
   z-index: 0;
 }
 
 .cp-hero__wash {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(13, 31, 76, 0.55), var(--corp-navy) 92%);
+  background: linear-gradient(180deg, rgba(13, 31, 76, 0.32), rgba(13, 31, 76, 0.68) 55%, var(--corp-navy) 95%);
   z-index: 1;
 }
 
@@ -5966,55 +5992,169 @@ html[data-motion-ready] .reveal.is-visible {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   Cookie notice
+   Cookie consent
 
-   We set no analytics/marketing cookies, so this is an informational notice
-   rather than a consent gate. Shown once per browser (public.js remembers the
-   dismissal in localStorage); with JS disabled it just stays visible, which
-   is the safer failure mode for a notice like this.
+   We set no analytics/marketing cookies today, so "Accept all" and
+   "Necessary only" have the same practical effect — but the choice (incl. the
+   analytics toggle) is genuinely persisted as JSON (see initCookieBanner in
+   app.js), so it's a real preference store, not a decorative dismiss button.
+   Shown once per browser until a choice is recorded; with JS disabled it just
+   stays visible, which is the safer failure mode for a notice like this.
    ══════════════════════════════════════════════════════════════════════════ */
 
-.cookie-banner {
+.cookie-consent {
   position: fixed;
   left: var(--sp-4);
-  right: var(--sp-4);
   bottom: var(--sp-4);
   z-index: 60;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-4);
-  max-width: 640px;
-  margin: 0 auto;
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--ink-800);
-  color: rgba(255, 255, 255, 0.88);
+  max-width: 380px;
+}
+
+.cookie-consent__card {
+  padding: var(--sp-5);
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
 }
 
-.cookie-banner__text {
-  flex: 1 1 320px;
-  font-size: var(--text-sm);
-  line-height: 1.5;
+.cookie-consent__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.cookie-consent__icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.cookie-consent__title {
+  font-size: var(--text-base);
   margin: 0;
 }
 
-.cookie-banner__text a {
-  color: var(--white);
+.cookie-consent__text {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-4);
+}
+
+.cookie-consent__text a {
+  color: var(--accent);
   text-decoration: underline;
 }
 
-.cookie-banner [data-cookie-dismiss] {
-  flex-shrink: 0;
+.cookie-consent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }
 
-@media (max-width: 640px) {
-  .cookie-banner {
+.cookie-consent__actions .button--primary,
+.cookie-consent__actions .button--secondary {
+  flex: 1 1 auto;
+}
+
+.cookie-consent__prefs {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.cookie-consent__pref {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.cookie-consent__pref-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0 0 2px;
+  display: block;
+}
+
+.cookie-consent__pref-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* A minimal toggle switch — no other component in the app needed one yet. */
+.toggle {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+}
+
+.toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggle__thumb {
+  position: absolute;
+  inset: 0;
+  background: var(--grey-300);
+  border-radius: var(--radius-full);
+  transition: background var(--transition);
+}
+
+.toggle__thumb::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--white);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition);
+}
+
+.toggle input:checked + .toggle__thumb {
+  background: var(--accent);
+}
+
+.toggle input:checked + .toggle__thumb::before {
+  transform: translateX(16px);
+}
+
+.toggle input:focus-visible + .toggle__thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.toggle--locked .toggle__thumb {
+  background: var(--accent);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle--locked .toggle__thumb::before {
+  transform: translateX(16px);
+}
+
+@media (max-width: 480px) {
+  .cookie-consent {
     left: var(--sp-3);
     right: var(--sp-3);
     bottom: var(--sp-3);
-    flex-direction: column;
-    align-items: stretch;
+    max-width: none;
   }
 }
