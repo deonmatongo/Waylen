@@ -57,7 +57,9 @@
           <td><code><%= student.reference %></code></td>
           <td><%= student.countryOfOrigin ? student.countryOfOrigin.name : '—' %></td>
           <td><span class="badge badge--neutral"><%= format.humaniseEnum(student.currentStage) %></span></td>
-          <td><%= student.assignedCounsellor ? student.assignedCounsellor.fullName : '<span class="table__hint">Unassigned</span>' %></td>
+          <td>
+            <% if (student.assignedCounsellor) { %><%= student.assignedCounsellor.fullName %><% } else { %><span class="table__hint">Unassigned</span><% } %>
+          </td>
           <td><%= student._count.documents %></td>
           <td><%= format.formatDate(student.createdAt) %></td>
           <td class="table__actions">

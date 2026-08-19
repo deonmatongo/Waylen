@@ -5096,3 +5096,527 @@ hr.rule {
   letter-spacing: 0.1em;
   margin-top: 0.5rem;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   App shell theme — portal + admin only (Supabase-inspired, light)
+
+   Every selector here is prefixed `.app …`, matching <body class="app
+   app--portal"> / <body class="app app--admin"> (layouts/portal.ejs,
+   layouts/admin.ejs). That extra class gives these rules higher specificity
+   than the base component rules above, so they win inside the app shell
+   without touching the public site or /auth pages, which never carry `.app`
+   and so never match these selectors at all. Several base classes reused
+   here (.panel, .badge, .button, .field*, .form, .avatar, .stat--card, and
+   the .listing/.record-list/.review-list combined selector) are also used
+   on public marketing pages — this section adds color/shape on top rather
+   than editing those shared rules in place, specifically to avoid leaking
+   the new theme onto pages outside the app shell.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.app {
+  --app-accent: #3ecf8e;
+  --app-accent-hover: #34b87d;
+  --app-accent-bg: #ecfdf5;
+  --app-accent-ink: #0f6b45;
+  --app-ink: #171717;
+  --app-ink-muted: #6b6b6f;
+  --app-border: #e4e4e7;
+  --app-border-strong: #d4d4d8;
+  --app-bg: #ffffff;
+  --app-bg-muted: #fafafa;
+  --app-bg-hover: #f4f4f5;
+}
+
+.app code,
+.app .table code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--app-bg-hover);
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── Topbar ──────────────────────────────────────────────────────────────── */
+
+.app .app-topbar {
+  background-color: var(--app-bg);
+  border-bottom: 1px solid var(--app-border);
+  box-shadow: none;
+}
+
+.app .app-topbar__label {
+  color: var(--app-accent-ink);
+  background-color: var(--app-accent-bg);
+}
+
+.app .app-topbar__toggle {
+  border-color: var(--app-border);
+  background: var(--app-bg);
+}
+
+.app .app-topbar__toggle-bar,
+.app .app-topbar__toggle-bar::before,
+.app .app-topbar__toggle-bar::after {
+  background-color: var(--app-ink);
+}
+
+.app .app-topbar__icon-link {
+  color: var(--app-ink-muted);
+}
+
+.app .app-topbar__icon-link:hover {
+  background-color: var(--app-bg-hover);
+}
+
+.app .app-topbar__name {
+  color: var(--app-ink);
+}
+
+.app .app-topbar__role {
+  color: var(--app-ink-muted);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+
+.app .app-sidebar {
+  background-color: var(--app-bg);
+  border-right: 1px solid var(--app-border);
+}
+
+.app .app-sidebar__brand {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app .app-sidebar__brand-name {
+  color: var(--app-ink);
+}
+
+.app .app-sidebar__brand-tag {
+  color: var(--app-accent-ink);
+}
+
+.app .app-sidebar__group-label {
+  color: var(--app-ink-muted);
+  opacity: 1;
+}
+
+.app .app-sidebar__link {
+  color: var(--app-ink-muted);
+  border-left: none;
+  border-radius: var(--radius-sm);
+  margin: 0 2px;
+}
+
+.app .app-sidebar__link:hover {
+  background-color: var(--app-bg-hover);
+  color: var(--app-ink);
+}
+
+.app .app-sidebar__link.is-current {
+  background-color: var(--app-accent-bg);
+  color: var(--app-accent-ink);
+  border-left: none;
+  padding-left: var(--sp-3);
+  font-weight: 600;
+}
+
+.app .app-sidebar__footer {
+  border-top: 1px solid var(--app-border);
+}
+
+/* ── Page head, dashboard hero + grid ───────────────────────────────────── */
+
+.app .page-head {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--app-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 var(--sp-4);
+}
+
+.app .page-head__title {
+  color: var(--app-ink);
+}
+
+.app .app__main {
+  background-color: var(--app-bg-muted);
+}
+
+.app .dash-welcome {
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.app .dash-welcome::before,
+.app .dash-welcome::after {
+  display: none;
+}
+
+.app .dash-welcome__greeting {
+  color: var(--app-ink);
+}
+
+.app .dash-welcome__status {
+  color: var(--app-ink-muted);
+}
+
+.app .dash-welcome__badge {
+  background: var(--app-accent-bg);
+  border: 1px solid var(--app-accent);
+  color: var(--app-accent-ink);
+}
+
+/* ── Stat cards ──────────────────────────────────────────────────────────── */
+
+.app .stat--card {
+  border: 1px solid var(--app-border);
+  box-shadow: none;
+}
+
+.app .stat--card:hover {
+  box-shadow: none;
+  border-color: var(--app-border-strong);
+  transform: none;
+}
+
+.app .stat--card::before,
+.app .stat--card:nth-child(2)::before,
+.app .stat--card:nth-child(3)::before,
+.app .stat--card:nth-child(4)::before {
+  background: var(--app-accent);
+}
+
+.app .stat__value {
+  color: var(--app-ink);
+}
+
+.app .stat--card:nth-child(1) .stat__icon,
+.app .stat--card:nth-child(2) .stat__icon,
+.app .stat--card:nth-child(3) .stat__icon,
+.app .stat--card:nth-child(4) .stat__icon {
+  background: var(--app-accent-bg);
+  color: var(--app-accent-ink);
+}
+
+/* ── Panel / card ────────────────────────────────────────────────────────── */
+
+.app .panel {
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.app .panel__title {
+  color: var(--app-ink);
+  border-bottom-color: var(--app-border);
+}
+
+.app .panel__title-icon svg {
+  color: var(--app-accent);
+  opacity: 1;
+}
+
+.app .panel__footer {
+  border-top-color: var(--app-border);
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+
+.app .badge {
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.app .badge--neutral {
+  background-color: var(--app-bg-hover);
+  color: var(--app-ink-muted);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.app .table thead th {
+  color: var(--app-ink-muted);
+  background-color: var(--app-bg-muted);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app .table th,
+.app .table td {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app .table tbody tr:hover {
+  background-color: var(--app-bg-hover);
+}
+
+.app .table--stacked tr {
+  background-color: var(--app-bg);
+  border-color: var(--app-border);
+}
+
+.app .table--stacked td {
+  border-bottom-color: var(--app-border);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.app .button--primary {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-ink);
+}
+
+.app .button--primary:hover {
+  background-color: var(--app-accent-hover);
+  border-color: var(--app-accent-hover);
+  color: var(--app-ink);
+}
+
+.app .button--secondary {
+  background-color: var(--app-bg);
+  border-color: var(--app-border-strong);
+  color: var(--app-ink);
+}
+
+.app .button--secondary:hover {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-ink);
+}
+
+.app .button--ghost {
+  border-color: var(--app-border);
+  color: var(--app-ink-muted);
+}
+
+.app .button--ghost:hover {
+  border-color: var(--app-border-strong);
+  background-color: var(--app-bg-hover);
+  color: var(--app-ink);
+}
+
+.app .link-button {
+  color: var(--app-accent-ink);
+  border-bottom-color: rgba(15, 107, 69, 0.3);
+}
+
+.app .link-button:hover {
+  color: var(--app-accent-hover);
+  border-bottom-color: var(--app-accent-hover);
+}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
+
+.app .field__label {
+  color: var(--app-ink);
+}
+
+.app .field__input,
+.app .field__textarea,
+.app .field__select {
+  color: var(--app-ink);
+  background-color: var(--app-bg);
+  border: 1px solid var(--app-border-strong);
+  box-shadow: none;
+}
+
+.app .field__input::placeholder,
+.app .field__textarea::placeholder {
+  color: var(--app-ink-muted);
+  opacity: 0.7;
+}
+
+.app .field__input:hover,
+.app .field__textarea:hover,
+.app .field__select:hover {
+  border-color: var(--app-ink-muted);
+}
+
+.app .field__input:focus,
+.app .field__textarea:focus,
+.app .field__select:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-bg);
+  background: var(--app-bg);
+}
+
+.app .field__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b6f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.app .field__select:hover {
+  background-color: var(--app-bg-hover);
+}
+
+.app .field__select:focus {
+  background-color: var(--app-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233ecf8e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.app .field__file {
+  border: 1.5px dashed var(--app-border-strong);
+  background: var(--app-bg-muted);
+  color: var(--app-ink-muted);
+}
+
+.app .field__file:hover {
+  border-color: var(--app-accent);
+  background: var(--app-accent-bg);
+  color: var(--app-accent-ink);
+}
+
+.app .checkbox input[type='checkbox'],
+.app .radio input[type='radio'] {
+  border: 1.5px solid var(--app-border-strong);
+  box-shadow: none;
+}
+
+.app .checkbox input[type='checkbox']:hover,
+.app .radio input[type='radio']:hover {
+  border-color: var(--app-accent);
+}
+
+.app .checkbox input[type='checkbox']:checked {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2 6 5 9 10 3'/%3E%3C/svg%3E");
+}
+
+.app .checkbox input[type='checkbox']:focus-visible,
+.app .radio input[type='radio']:focus-visible {
+  box-shadow: 0 0 0 3px var(--app-accent-bg);
+}
+
+/* ── Notices, empty state, avatar, lists ─────────────────────────────────── */
+
+.app .notice {
+  background-color: var(--app-accent-bg);
+  border-left-color: var(--app-accent);
+}
+
+.app .notice--action {
+  background-color: var(--app-accent-bg);
+  border-left-color: var(--app-accent);
+}
+
+.app .notice--scaffold {
+  background-color: var(--app-bg-hover);
+  border-left-color: var(--app-border-strong);
+}
+
+.app .notice__title {
+  color: var(--app-ink);
+}
+
+.app .empty-state {
+  background-color: var(--app-bg-muted);
+  border-color: var(--app-border-strong);
+}
+
+.app .avatar {
+  background-color: var(--app-accent-bg);
+  color: var(--app-accent-ink);
+}
+
+.app .review-list__item,
+.app .review-list__decision {
+  border-color: var(--app-border);
+  background-color: var(--app-bg);
+}
+
+.app .review-list__decision {
+  border-top-color: var(--app-border);
+}
+
+@media (min-width: 768px) {
+  .app .review-list__decision {
+    border-left-color: var(--app-border);
+  }
+}
+
+.app .action-list__item:hover,
+.app .mini-list__item:hover {
+  background: var(--app-bg-hover);
+}
+
+.app .mini-list__item.is-unread {
+  background: var(--app-accent-bg);
+}
+
+.app .mini-list__item.is-unread strong::before {
+  background-color: var(--app-accent);
+}
+
+.app .event-list__item {
+  background: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
+  border-left: 3px solid var(--app-accent);
+}
+
+.app .event-list__item:hover {
+  box-shadow: none;
+  border-color: var(--app-border-strong);
+  border-left-color: var(--app-accent);
+}
+
+.app .event-list__when {
+  color: var(--app-accent-ink);
+}
+
+.app .event-list__what {
+  color: var(--app-ink);
+}
+
+.app .person__name {
+  color: var(--app-ink);
+}
+
+/* ── Pipeline stage strip (admin overview) ──────────────────────────────── */
+
+.app .pipeline__stage {
+  background: var(--app-bg-muted);
+  border-color: var(--app-border);
+}
+
+.app .pipeline__stage:last-child {
+  border-color: var(--app-border);
+}
+
+.app .pipeline__stage:hover {
+  background: var(--app-bg-hover);
+}
+
+.app .pipeline__stage::before {
+  background: var(--app-border-strong) !important;
+}
+
+.app .pipeline__count {
+  color: var(--app-ink) !important;
+}
+
+/* ── Two pre-existing gaps, fixed while in this file ────────────────────── */
+
+/* Used across ~10 admin forms; had no layout rule at all. */
+.field-row {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 640px) {
+  .field-row {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+/* Views use `.field__error`; the rule was named `.field-error`. Only used in
+   admin forms today, so this is a plain (non-.app-scoped) fix. */
+.field__error {
+  font-size: var(--text-xs);
+  color: var(--negative-600);
+  font-weight: 600;
+  margin-top: 2px;
+}
