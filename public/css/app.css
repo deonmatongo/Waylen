@@ -3899,7 +3899,7 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  color: #fff;
   margin-bottom: var(--sp-5);
 }
 
