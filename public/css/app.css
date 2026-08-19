@@ -12,124 +12,6 @@
    required (this file is served as-is; `npm run build:css` only minifies it).
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Fonts — Inter (body/display) & Sora (accent/eyebrow labels) ─────────── */
-
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/inter-latin-400.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/inter-latin-ext-400.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/inter-latin-500.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/inter-latin-ext-500.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url('/fonts/sora-latin-300.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url('/fonts/sora-latin-ext-300.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/sora-latin-400.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/sora-latin-ext-400.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/sora-latin-500.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/sora-latin-ext-500.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/sora-latin-600.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Sora';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/sora-latin-ext-600.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 
 :root {
@@ -191,13 +73,15 @@
   --accent: var(--blue-600);
   --accent-hover: var(--blue-700);
 
-  /* Inter for body copy and headings; Sora for small uppercase accent labels
-     (eyebrows, kickers, badges). Falls back to the prior system-font stack. */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-sans-serif,
+  /* Apple system fonts — SF Pro Text for body, SF Pro Display for headings,
+     SF Mono for code. No webfont download: -apple-system/BlinkMacSystemFont
+     resolve straight to the OS's own San Francisco on Apple platforms, with
+     Helvetica Neue as the fallback everywhere else. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-sans-serif,
     'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif,
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif,
     'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-accent: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif,
+  --font-accent: -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif,
     'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, 'Menlo', 'Consolas', monospace;
 
@@ -477,6 +361,7 @@ hr.rule {
 .site-header__toggle {
   width: 44px;
   height: 44px;
+  margin-left: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--white);
@@ -5841,50 +5726,6 @@ hr.rule {
   color: var(--negative-600);
   font-weight: 600;
   margin-top: 2px;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Sora accent labels
-
-   Small uppercase eyebrows, kickers and badges everywhere on the platform
-   read better in Sora than in Inter — same treatment project2 uses for its
-   own labels. Colours are untouched; this is a typeface swap only.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.hero__eyebrow,
-.card__eyebrow,
-.logo-strip__heading,
-.stat__label,
-.field__label,
-.cs__option--group-label,
-.review-list__eyebrow,
-.record-list__meta dt,
-.badge,
-.table thead th,
-.table--stacked td::before,
-.app-topbar__label,
-.app-sidebar__brand-tag,
-.app-sidebar__group-label,
-.dash-welcome__badge,
-.event-list__when,
-.demo-credentials__title,
-.demo-credentials__table th,
-.site-footer__heading,
-.cp-hero__eyebrow,
-.cp-hero__panel-tag,
-.cp-journey__label,
-.cp-journey__name,
-.cp-hero__metric-key,
-.cp-section__label,
-.cp-service__link,
-.cp-dest__facts dt,
-.cp-dest__link,
-.cp-article__type,
-.cp-article__link,
-.cp-cta__eyebrow,
-.cp-cta__stat-key,
-.prose-layout__toc-title {
-  font-family: var(--font-accent);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
