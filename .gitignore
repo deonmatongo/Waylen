@@ -51,3 +51,6 @@ Thumbs.db
 
 # Locally stored uploads (encrypted documents, proofs of payment) — never committed
 storage/
+
+# Reference design export — asset source only, not part of the app
+project2/

@@ -58,10 +58,38 @@
       </fieldset>
 
       <div class="field">
-        <label class="field__label" for="startsAt">Preferred date and time</label>
-        <input class="field__input" type="datetime-local" id="startsAt" name="startsAt"
-               value="<%= values.startsAt || '' %>" required>
-        <p class="field__hint">We will confirm by email, or suggest the nearest available slot.</p>
+        <span class="field__label">Choose a time</span>
+
+        <% if (!slotDays.length) { %>
+          <p class="field__hint">No open slots in the next three weeks — please email us directly.</p>
+        <% } else { %>
+          <div class="slot-picker">
+            <% slotDays.forEach(function (day) { %>
+              <fieldset class="slot-picker__day">
+                <legend class="slot-picker__date"><%= format.formatDate(day.slots[0], 'EEEE d MMMM') %></legend>
+                <div class="slot-picker__times">
+                  <% day.slots.forEach(function (slot) { %>
+                    <% var iso = slot.toISOString(); %>
+                    <label class="slot-chip">
+                      <input type="radio" name="startsAt" value="<%= iso %>"
+                             <%= values.startsAt === iso ? 'checked' : '' %> required>
+                      <span><%= format.formatDate(slot, 'HH:mm') %></span>
+                    </label>
+                  <% }) %>
+                </div>
+              </fieldset>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <p class="field__hint">
+          <% if (liveAvailability) { %>
+            Live availability from our calendar — pick any open time and you are instantly booked,
+            with a Teams link sent straight to your inbox.
+          <% } else { %>
+            We will confirm by email, or suggest the nearest available slot.
+          <% } %>
+        </p>
         <% if (errors.startsAt) { %><p class="field-error"><%= errors.startsAt[0] %></p><% } %>
       </div>
 
@@ -70,7 +98,9 @@
         <textarea class="field__textarea" id="notes" name="notes" rows="4"><%= values.notes || '' %></textarea>
       </div>
 
-      <button class="button button--primary button--large" type="submit">Request consultation</button>
+      <button class="button button--primary button--large" type="submit">
+        <%= liveAvailability ? 'Confirm booking' : 'Request consultation' %>
+      </button>
     </form>
   </div>
 </section>

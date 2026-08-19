@@ -26,7 +26,12 @@
               <img class="card__image" src="<%= country.heroImagePath %>" alt="" width="480" height="270" loading="lazy">
             <% } %>
             <div class="card__content">
-              <h2 class="card__title"><%= country.name %></h2>
+              <h2 class="card__title">
+                <% if (country.flagImagePath) { %>
+                  <img class="flag-badge" src="<%= country.flagImagePath %>" alt="" width="28" height="20" loading="lazy">
+                <% } %>
+                <%= country.name %>
+              </h2>
               <% if (country.summary) { %>
                 <p class="card__body"><%= format.truncate(country.summary, 140) %></p>
               <% } %>

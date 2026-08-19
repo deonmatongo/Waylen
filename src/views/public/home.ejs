@@ -4,6 +4,10 @@
 
 <%# ── Hero ─────────────────────────────────────────────────────────────────── %>
 <section class="cp-hero">
+  <video class="cp-hero__video" src="/media/hero-web.mp4" autoplay muted loop playsinline
+         preload="auto" poster="/img/hero-poster.jpg" aria-hidden="true"></video>
+  <div class="cp-hero__wash" aria-hidden="true"></div>
+
   <div class="cp-hero__inner">
     <div class="cp-hero__copy">
       <div class="cp-hero__eyebrow">
@@ -269,7 +273,12 @@
               <div class="cp-dest__image cp-dest__image--placeholder"></div>
             <% } %>
             <div class="cp-dest__body">
-              <h3 class="cp-dest__title"><%= country.name %></h3>
+              <h3 class="cp-dest__title">
+                <% if (country.flagImagePath) { %>
+                  <img class="flag-badge" src="<%= country.flagImagePath %>" alt="" width="28" height="20" loading="lazy">
+                <% } %>
+                <%= country.name %>
+              </h3>
               <% if (country.summary) { %>
                 <p class="cp-dest__summary"><%= format.truncate(country.summary, 100) %></p>
               <% } %>

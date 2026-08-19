@@ -61,6 +61,8 @@ const schema = z.object({
   MS_GRAPH_CLIENT_ID: z.string().optional(),
   MS_GRAPH_CLIENT_SECRET: z.string().optional(),
   MS_GRAPH_ORGANISER_UPN: z.string().optional(),
+  /** IANA or Windows time zone name the organiser's working hours are quoted in. */
+  MS_GRAPH_TIMEZONE: z.string().default('UTC'),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SENTRY_DSN: z.string().optional(),

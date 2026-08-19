@@ -9,13 +9,14 @@
  */
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
-import { ServiceUnavailableError } from '../utils/errors.js';
+import { graphFetch, isGraphConfigured } from './graph-client.service.js';
 
 export interface MeetingRequest {
   subject: string;
   startsAt: Date;
   durationMinutes: number;
   attendeeEmail?: string;
+  attendeeName?: string;
 }
 
 export interface Meeting {
@@ -28,23 +29,46 @@ interface MeetingProvider {
   cancelMeeting(providerId: string): Promise<void>;
 }
 
-const isConfigured = Boolean(
-  env.MS_GRAPH_TENANT_ID && env.MS_GRAPH_CLIENT_ID && env.MS_GRAPH_CLIENT_SECRET,
-);
+interface GraphEvent {
+  id: string;
+  onlineMeeting?: { joinUrl: string } | null;
+}
 
 const graphProvider: MeetingProvider = {
+  // Booking as a calendar event (rather than a bare /onlineMeetings resource)
+  // blocks the organiser's real calendar for the slot, emails the guest a
+  // native Outlook invite, and still returns a Teams join link in one call.
   async createMeeting(request) {
-    // TODO(phase-2): client-credentials token from
-    // https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token, then
-    // POST /users/{organiser}/onlineMeetings with startDateTime, endDateTime
-    // and subject. Cache the token until it expires rather than re-fetching
-    // per meeting.
-    logger.warn({ subject: request.subject }, 'Graph provider not implemented — no meeting created');
-    throw new ServiceUnavailableError('Microsoft Teams integration is not configured yet.');
+    const endsAt = new Date(request.startsAt.getTime() + request.durationMinutes * 60_000);
+
+    const event = await graphFetch<GraphEvent>(`/users/${env.MS_GRAPH_ORGANISER_UPN}/events`, {
+      method: 'POST',
+      body: JSON.stringify({
+        subject: request.subject,
+        start: { dateTime: request.startsAt.toISOString(), timeZone: 'UTC' },
+        end: { dateTime: endsAt.toISOString(), timeZone: 'UTC' },
+        isOnlineMeeting: true,
+        onlineMeetingProvider: 'teamsForBusiness',
+        attendees: request.attendeeEmail
+          ? [
+              {
+                type: 'required',
+                emailAddress: { address: request.attendeeEmail, name: request.attendeeName ?? request.attendeeEmail },
+              },
+            ]
+          : [],
+      }),
+    });
+
+    if (!event.onlineMeeting?.joinUrl) {
+      logger.warn({ eventId: event.id }, 'Graph event created without a Teams join link');
+    }
+
+    return { id: event.id, joinUrl: event.onlineMeeting?.joinUrl ?? '' };
   },
 
   async cancelMeeting(providerId) {
-    logger.warn({ providerId }, 'Graph provider not implemented — no meeting cancelled');
+    await graphFetch(`/users/${env.MS_GRAPH_ORGANISER_UPN}/events/${providerId}`, { method: 'DELETE' });
   },
 };
 
@@ -60,4 +84,4 @@ const stubProvider: MeetingProvider = {
   },
 };
 
-export const teamsService: MeetingProvider = isConfigured ? graphProvider : stubProvider;
+export const teamsService: MeetingProvider = isGraphConfigured ? graphProvider : stubProvider;

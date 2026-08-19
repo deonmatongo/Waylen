@@ -12,22 +12,141 @@
    required (this file is served as-is; `npm run build:css` only minifies it).
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Fonts — Inter (body/display) & Sora (accent/eyebrow labels) ─────────── */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-latin-400.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext-400.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-latin-500.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext-500.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/sora-latin-300.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/sora-latin-ext-300.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/sora-latin-400.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/sora-latin-ext-400.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/sora-latin-500.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/sora-latin-ext-500.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/sora-latin-600.woff2') format('woff2');
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/sora-latin-ext-600.woff2') format('woff2');
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Brand — blue and black (PRD §7.1) */
-  --ink-900: #050b16;
-  --ink-800: #0b1b34;
-  --ink-700: #14264a;
-  --ink-600: #22314d;
-  --ink-500: #3d4c68;
+  /* Brand — blue and black (PRD §7.1), ported from project2 */
+  --ink-900: #0b1020;
+  --ink-800: #111827;
+  --ink-700: #142243;
+  --ink-600: #1f2937;
+  --ink-500: #657083;
 
-  --blue-700: #12448f;
-  --blue-600: #1a5bc4;
-  --blue-500: #2570e8;
-  --blue-400: #4d90f0;
+  --blue-700: #1f3474;
+  --blue-600: #2847d8;
+  --blue-500: #3152f4;
+  --blue-400: #6b84f0;
   --blue-100: #e4eefc;
-  --blue-050: #f0f6ff;
+  --blue-050: #eef2ff;
+  --paper: #f7f5ef;
 
   /* Extended palette */
   --teal-700: #0f766e;
@@ -45,14 +164,14 @@
   --emerald-600: #059669;
   --emerald-100: #d1fae5;
 
-  /* Neutrals */
+  /* Neutrals — mist/line ported from project2 */
   --white: #ffffff;
-  --grey-050: #f7f8fa;
-  --grey-100: #f0f2f5;
-  --grey-200: #e2e6ec;
+  --grey-050: #edeff4;
+  --grey-100: #f3f5fb;
+  --grey-200: #dadde5;
   --grey-300: #ccd3dd;
   --grey-500: #7b8698;
-  --grey-600: #5d6878;
+  --grey-600: #657083;
 
   /* Status */
   --positive-600: #059669;
@@ -63,7 +182,7 @@
   --negative-100: #ffe4e6;
 
   /* Semantic */
-  --bg: var(--white);
+  --bg: var(--paper);
   --bg-muted: var(--grey-050);
   --text: var(--ink-600);
   --text-strong: var(--ink-800);
@@ -72,11 +191,13 @@
   --accent: var(--blue-600);
   --accent-hover: var(--blue-700);
 
-  /* iOS / macOS system fonts — SF Pro Text for body, SF Pro Display for headings,
-     SF Mono for code. Helvetica Neue is the fallback on older Apple devices. */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-sans-serif,
+  /* Inter for body copy and headings; Sora for small uppercase accent labels
+     (eyebrows, kickers, badges). Falls back to the prior system-font stack. */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-sans-serif,
     'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif,
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif,
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-accent: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif,
     'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, 'Menlo', 'Consolas', monospace;
 
@@ -100,14 +221,15 @@
   --sp-8: 4rem;
   --sp-9: 6rem;
 
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 16px;
+  /* Softer, rounder shape language ported from project2. */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
   --radius-full: 999px;
 
-  --shadow-sm: 0 1px 2px rgba(5, 11, 22, 0.06);
-  --shadow: 0 4px 16px rgba(5, 11, 22, 0.08);
-  --shadow-lg: 0 12px 40px rgba(5, 11, 22, 0.12);
+  --shadow-sm: 0 1px 2px rgba(11, 16, 32, 0.06);
+  --shadow: 0 18px 46px rgba(22, 35, 74, 0.1);
+  --shadow-lg: 0 24px 60px rgba(22, 35, 74, 0.16);
 
   --container: 1200px;
   --container-narrow: 760px;
@@ -115,6 +237,7 @@
   --topbar-height: 64px;
 
   --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-motion: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */
@@ -3739,15 +3862,17 @@ hr.rule {
    ══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --corp-navy:      #0d1f4c;
-  --corp-navy-mid:  #1a3461;
-  --corp-navy-soft: #243d73;
-  --corp-gold:      #c5a028;
-  --corp-gold-lt:   #e8d080;
-  --corp-gold-bg:   #fdf8ea;
-  --corp-rule:      rgba(197, 160, 40, 0.35);
-  --corp-grey:      #f4f4f2;
-  --corp-line:      #e2e2de;
+  /* Navy/gold swapped for project2's navy/blue palette — --corp-gold* names
+     kept as-is (180+ call sites) but now resolve to the blue accent. */
+  --corp-navy:      #142243;
+  --corp-navy-mid:  #1f3474;
+  --corp-navy-soft: #2847d8;
+  --corp-gold:      #2847d8;
+  --corp-gold-lt:   #6b84f0;
+  --corp-gold-bg:   #eef2ff;
+  --corp-rule:      rgba(40, 71, 216, 0.35);
+  --corp-grey:      #f3f5fb;
+  --corp-line:      #dadde5;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -5619,4 +5744,223 @@ hr.rule {
   color: var(--negative-600);
   font-weight: 600;
   margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Sora accent labels
+
+   Small uppercase eyebrows, kickers and badges everywhere on the platform
+   read better in Sora than in Inter — same treatment project2 uses for its
+   own labels. Colours are untouched; this is a typeface swap only.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.hero__eyebrow,
+.card__eyebrow,
+.logo-strip__heading,
+.stat__label,
+.field__label,
+.cs__option--group-label,
+.review-list__eyebrow,
+.record-list__meta dt,
+.badge,
+.table thead th,
+.table--stacked td::before,
+.app-topbar__label,
+.app-sidebar__brand-tag,
+.app-sidebar__group-label,
+.dash-welcome__badge,
+.event-list__when,
+.demo-credentials__title,
+.demo-credentials__table th,
+.site-footer__heading,
+.cp-hero__eyebrow,
+.cp-hero__panel-tag,
+.cp-journey__label,
+.cp-journey__name,
+.cp-hero__metric-key,
+.cp-section__label,
+.cp-service__link,
+.cp-dest__facts dt,
+.cp-dest__link,
+.cp-article__type,
+.cp-article__link,
+.cp-cta__eyebrow,
+.cp-cta__stat-key,
+.prose-layout__toc-title {
+  font-family: var(--font-accent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Scroll reveal
+
+   Progressive enhancement: every direct child of the page's main content
+   region fades and lifts into place on first scroll into view. Entirely
+   class/JS-driven (see initScrollReveal in app.js) so no template markup is
+   required — it applies uniformly across the public site, portal and admin.
+   Content is fully visible with JS disabled or if IntersectionObserver is
+   unsupported; prefers-reduced-motion disables the animation, not the content.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+html[data-motion-ready] .reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s var(--ease-motion) var(--reveal-delay, 0s),
+    transform 0.6s var(--ease-motion) var(--reveal-delay, 0s);
+}
+
+html[data-motion-ready] .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion-ready] .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Hero video
+
+   Looping muted background footage behind the existing navy/gold hero copy,
+   with a wash so text contrast is unaffected.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cp-hero__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.34;
+  z-index: 0;
+}
+
+.cp-hero__wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(13, 31, 76, 0.55), var(--corp-navy) 92%);
+  z-index: 1;
+}
+
+.cp-hero__inner {
+  position: relative;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-hero__video {
+    display: none;
+  }
+}
+
+/* Footer logo sits on a dark background; render it as a flat mono mark. */
+.site-footer__brand img {
+  filter: brightness(0) invert(1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Consultation slot picker
+
+   A native radio-per-slot picker (works fully with JavaScript disabled) for
+   the "Book a consultation" page, styled as day columns of rounded chips.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.slot-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+
+.slot-picker__day {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.slot-picker__date {
+  padding: 0 0 var(--sp-2);
+  font-family: var(--font-accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.slot-picker__times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.slot-chip {
+  position: relative;
+}
+
+.slot-chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.slot-chip span {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-strong);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
+}
+
+.slot-chip input:hover + span {
+  border-color: var(--accent);
+}
+
+.slot-chip input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.slot-chip input:checked + span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
+  transform: translateY(-1px);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Country flags
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.flag-badge {
+  display: inline-block;
+  width: 28px;
+  height: 20px;
+  margin-right: var(--sp-2);
+  vertical-align: middle;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(11, 16, 32, 0.1);
+}
+
+.flag-badge--lg {
+  width: 40px;
+  height: 28px;
+  border-radius: 6px;
 }

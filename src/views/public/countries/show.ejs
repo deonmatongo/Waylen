@@ -6,7 +6,12 @@
       <img class="page-hero__image" src="<%= country.heroImagePath %>" alt="" loading="eager">
     <% } %>
     <div class="section__inner">
-      <h1 class="page-hero__title">Study in <%= country.name %></h1>
+      <h1 class="page-hero__title">
+        <% if (country.flagImagePath) { %>
+          <img class="flag-badge flag-badge--lg" src="<%= country.flagImagePath %>" alt="" width="40" height="28" loading="eager">
+        <% } %>
+        Study in <%= country.name %>
+      </h1>
       <% if (country.summary) { %>
         <p class="page-hero__lede"><%= country.summary %></p>
       <% } %>

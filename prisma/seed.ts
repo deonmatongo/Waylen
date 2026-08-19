@@ -25,6 +25,7 @@ const DESTINATIONS = [
     isoCode: 'PL',
     slug: 'poland',
     name: 'Poland',
+    flag: 'poland.png',
     summary:
       'Affordable, well-regarded universities with a growing number of English-taught programmes, and a straightforward student visa route.',
     tuitionMin: 200_000,
@@ -37,6 +38,7 @@ const DESTINATIONS = [
     isoCode: 'IE',
     slug: 'ireland',
     name: 'Ireland',
+    flag: 'ireland.svg',
     summary:
       'English-speaking, EU-based, with a two-year post-study work visa and a strong technology and pharmaceutical sector.',
     tuitionMin: 900_000,
@@ -49,6 +51,7 @@ const DESTINATIONS = [
     isoCode: 'CA',
     slug: 'canada',
     name: 'Canada',
+    flag: 'canada.svg',
     summary:
       'A clear pathway from study to work to permanent residency, with strong institutional recognition worldwide.',
     tuitionMin: 1_100_000,
@@ -61,6 +64,7 @@ const DESTINATIONS = [
     isoCode: 'LV',
     slug: 'latvia',
     name: 'Latvia',
+    flag: 'latvia.png',
     summary:
       'Low tuition and living costs inside the EU, with respected aviation, IT and business programmes.',
     tuitionMin: 250_000,
@@ -73,6 +77,7 @@ const DESTINATIONS = [
     isoCode: 'LT',
     slug: 'lithuania',
     name: 'Lithuania',
+    flag: 'lithuania.png',
     summary:
       'Strong engineering and life-sciences programmes, small class sizes and one of the EU\'s more affordable capitals.',
     tuitionMin: 250_000,
@@ -85,6 +90,7 @@ const DESTINATIONS = [
     isoCode: 'RO',
     slug: 'romania',
     name: 'Romania',
+    flag: 'romania.svg',
     summary:
       'Well-established medical and dental schools with English-taught tracks, at a fraction of Western European cost.',
     tuitionMin: 300_000,
@@ -97,6 +103,7 @@ const DESTINATIONS = [
     isoCode: 'BG',
     slug: 'bulgaria',
     name: 'Bulgaria',
+    flag: 'bulgaria.svg',
     summary:
       'EU degrees at low cost, with growing hospitality, medicine and business programmes taught in English.',
     tuitionMin: 280_000,
@@ -113,11 +120,12 @@ async function seedCountries() {
   for (const destination of DESTINATIONS) {
     const country = await prisma.country.upsert({
       where: { isoCode: destination.isoCode },
-      update: {},
+      update: { flagImagePath: `/img/countries/${destination.flag}` },
       create: {
         isoCode: destination.isoCode,
         slug: destination.slug,
         name: destination.name,
+        flagImagePath: `/img/countries/${destination.flag}`,
         status: 'PUBLISHED',
         summary: destination.summary,
         isFeatured: destination.featured,

@@ -410,6 +410,54 @@
     });
   }
 
+  /** Fade+lift each top-level content block into view on first scroll past it. */
+  function initScrollReveal() {
+    var containers = document.querySelectorAll('.site__main, .app__main');
+    if (!containers.length) return;
+
+    var targets = [];
+    containers.forEach(function (container) {
+      Array.prototype.forEach.call(container.children, function (child, i) {
+        if (child.classList.contains('flash-stack')) return;
+        child.classList.add('reveal');
+        child.style.setProperty('--reveal-delay', Math.min(i, 6) * 60 + 'ms');
+        targets.push(child);
+      });
+    });
+    if (!targets.length) return;
+
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || !('IntersectionObserver' in window)) {
+      targets.forEach(function (el) { el.classList.add('is-visible'); });
+      return;
+    }
+
+    document.documentElement.setAttribute('data-motion-ready', '');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    targets.forEach(function (el) { io.observe(el); });
+  }
+
+  /** Safety net for browsers that ignore the `autoplay` attribute on first paint. */
+  function initHeroVideo() {
+    var video = document.querySelector('.cp-hero__video');
+    if (!video) return;
+    var start = function () {
+      if (!video.paused) return;
+      var attempt = video.play();
+      if (attempt && typeof attempt.catch === 'function') attempt.catch(function () {});
+    };
+    start();
+    video.addEventListener('loadeddata', start);
+    video.addEventListener('canplay', start);
+  }
+
   function init() {
     initPublicNav();
     initAppSidebar();
@@ -417,6 +465,8 @@
     initSubmitGuards();
     initUploadHints();
     initFlashDismiss();
+    initScrollReveal();
+    initHeroVideo();
   }
 
   if (document.readyState === 'loading') {

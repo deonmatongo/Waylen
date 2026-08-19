@@ -14,6 +14,8 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { notificationService } from './notification.service.js';
 import { teamsService } from './teams.service.js';
 import { auditService } from './audit.service.js';
+import { getBusyBlocks, overlapsAnyBlock } from './availability.service.js';
+import { isGraphConfigured } from './graph-client.service.js';
 
 export interface GuestConsultationInput {
   fullName: string;
@@ -65,6 +67,25 @@ export const appointmentService = {
 
     logger.info({ appointmentId: appointment.id }, 'Guest consultation requested');
     return appointment;
+  },
+
+  /**
+   * Public "Book a Free Consultation" flow, upgraded for real Outlook
+   * availability (PRD §5.2 phase-2): when Microsoft Graph is configured the
+   * slots offered are genuinely open on the organiser's calendar, so the
+   * guest is booked and confirmed immediately rather than waiting on staff
+   * review. Falls back to the original request-then-confirm behaviour when
+   * Graph isn't configured (dev, or before the Azure app is set up).
+   */
+  async bookGuestConsultation(input: GuestConsultationInput) {
+    const appointment = await this.requestAsGuest(input);
+
+    if (!isGraphConfigured) {
+      return { appointment, autoConfirmed: false };
+    }
+
+    const confirmed = await this.confirm(appointment.id, { actorId: 'guest-instant-booking' });
+    return { appointment: confirmed, autoConfirmed: true };
   },
 
   async requestAsStudent(input: {
@@ -145,6 +166,8 @@ export const appointmentService = {
           durationMinutes: appointment.durationMinutes,
           attendeeEmail:
             appointment.studentProfile?.user.email ?? appointment.guestEmail ?? undefined,
+          attendeeName:
+            appointment.studentProfile?.user.fullName ?? appointment.guestName ?? undefined,
         });
         meetingUrl = meeting.joinUrl;
         meetingProviderId = meeting.id;
@@ -316,22 +339,24 @@ export const appointmentService = {
 
   /**
    * Candidate slots for the booking form: weekdays, 09:00–16:15, for the next
-   * three weeks, minus anything already taken.
-   *
-   * TODO(phase-2): replace with real counsellor availability read from the
-   * Microsoft Graph calendar rather than a fixed working pattern.
+   * three weeks, minus anything already taken locally and — when Microsoft
+   * Graph is configured (PRD §5.2 phase-2) — minus whatever the organiser's
+   * real Outlook calendar shows as busy in that window.
    */
   async availableSlots(daysAhead = 21): Promise<Date[]> {
     const now = new Date();
     const horizon = new Date(now.getTime() + daysAhead * 86_400_000);
 
-    const taken = await prisma.appointment.findMany({
-      where: {
-        startsAt: { gte: now, lte: horizon },
-        status: { in: ['REQUESTED', 'CONFIRMED'] },
-      },
-      select: { startsAt: true },
-    });
+    const [taken, busyBlocks] = await Promise.all([
+      prisma.appointment.findMany({
+        where: {
+          startsAt: { gte: now, lte: horizon },
+          status: { in: ['REQUESTED', 'CONFIRMED'] },
+        },
+        select: { startsAt: true },
+      }),
+      getBusyBlocks(now, horizon),
+    ]);
     const takenTimes = new Set(taken.map((a) => a.startsAt.getTime()));
 
     const slots: Date[] = [];
@@ -346,7 +371,14 @@ export const appointmentService = {
         for (let minutes = 9 * 60; minutes + APPOINTMENT_DURATION_MINUTES <= 17 * 60; minutes += APPOINTMENT_DURATION_MINUTES) {
           const slot = new Date(cursor);
           slot.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-          if (slot > now && !takenTimes.has(slot.getTime())) slots.push(slot);
+          const slotEnd = new Date(slot.getTime() + APPOINTMENT_DURATION_MINUTES * 60_000);
+          if (
+            slot > now &&
+            !takenTimes.has(slot.getTime()) &&
+            !overlapsAnyBlock(slot, slotEnd, busyBlocks)
+          ) {
+            slots.push(slot);
+          }
         }
       }
       cursor.setDate(cursor.getDate() + 1);
@@ -374,6 +406,14 @@ export const appointmentService = {
     });
 
     if (clash) {
+      throw new ValidationError('That time has just been taken. Please choose another slot.');
+    }
+
+    // Belt-and-braces: re-check the live calendar too, in case it changed
+    // between the guest loading the page and submitting the form.
+    const endsAt = new Date(startsAt.getTime() + APPOINTMENT_DURATION_MINUTES * 60_000);
+    const busyBlocks = await getBusyBlocks(startsAt, endsAt);
+    if (overlapsAnyBlock(startsAt, endsAt, busyBlocks)) {
       throw new ValidationError('That time has just been taken. Please choose another slot.');
     }
   },
