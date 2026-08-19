@@ -149,28 +149,43 @@
       </p>
     </div>
 
-    <ul class="cp-pillars">
-      <li class="cp-pillar">
-        <div class="cp-pillar__num" aria-hidden="true">01</div>
-        <h3 class="cp-pillar__title">Transparent process</h3>
-        <p class="cp-pillar__body">Track your application from first enquiry through to enrolment, with no guesswork about what happens next.</p>
-      </li>
-      <li class="cp-pillar">
-        <div class="cp-pillar__num" aria-hidden="true">02</div>
-        <h3 class="cp-pillar__title">Dedicated portal</h3>
-        <p class="cp-pillar__body">Upload documents, monitor progress and access your offer letters in one place, reviewed by our team.</p>
-      </li>
-      <li class="cp-pillar">
-        <div class="cp-pillar__num" aria-hidden="true">03</div>
-        <h3 class="cp-pillar__title">Expert counselling</h3>
-        <p class="cp-pillar__body">Personalised advice from a counsellor who knows your goals, your paperwork and your destination.</p>
-      </li>
-      <li class="cp-pillar">
-        <div class="cp-pillar__num" aria-hidden="true">04</div>
-        <h3 class="cp-pillar__title">End-to-end support</h3>
-        <p class="cp-pillar__body">Admission, visa, insurance and the practical business of arriving — one firm, all the way through.</p>
-      </li>
-    </ul>
+    <div class="cp-benefit-feature">
+      <figure class="cp-benefit-image">
+        <img src="/img/benefit-guidance.jpg" alt="Counsellor guiding a student through their application" loading="lazy">
+        <figcaption>Guidance that keeps the process visible from the first conversation.</figcaption>
+      </figure>
+
+      <ul class="cp-benefit-list">
+        <li class="cp-benefit-point">
+          <span aria-hidden="true">01</span>
+          <div>
+            <h3>Transparent process</h3>
+            <p>Track your application from first enquiry through to enrolment, with no guesswork about what happens next.</p>
+          </div>
+        </li>
+        <li class="cp-benefit-point">
+          <span aria-hidden="true">02</span>
+          <div>
+            <h3>Dedicated portal</h3>
+            <p>Upload documents, monitor progress and access your offer letters in one place, reviewed by our team.</p>
+          </div>
+        </li>
+        <li class="cp-benefit-point">
+          <span aria-hidden="true">03</span>
+          <div>
+            <h3>Expert counselling</h3>
+            <p>Personalised advice from a counsellor who knows your goals, your paperwork and your destination.</p>
+          </div>
+        </li>
+        <li class="cp-benefit-point">
+          <span aria-hidden="true">04</span>
+          <div>
+            <h3>End-to-end support</h3>
+            <p>Admission, visa, insurance and the practical business of arriving — one firm, all the way through.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </section>
 
@@ -313,45 +328,50 @@
 <% } %>
 
 <%# ── How it works ─────────────────────────────────────────────────────────────── %>
-<section class="cp-section" aria-labelledby="how-heading">
+<section class="cp-section cp-section--navy" aria-labelledby="how-heading">
   <div class="cp-section__inner">
-    <div class="cp-section__hd">
-      <div class="cp-section__label">The process</div>
-      <h2 class="cp-section__title" id="how-heading">How it works</h2>
-      <p class="cp-section__lede">A structured, four-step engagement designed around your timeline and goals.</p>
+    <div class="cp-section__hd cp-section__hd--light cp-section__hd--center">
+      <div class="cp-section__label cp-section__label--light">The process</div>
+      <h2 class="cp-section__title cp-section__title--light" id="how-heading">How it works</h2>
+      <p class="cp-section__lede cp-section__lede--light">A structured, four-step engagement designed around your timeline and goals.</p>
     </div>
+
+    <svg class="cp-process-line" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M10 60 C120 5 185 110 285 58 S455 8 535 60 S690 112 760 60 S900 8 990 58"/>
+    </svg>
 
     <ol class="cp-process">
       <li class="cp-process__step">
-        <div class="cp-process__head">
+        <div class="cp-process__icon">
           <span class="cp-process__num">01</span>
-          <span class="cp-process__line" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--corp-navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h1"/><path d="M17 14v6M14 17h6"/></svg>
         </div>
-        <h3 class="cp-process__title">Create your profile</h3>
-        <p class="cp-process__body">Tell us your goals, target destinations and timeline. Your counsellor reviews everything before your first session.</p>
+        <h3 class="cp-process__title cp-process__title--light">Create your profile</h3>
+        <p class="cp-process__body cp-process__body--light">Tell us your goals, target destinations and timeline. Your counsellor reviews everything before your first session.</p>
       </li>
       <li class="cp-process__step">
-        <div class="cp-process__head">
+        <div class="cp-process__icon">
           <span class="cp-process__num">02</span>
-          <span class="cp-process__line" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--corp-navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><path d="M4 14.9A5 5 0 0 1 6 5.3a6 6 0 0 1 11.3-1.6A5.5 5.5 0 0 1 20 13.8"/><path d="M12 12v9M9 15l3-3 3 3"/></svg>
         </div>
-        <h3 class="cp-process__title">Upload your documents</h3>
-        <p class="cp-process__body">Passport, transcripts, certificates — uploaded to your secure portal, reviewed and verified by our team.</p>
+        <h3 class="cp-process__title cp-process__title--light">Upload your documents</h3>
+        <p class="cp-process__body cp-process__body--light">Passport, transcripts, certificates — uploaded to your secure portal, reviewed and verified by our team.</p>
       </li>
       <li class="cp-process__step">
-        <div class="cp-process__head">
+        <div class="cp-process__icon">
           <span class="cp-process__num">03</span>
-          <span class="cp-process__line" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--corp-navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-        <h3 class="cp-process__title">Meet your counsellor</h3>
-        <p class="cp-process__body">A focused session to match you to the right institution and programme, with a clear application strategy.</p>
+        <h3 class="cp-process__title cp-process__title--light">Meet your counsellor</h3>
+        <p class="cp-process__body cp-process__body--light">A focused session to match you to the right institution and programme, with a clear application strategy.</p>
       </li>
       <li class="cp-process__step">
-        <div class="cp-process__head">
+        <div class="cp-process__icon">
           <span class="cp-process__num">04</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--corp-navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         </div>
-        <h3 class="cp-process__title">We manage the rest</h3>
-        <p class="cp-process__body">Applications, responses, visa guidance and post-arrival support — tracked in your portal every step of the way.</p>
+        <h3 class="cp-process__title cp-process__title--light">We manage the rest</h3>
+        <p class="cp-process__body cp-process__body--light">Applications, responses, visa guidance and post-arrival support — tracked in your portal every step of the way.</p>
       </li>
     </ol>
   </div>

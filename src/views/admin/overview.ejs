@@ -43,23 +43,91 @@
   </div>
 </dl>
 
-<section class="panel">
-  <h2 class="panel__title">
-    <span class="panel__title-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Pipeline
-    </span>
-  </h2>
+<div class="dash-grid dash-grid--2">
+  <%
+    // Pipeline stage is ordinal (re-ordering it would change its meaning), so
+    // it takes a single-hue ramp with monotone lightness rather than distinct
+    // categorical colors — the earliest stage is the lightest step, the last
+    // (Enrolled) the darkest.
+    var pipelineRamp = ['#dbe4fb', '#b7c9f7', '#93aef2', '#6f93ee', '#4b78e9', '#2847d8', '#1f3474'];
+    var pipelineMax = Math.max.apply(null, pipeline.map(function (s) { return s.count; }).concat([1]));
+  %>
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Pipeline
+      </span>
+    </h2>
 
-  <ul class="pipeline">
-    <% pipeline.forEach(function (step) { %>
-      <li class="pipeline__stage">
-        <span class="pipeline__count"><%= step.count %></span>
-        <span class="pipeline__label"><%= step.label %></span>
-      </li>
-    <% }) %>
-  </ul>
-</section>
+    <ul class="bar-chart bar-chart--h" role="img" aria-label="Students per application stage">
+      <% pipeline.forEach(function (step, i) { %>
+        <li class="bar-chart__row">
+          <span class="bar-chart__label"><%= step.label %></span>
+          <span class="bar-chart__track">
+            <span class="bar-chart__fill" style="width:<%= pipelineMax ? (step.count / pipelineMax * 100) : 0 %>%;background:<%= pipelineRamp[i % pipelineRamp.length] %>"></span>
+          </span>
+          <span class="bar-chart__value"><%= step.count %></span>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Upcoming appointments by type
+      </span>
+    </h2>
+
+    <% if (!appointmentsByType.length) { %>
+      <p class="panel__note">Nothing scheduled yet.</p>
+    <% } else { %>
+      <%
+        // Nominal categorical (type has no inherent order) — the validated
+        // default 8-hue set, slots 1–4 (blue/orange/aqua/yellow), fixed order.
+        var donutColors = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'];
+        var donutTotal = appointmentsByType.reduce(function (sum, d) { return sum + d.count; }, 0);
+        var R = 60, CX = 80, CY = 80, STROKE = 28;
+        var circumference = 2 * Math.PI * R;
+        var gap = donutTotal > 1 ? 3 : 0;
+        var cursor = 0;
+      %>
+      <div class="donut-chart">
+        <svg class="donut-chart__svg" viewBox="0 0 160 160" role="img" aria-label="Upcoming appointments by type">
+          <g transform="rotate(-90 <%= CX %> <%= CY %>)">
+            <% appointmentsByType.forEach(function (entry, i) { %>
+              <% var length = (entry.count / donutTotal) * circumference; %>
+              <circle
+                cx="<%= CX %>" cy="<%= CY %>" r="<%= R %>"
+                fill="none"
+                stroke="<%= donutColors[i % donutColors.length] %>"
+                stroke-width="<%= STROKE %>"
+                stroke-dasharray="<%= Math.max(length - gap, 0) %> <%= circumference - Math.max(length - gap, 0) %>"
+                stroke-dashoffset="<%= -cursor %>"><title><%= entry.label %>: <%= entry.count %></title></circle>
+              <% cursor += length; %>
+            <% }) %>
+          </g>
+        </svg>
+        <div class="donut-chart__center">
+          <span class="donut-chart__total"><%= donutTotal %></span>
+          <span class="donut-chart__total-label">Scheduled</span>
+        </div>
+      </div>
+
+      <ul class="donut-chart__legend">
+        <% appointmentsByType.forEach(function (entry, i) { %>
+          <li>
+            <span class="donut-chart__swatch" style="background:<%= donutColors[i % donutColors.length] %>"></span>
+            <span class="donut-chart__legend-label"><%= entry.label %></span>
+            <span class="donut-chart__legend-value"><%= entry.count %></span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+</div>
 
 <div class="dash-grid dash-grid--2">
   <section class="panel">
