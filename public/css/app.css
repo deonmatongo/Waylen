@@ -5964,3 +5964,57 @@ html[data-motion-ready] .reveal.is-visible {
   height: 28px;
   border-radius: 6px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Cookie notice
+
+   We set no analytics/marketing cookies, so this is an informational notice
+   rather than a consent gate. Shown once per browser (public.js remembers the
+   dismissal in localStorage); with JS disabled it just stays visible, which
+   is the safer failure mode for a notice like this.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cookie-banner {
+  position: fixed;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--ink-800);
+  color: rgba(255, 255, 255, 0.88);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.cookie-banner__text {
+  flex: 1 1 320px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cookie-banner__text a {
+  color: var(--white);
+  text-decoration: underline;
+}
+
+.cookie-banner [data-cookie-dismiss] {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .cookie-banner {
+    left: var(--sp-3);
+    right: var(--sp-3);
+    bottom: var(--sp-3);
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

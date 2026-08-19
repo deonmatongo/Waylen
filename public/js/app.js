@@ -458,6 +458,35 @@
     video.addEventListener('canplay', start);
   }
 
+  /** Cookie notice: shown once per browser until dismissed. */
+  function initCookieBanner() {
+    var banner = document.querySelector('[data-cookie-banner]');
+    if (!banner) return;
+
+    var STORAGE_KEY = 'waylen-cookie-notice-dismissed';
+    var dismissed;
+    try {
+      dismissed = window.localStorage.getItem(STORAGE_KEY) === '1';
+    } catch (err) {
+      dismissed = false; // Private browsing etc. — fail open and just show it.
+    }
+    if (dismissed) return;
+
+    banner.hidden = false;
+
+    var dismissButton = banner.querySelector('[data-cookie-dismiss]');
+    if (dismissButton) {
+      dismissButton.addEventListener('click', function () {
+        banner.hidden = true;
+        try {
+          window.localStorage.setItem(STORAGE_KEY, '1');
+        } catch (err) {
+          /* nothing to persist without storage — it will just show again next visit */
+        }
+      });
+    }
+  }
+
   function init() {
     initPublicNav();
     initAppSidebar();
@@ -467,6 +496,7 @@
     initFlashDismiss();
     initScrollReveal();
     initHeroVideo();
+    initCookieBanner();
   }
 
   if (document.readyState === 'loading') {
