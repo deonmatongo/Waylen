@@ -1,0 +1,101 @@
+<%# My Package → Included Services → Additional Services → My Bookings / %>
+<%# Service History (client navigation feedback). %>
+<section class="panel">
+  <h2 class="panel__title">My package</h2>
+  <p class="panel__package-name"><%= pkg.name %></p>
+  <p class="panel__note"><%= pkg.summary %></p>
+
+  <p class="panel__note">
+    <strong>Included:</strong>
+    <%= included.map(function (s) { return s.name; }).join(' · ') %>
+  </p>
+
+  <form class="inline-form" method="post" action="/portal/messages">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="subject" value="Question about my package">
+    <input type="hidden" name="body" value="I have a question about my current package.">
+    <button class="link-button" type="submit">Questions about your package? Message us</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Included services</h2>
+  <p class="panel__note">Already part of your package — no extra charge.</p>
+
+  <ul class="mini-list">
+    <% included.forEach(function (service) { %>
+      <li class="mini-list__item">
+        <a href="<%= service.href %>">
+          <strong><%= service.name %></strong>
+          <small><%= service.summary %></small>
+        </a>
+        <span class="badge badge--positive">Included</span>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">Additional services</h2>
+  <p class="panel__note">Support beyond your package — request, book or get a quote.</p>
+
+  <ul class="card-grid card-grid--3">
+    <% addOns.forEach(function (service) { %>
+      <li class="card">
+        <div class="card__content">
+          <span class="card__icon-badge">
+            <span class="icon icon--<%= service.icon %>" aria-hidden="true"></span>
+          </span>
+          <h3 class="card__title"><%= service.name %></h3>
+          <p class="card__body"><%= service.summary %></p>
+
+          <% if (service.action.verb === 'Request') { %>
+            <form method="post" action="<%= service.action.href %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="subject" value="Service request: <%= service.name %>">
+              <input type="hidden" name="body" value="I'd like to find out more about <%= service.name %>.">
+              <button class="card__cta" type="submit"><%= service.action.verb %></button>
+            </form>
+          <% } else { %>
+            <a class="card__cta" href="<%= service.action.href %>"><%= service.action.verb %></a>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">My bookings &amp; service history</h2>
+
+  <% if (!upcomingAppointments.length && !insurancePolicies.length) { %>
+    <p class="panel__note">Nothing booked or purchased yet.</p>
+  <% } else { %>
+    <ul class="mini-list">
+      <% upcomingAppointments.forEach(function (appointment) { %>
+        <li class="mini-list__item">
+          <a href="/portal/appointments">
+            <strong><%= appointmentTypeLabels[appointment.type] %></strong>
+            <small><%= format.formatDateTime(appointment.startsAt) %></small>
+          </a>
+          <span class="badge badge--<%= appointment.status === 'CONFIRMED' ? 'positive' : 'neutral' %>">
+            <%= format.humaniseEnum(appointment.status) %>
+          </span>
+        </li>
+      <% }) %>
+      <% insurancePolicies.forEach(function (policy) { %>
+        <li class="mini-list__item">
+          <a href="/portal/insurance">
+            <strong><%= policy.planName %></strong>
+            <small>Insurance</small>
+          </a>
+          <span class="badge badge--<%= policy.status === 'ACTIVE' ? 'positive' : policy.status === 'CANCELLED' || policy.status === 'EXPIRED' ? 'neutral' : 'warning' %>">
+            <%= format.humaniseEnum(policy.status) %>
+          </span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <p class="panel__footer"><a href="/portal/appointments">All appointments</a></p>
+</section>

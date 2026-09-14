@@ -6,16 +6,19 @@
  */
 import type { Request, Response } from 'express';
 import { findStudentByUserId } from '../../models/student.model.js';
+import { listInsurancePoliciesForStudent } from '../../models/insurance.model.js';
 import { NotFoundError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
+  const policies = await listInsurancePoliciesForStudent(student.id);
+
   res.render('portal/insurance/index', {
     title: 'Student insurance',
     layout: 'layouts/portal',
-    policies: [],
+    policies,
   });
 }
 

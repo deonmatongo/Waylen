@@ -1,7 +1,3 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 2 — operations',
-      detail: 'Policy records render from real data. Purchase runs through a vetted insurance partner (PRD §6.1) and is enabled once an agreement is in place.'
-    }) %>
 <section class="panel">
   <h2 class="panel__title">Your cover</h2>
 
@@ -18,8 +14,18 @@
           <tr>
             <td><%= policy.planName %></td>
             <td><%= policy.policyNumber || '—' %></td>
-            <td><%= format.formatDate(policy.coverageStartsAt) %> – <%= format.formatDate(policy.coverageEndsAt) %></td>
-            <td><%= format.humaniseEnum(policy.status) %></td>
+            <td>
+              <% if (policy.coverageStartsAt && policy.coverageEndsAt) { %>
+                <%= format.formatDate(policy.coverageStartsAt) %> – <%= format.formatDate(policy.coverageEndsAt) %>
+              <% } else { %>
+                Dates to be confirmed
+              <% } %>
+            </td>
+            <td>
+              <span class="badge badge--<%= policy.status === 'ACTIVE' ? 'positive' : policy.status === 'CANCELLED' || policy.status === 'EXPIRED' ? 'neutral' : 'warning' %>">
+                <%= format.humaniseEnum(policy.status) %>
+              </span>
+            </td>
           </tr>
         <% }) %>
       </tbody>
