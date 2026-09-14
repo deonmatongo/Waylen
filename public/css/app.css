@@ -5714,54 +5714,8 @@ hr.rule {
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
-/* Light sidebar theme is admin-only; the portal sidebar keeps the base */
-/* dark-navy treatment defined earlier (blue background, light text). */
-
-.app--admin .app-sidebar {
-  background-color: var(--app-bg);
-  border-right: 1px solid var(--app-border);
-}
-
-.app--admin .app-sidebar__brand {
-  border-bottom: 1px solid var(--app-border);
-}
-
-.app--admin .app-sidebar__brand-name {
-  color: var(--app-ink);
-}
-
-.app--admin .app-sidebar__brand-tag {
-  color: var(--app-accent-ink);
-}
-
-.app--admin .app-sidebar__group-label {
-  color: var(--app-ink-muted);
-  opacity: 1;
-}
-
-.app--admin .app-sidebar__link {
-  color: var(--app-ink-muted);
-  border-left: none;
-  border-radius: var(--radius-sm);
-  margin: 0 2px;
-}
-
-.app--admin .app-sidebar__link:hover {
-  background-color: var(--app-bg-hover);
-  color: var(--app-ink);
-}
-
-.app--admin .app-sidebar__link.is-current {
-  background-color: var(--app-accent-bg);
-  color: var(--app-accent-ink);
-  border-left: none;
-  padding-left: var(--sp-3);
-  font-weight: 600;
-}
-
-.app--admin .app-sidebar__footer {
-  border-top: 1px solid var(--app-border);
-}
+/* Both admin and portal keep the base dark-navy sidebar treatment defined */
+/* earlier (blue background, light text) — no light-theme override here. */
 
 /* ── Page head, dashboard hero + grid ───────────────────────────────────── */
 
