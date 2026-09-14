@@ -18,6 +18,7 @@ import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase, prisma } from './config/database.js';
 import { startScheduledJobs, stopScheduledJobs } from './jobs/index.js';
+import { isGraphConfigured } from './services/graph-client.service.js';
 import argon2 from 'argon2';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -107,6 +108,13 @@ function getApp(): Promise<ExpressApp> {
     appPromise = (async () => {
       await connectDatabase();
       await applyMigrationsAndSeed();
+      if (!isGraphConfigured) {
+        logger.warn(
+          'Microsoft Graph is not configured (MS_GRAPH_* env vars unset) — ' +
+            'consultation booking is running on placeholder Teams links and local-only availability, ' +
+            'not the organiser\'s real Outlook calendar. See docs/microsoft-graph-setup.md.',
+        );
+      }
       return createApp();
     })();
   }
