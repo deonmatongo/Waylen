@@ -1,12 +1,5 @@
 <%# PRD §5.2 — upload, review status, and correction feedback. %>
-<% if (outstanding.length) { %>
-  <div class="notice notice--action">
-    <p class="notice__title">
-      <%= outstanding.length %> document<%= outstanding.length === 1 ? '' : 's' %> still needed
-    </p>
-    <p class="notice__body"><%= outstanding.map(function (o) { return o.label; }).join(', ') %></p>
-  </div>
-<% } %>
+<%- include('../../partials/portal-subnav', { tabs: documentsTabs }) %>
 
 <section class="panel">
   <h2 class="panel__title">Upload a document</h2>
@@ -68,7 +61,7 @@
             </td>
             <td>
               <span class="badge badge--<%= document.status === 'APPROVED' ? 'positive' : document.status === 'NEEDS_CORRECTION' ? 'negative' : 'neutral' %>">
-                <%= format.humaniseEnum(document.status) %>
+                <%= statusLabels[document.status] %>
               </span>
               <% if (document.status === 'NEEDS_CORRECTION' && document.reviewNotes) { %>
                 <p class="table__note"><%= document.reviewNotes %></p>

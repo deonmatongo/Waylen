@@ -171,6 +171,70 @@
 </section>
 
 <section class="panel">
+  <h2 class="panel__title">Contracts &amp; agreements</h2>
+
+  <%# Client navigation feedback — consultancy/service agreements live in the %>
+  <%# same student file as documents, not a separate concept for staff either. %>
+  <form class="form form--inline" method="post"
+        action="/admin/students/<%= student.id %>/contracts?_csrf=<%= encodeURIComponent(csrfToken) %>"
+        enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label class="field__label" for="contractTitle">Agreement title</label>
+      <input class="field__input" type="text" id="contractTitle" name="title" required
+             placeholder="e.g. Consultancy Services Agreement">
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="contractFile">File</label>
+      <input class="field__file" type="file" id="contractFile" name="document" required
+             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+    </div>
+
+    <button class="button button--primary" type="submit">Upload &amp; notify student</button>
+  </form>
+
+  <% if (student.contracts.length) { %>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+      </thead>
+      <tbody>
+        <% student.contracts.forEach(function (contract) { %>
+          <tr>
+            <td>
+              <%= contract.title %>
+              <small class="table__hint"><%= format.formatFileSize(contract.sizeBytes) %></small>
+            </td>
+            <td>
+              <span class="badge badge--<%= contract.status === 'ACTIVE' ? 'positive' : contract.status === 'SIGNED' ? 'neutral' : 'warning' %>">
+                <%= contractStatusLabels[contract.status] %>
+              </span>
+            </td>
+            <td><%= format.formatDate(contract.createdAt) %></td>
+            <td class="table__actions">
+              <a class="link-button" href="/admin/contracts/<%= contract.id %>/view">View</a>
+              <form class="inline-form" method="post" action="/admin/contracts/<%= contract.id %>/status">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <select class="field__select" name="status">
+                  <% contractStatuses.forEach(function (option) { %>
+                    <option value="<%= option.value %>" <%= option.value === contract.status ? 'selected' : '' %>>
+                      <%= option.label %>
+                    </option>
+                  <% }) %>
+                </select>
+                <button class="link-button" type="submit">Update</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="panel">
   <h2 class="panel__title">Internal note</h2>
 
   <form class="form" method="post" action="/admin/students/<%= student.id %>/notes">

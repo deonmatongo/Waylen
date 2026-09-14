@@ -5,27 +5,45 @@ import type { Request, Response } from 'express';
 import { documentService } from '../../services/document.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
 import { documentUploadSchema } from '../../validators/document.validator.js';
-import { DOCUMENT_TYPE_LABELS, STUDENT_UPLOAD_DOCUMENT_TYPES } from '../../config/constants.js';
+import {
+  DOCUMENT_TYPE_LABELS,
+  DOCUMENT_STATUS_LABELS,
+  DOCUMENTS_TABS,
+  STUDENT_UPLOAD_DOCUMENT_TYPES,
+} from '../../config/constants.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const [documents, outstanding] = await Promise.all([
-    documentService.listForStudent(student.id, { issuedByWaylen: false }),
-    documentService.outstandingRequirements(student.id),
-  ]);
+  const documents = await documentService.listForStudent(student.id, { issuedByWaylen: false });
 
   res.render('portal/documents/index', {
-    title: 'Document centre',
+    title: 'My uploads',
     layout: 'layouts/portal',
     documents,
-    outstanding: outstanding.map((type) => ({ type, label: DOCUMENT_TYPE_LABELS[type] })),
+    statusLabels: DOCUMENT_STATUS_LABELS,
+    documentsTabs: DOCUMENTS_TABS,
     uploadableTypes: STUDENT_UPLOAD_DOCUMENT_TYPES.map((type) => ({
       value: type,
       label: DOCUMENT_TYPE_LABELS[type],
     })),
+  });
+}
+
+export async function checklist(req: Request, res: Response): Promise<void> {
+  const student = await findStudentByUserId(req.currentUser!.id);
+  if (!student) throw new NotFoundError('We could not find your student profile.');
+
+  const checklist = await documentService.requirementsChecklist(student.id);
+
+  res.render('portal/documents/checklist', {
+    title: 'Required documents',
+    layout: 'layouts/portal',
+    checklist,
+    statusLabels: DOCUMENT_STATUS_LABELS,
+    documentsTabs: DOCUMENTS_TABS,
   });
 }
 

@@ -15,7 +15,14 @@ import {
 import { documentService } from '../../services/document.service.js';
 import { auditService } from '../../services/audit.service.js';
 import { assertCanAccessStudent } from '../../middleware/auth.js';
-import { APPLICATION_STAGE_ORDER, APPLICATION_STAGE_LABELS, WAYLEN_ISSUED_DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '../../config/constants.js';
+import {
+  APPLICATION_STAGE_ORDER,
+  APPLICATION_STAGE_LABELS,
+  WAYLEN_ISSUED_DOCUMENT_TYPES,
+  DOCUMENT_TYPE_LABELS,
+  CONTRACT_STATUS_LABELS,
+} from '../../config/constants.js';
+import { ContractStatus } from '@prisma/client';
 import { issueDocumentSchema } from '../../validators/document.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
@@ -64,6 +71,11 @@ export async function show(req: Request, res: Response): Promise<void> {
     issuableTypes: WAYLEN_ISSUED_DOCUMENT_TYPES.map((type) => ({
       value: type,
       label: DOCUMENT_TYPE_LABELS[type],
+    })),
+    contractStatusLabels: CONTRACT_STATUS_LABELS,
+    contractStatuses: Object.values(ContractStatus).map((value) => ({
+      value,
+      label: CONTRACT_STATUS_LABELS[value],
     })),
   });
 }

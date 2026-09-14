@@ -1,0 +1,10 @@
+<%# Sub-tabs for a sidebar section that groups more than one page (e.g. %>
+<%# Documents = uploads + Waylen-issued documents). Expects `tabs`: an array %>
+<%# of { label, href }. %>
+<nav class="portal-subnav" aria-label="Section pages">
+  <% tabs.forEach(function (tab) { %>
+    <a class="portal-subnav__link<%= currentPath === tab.href ? ' is-current' : '' %>"
+       href="<%= tab.href %>"
+       <%= currentPath === tab.href ? 'aria-current="page"' : '' %>><%= tab.label %></a>
+  <% }) %>
+</nav>

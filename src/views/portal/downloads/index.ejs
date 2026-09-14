@@ -1,5 +1,7 @@
 <%# PRD §5.2 — offer letters, acceptance letters, invoices, visa support %>
 <%# letters and travel guides issued by Waylen. %>
+<%- include('../../partials/portal-subnav', { tabs: documentsTabs }) %>
+
 <% if (!documents.length) { %>
   <%- include('../../partials/empty-state', {
         heading: 'Nothing to download yet',

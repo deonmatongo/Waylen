@@ -1,0 +1,45 @@
+<%# Contracts & Agreements — client navigation feedback: consultancy/service %>
+<%# agreements sit here rather than becoming another main navigation item. %>
+<%- include('../../partials/portal-subnav', { tabs: documentsTabs }) %>
+
+<% if (!contracts.length) { %>
+  <%- include('../../partials/empty-state', {
+        heading: 'No agreements yet',
+        message: 'Any consultancy or service agreement with Waylen will appear here, ready to review and sign.'
+      }) %>
+<% } else { %>
+  <section class="panel">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Agreement</th>
+          <th scope="col">Status</th>
+          <th scope="col">Date</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% contracts.forEach(function (contract) { %>
+          <tr>
+            <td>
+              <%= contract.title %>
+              <small class="table__hint"><%= format.formatFileSize(contract.sizeBytes) %></small>
+            </td>
+            <td>
+              <span class="badge badge--<%= contract.status === 'ACTIVE' ? 'positive' : contract.status === 'SIGNED' ? 'neutral' : 'warning' %>">
+                <%= statusLabels[contract.status] %>
+              </span>
+            </td>
+            <td>
+              <%= contract.signedAt ? format.formatDate(contract.signedAt) : format.formatDate(contract.createdAt) %>
+            </td>
+            <td class="table__actions">
+              <a class="link-button" href="/portal/contracts/<%= contract.id %>">View</a>
+              <a class="link-button" href="/portal/contracts/<%= contract.id %>?download=1">Download</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<% } %>

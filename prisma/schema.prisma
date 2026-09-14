@@ -72,6 +72,7 @@ model User {
   auditEntries      AuditLog[]          @relation("AuditActor")
   documentReviews   Document[]          @relation("DocumentReviewer")
   uploadedDocuments Document[]          @relation("DocumentUploader")
+  issuedContracts   Contract[]          @relation("ContractIssuer")
   counselledStudents StudentProfile[]   @relation("AssignedCounsellor")
   hostedAppointments Appointment[]      @relation("AppointmentCounsellor")
 
@@ -162,6 +163,7 @@ model StudentProfile {
 
   applications        Application[]
   documents           Document[]
+  contracts           Contract[]
   invoices            Invoice[]
   appointments        Appointment[]
   messageThreads      MessageThread[]
@@ -602,6 +604,44 @@ model Document {
   @@index([studentProfileId, status])
   @@index([status, type])
   @@map("documents")
+}
+
+/// Consultancy/service agreements (client navigation feedback) — a distinct
+/// lifecycle from DocumentStatus (a review-workflow enum): a contract isn't
+/// "reviewed", it's signed. Storage reuses the same encrypted-at-rest
+/// storageService as Document; the two are otherwise unrelated.
+enum ContractStatus {
+  AWAITING_SIGNATURE
+  SIGNED
+  ACTIVE
+}
+
+model Contract {
+  id String @id @default(cuid())
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  title  String
+  status ContractStatus @default(AWAITING_SIGNATURE)
+
+  originalFilename String
+  storageKey       String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String?
+  encryptionIv     String?
+
+  signedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation("ContractIssuer", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, status])
+  @@map("contracts")
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

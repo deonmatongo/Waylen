@@ -4,7 +4,7 @@
 import type { Request, Response } from 'express';
 import { documentService } from '../../services/document.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
-import { DOCUMENT_TYPE_LABELS } from '../../config/constants.js';
+import { DOCUMENT_TYPE_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
@@ -14,10 +14,11 @@ export async function index(req: Request, res: Response): Promise<void> {
   const documents = await documentService.listForStudent(student.id, { issuedByWaylen: true });
 
   res.render('portal/downloads/index', {
-    title: 'Downloads',
+    title: 'Waylen documents',
     layout: 'layouts/portal',
     documents,
     typeLabels: DOCUMENT_TYPE_LABELS,
+    documentsTabs: DOCUMENTS_TABS,
   });
 }
 

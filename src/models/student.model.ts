@@ -83,6 +83,18 @@ export async function findStudentById(id: string) {
         },
         orderBy: { createdAt: 'desc' },
       },
+      contracts: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          originalFilename: true,
+          sizeBytes: true,
+          signedAt: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      },
     },
   });
   if (!student) return null;

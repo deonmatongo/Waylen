@@ -299,14 +299,6 @@ export const documentService = {
    * "outstanding actions" panel on the dashboard (PRD §5.2).
    */
   async outstandingRequirements(studentProfileId: string): Promise<DocumentType[]> {
-    const required: DocumentType[] = [
-      'PASSPORT',
-      'ACADEMIC_TRANSCRIPT',
-      'DEGREE_CERTIFICATE',
-      'CV',
-      'ENGLISH_PROFICIENCY',
-    ];
-
     const held = await prisma.document.findMany({
       where: {
         studentProfileId,
@@ -317,6 +309,52 @@ export const documentService = {
     });
 
     const heldTypes = new Set(held.map((d) => d.type));
-    return required.filter((type) => !heldTypes.has(type));
+    return REQUIRED_DOCUMENT_TYPES.filter((type) => !heldTypes.has(type));
+  },
+
+  /**
+   * Every required document type with its current status — the "Required
+   * Documents" checklist (client navigation feedback), a fuller view than
+   * `outstandingRequirements` (which only lists what's still missing).
+   */
+  async requirementsChecklist(studentProfileId: string): Promise<RequirementChecklistItem[]> {
+    const held = await prisma.document.findMany({
+      where: { studentProfileId, isIssuedByWaylen: false, type: { in: REQUIRED_DOCUMENT_TYPES } },
+      select: { id: true, type: true, status: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // A student may have re-uploaded after a correction — keep only the most
+    // recent document per type (query is already newest-first).
+    const latestByType = new Map<DocumentType, (typeof held)[number]>();
+    for (const document of held) {
+      if (!latestByType.has(document.type)) latestByType.set(document.type, document);
+    }
+
+    return REQUIRED_DOCUMENT_TYPES.map((type) => {
+      const document = latestByType.get(type);
+      return {
+        type,
+        label: DOCUMENT_TYPE_LABELS[type],
+        status: document?.status ?? null,
+        documentId: document?.id ?? null,
+      };
+    });
   },
 };
+
+const REQUIRED_DOCUMENT_TYPES: DocumentType[] = [
+  'PASSPORT',
+  'ACADEMIC_TRANSCRIPT',
+  'DEGREE_CERTIFICATE',
+  'CV',
+  'ENGLISH_PROFICIENCY',
+];
+
+export interface RequirementChecklistItem {
+  type: DocumentType;
+  label: string;
+  /** null means nothing has been uploaded for this type yet. */
+  status: DocumentStatus | null;
+  documentId: string | null;
+}
