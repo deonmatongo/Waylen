@@ -235,13 +235,25 @@ export const applicationService = {
       if (!reached.has(event.stage)) reached.set(event.stage, event.createdAt);
     }
 
-    const currentIndex = stageIndex(application.stage);
+    return this.stepsForStage(application.stage).map((step) => ({
+      ...step,
+      reachedAt: reached.get(step.stage) ?? null,
+    }));
+  },
+
+  /**
+   * The same seven steps, without an application's event history — for a
+   * student who hasn't reached the application stage yet (still on Profile
+   * or Documents) but should still see where they stand (PRD §5.3).
+   */
+  stepsForStage(currentStage: ApplicationStage): ProgressStep[] {
+    const currentIndex = stageIndex(currentStage);
 
     return APPLICATION_STAGE_ORDER.map((stage, index) => ({
       stage,
       label: APPLICATION_STAGE_LABELS[stage],
       status: index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'upcoming',
-      reachedAt: reached.get(stage) ?? null,
+      reachedAt: null,
     }));
   },
 
@@ -262,6 +274,7 @@ export const applicationService = {
         studentNotes: true,
         createdAt: true,
         country: { select: { name: true, isoCode: true, slug: true } },
+        institution: { select: { name: true } },
         opportunity: { select: { title: true, slug: true } },
         _count: { select: { documents: true } },
       },

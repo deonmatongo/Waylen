@@ -3,7 +3,13 @@
 <ol class="tracker" aria-label="Application progress">
   <% progress.forEach(function (step, index) { %>
     <li class="tracker__step tracker__step--<%= step.status %>">
-      <span class="tracker__marker" aria-hidden="true"><%= index + 1 %></span>
+      <span class="tracker__marker" aria-hidden="true">
+        <% if (step.status === 'complete') { %>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+        <% } else { %>
+          <%= index + 1 %>
+        <% } %>
+      </span>
       <span class="tracker__body">
         <span class="tracker__label"><%= step.label %></span>
         <% if (step.reachedAt) { %>

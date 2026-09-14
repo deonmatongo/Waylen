@@ -15,48 +15,75 @@
   </div>
 </section>
 
-<%# Progress tracker — PRD §5.3 %>
-<section class="panel">
-  <h2 class="panel__title">
-    <span class="panel__title-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Your progress
-    </span>
-  </h2>
+<%# Progress tracker + counsellor — PRD §5.3. The counsellor card sits next %>
+<%# to progress rather than buried at the bottom, so the two most actionable %>
+<%# things on the page (where am I, who do I talk to) are seen together. %>
+<div class="dash-progress-row">
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Your progress
+      </span>
+    </h2>
 
-  <% if (progress) { %>
     <%- include('../partials/progress-tracker', { progress: progress }) %>
-    <p class="panel__footer">
-      <a href="/portal/applications/<%= primaryApplication.id %>">View application details</a>
-    </p>
-  <% } else { %>
-    <p class="panel__note">
-      Your journey starts once your documents are uploaded and your counsellor has
-      recommended a programme.
-    </p>
-    <a class="button button--primary" href="/portal/documents">Upload your documents</a>
-  <% } %>
-</section>
+    <% if (primaryApplication) { %>
+      <p class="panel__footer">
+        <a href="/portal/applications/<%= primaryApplication.id %>">View application details</a>
+      </p>
+    <% } else { %>
+      <p class="panel__note">
+        An application appears here once your documents are approved and your counsellor
+        has shortlisted programmes with you.
+      </p>
+      <a class="button button--primary button--small" href="/portal/documents">Upload your documents</a>
+    <% } %>
+  </section>
+
+  <%# My counsellor — small, actionable: message or book straight from here. %>
+  <section class="panel panel--counsellor">
+    <h2 class="panel__title">
+      <span class="panel__title-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My counsellor
+      </span>
+    </h2>
+
+    <% if (student.assignedCounsellor) { %>
+      <div class="person">
+        <span class="avatar avatar--large" aria-hidden="true">
+          <%= format.initials(student.assignedCounsellor.fullName) %>
+        </span>
+        <div>
+          <p class="person__name"><%= student.assignedCounsellor.fullName %></p>
+          <% if (student.assignedCounsellor.staffProfile && student.assignedCounsellor.staffProfile.jobTitle) { %>
+            <p class="person__role"><%= student.assignedCounsellor.staffProfile.jobTitle %></p>
+          <% } %>
+        </div>
+      </div>
+      <div class="panel__actions">
+        <a class="button button--secondary button--small" href="/portal/messages">
+          Message<% if (unreadMessages > 0) { %> (<%= unreadMessages %>)<% } %>
+        </a>
+        <a class="button button--primary button--small" href="/portal/appointments/new">Book appointment</a>
+      </div>
+    <% } else { %>
+      <p class="panel__note">
+        A counsellor will be assigned to you shortly. In the meantime you can message
+        the team directly.
+      </p>
+      <div class="panel__actions">
+        <a class="button button--secondary button--small" href="/portal/messages">Message the team</a>
+        <a class="button button--primary button--small" href="/portal/appointments/new">Book appointment</a>
+      </div>
+    <% } %>
+  </section>
+</div>
 
 <div class="dash-grid">
-  <%# Outstanding balance — PRD §5.2. %>
-  <% if (outstandingBalance && outstandingBalance.totalOutstandingMinor > 0) { %>
-    <section class="panel">
-      <h2 class="panel__title">
-        <span class="panel__title-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-          Balance due
-        </span>
-      </h2>
-      <p class="panel__note">
-        <%= format.formatMoney(outstandingBalance.totalOutstandingMinor, outstandingBalance.currency) %>
-        outstanding<% if (outstandingBalance.nextDueAt) { %>, next due <%= format.formatDate(outstandingBalance.nextDueAt) %><% } %>.
-      </p>
-      <a class="button button--secondary button--small" href="/portal/invoices">View invoices</a>
-    </section>
-  <% } %>
-
-  <%# Outstanding actions — the most useful thing on the page. %>
+  <%# Outstanding actions — payments, documents (and, later, contracts) all %>
+  <%# in one place rather than a separate section per kind. %>
   <section class="panel">
     <h2 class="panel__title">
       <span class="panel__title-icon">
@@ -65,16 +92,22 @@
       </span>
     </h2>
 
-    <% if (!outstandingDocuments.length) { %>
+    <% var hasBalance = outstandingBalance && outstandingBalance.totalOutstandingMinor > 0; %>
+    <% if (!outstandingDocuments.length && !hasBalance) { %>
       <p class="panel__note panel__note--positive">
-        Nothing outstanding — every expected document is with us.
+        Nothing outstanding — you're all caught up.
       </p>
     <% } else { %>
-      <p class="panel__note">
-        <%= outstandingDocuments.length %> document<%= outstandingDocuments.length === 1 ? '' : 's' %>
-        still needed before your application can be submitted.
-      </p>
       <ul class="action-list">
+        <% if (hasBalance) { %>
+          <li class="action-list__item">
+            <span>
+              <%= format.formatMoney(outstandingBalance.totalOutstandingMinor, outstandingBalance.currency) %> due
+              <% if (outstandingBalance.nextDueAt) { %>by <%= format.formatDate(outstandingBalance.nextDueAt) %><% } %>
+            </span>
+            <a class="button button--secondary button--small" href="/portal/invoices">Pay now</a>
+          </li>
+        <% } %>
         <% outstandingDocuments.forEach(function (item) { %>
           <li class="action-list__item">
             <span><%= item.label %></span>
@@ -174,39 +207,6 @@
         <% }) %>
       </ul>
       <p class="panel__footer"><a href="/portal/notifications">All notifications</a></p>
-    <% } %>
-  </section>
-
-  <%# Counsellor + messages %>
-  <section class="panel">
-    <h2 class="panel__title">
-      <span class="panel__title-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Your counsellor
-      </span>
-    </h2>
-
-    <% if (student.assignedCounsellor) { %>
-      <div class="person">
-        <span class="avatar avatar--large" aria-hidden="true">
-          <%= format.initials(student.assignedCounsellor.fullName) %>
-        </span>
-        <div>
-          <p class="person__name"><%= student.assignedCounsellor.fullName %></p>
-          <% if (student.assignedCounsellor.staffProfile && student.assignedCounsellor.staffProfile.jobTitle) { %>
-            <p class="person__role"><%= student.assignedCounsellor.staffProfile.jobTitle %></p>
-          <% } %>
-        </div>
-      </div>
-      <a class="button button--secondary button--small" href="/portal/messages">
-        Send a message<% if (unreadMessages > 0) { %> (<%= unreadMessages %> unread)<% } %>
-      </a>
-    <% } else { %>
-      <p class="panel__note">
-        A counsellor will be assigned to you shortly. In the meantime you can message
-        the team directly.
-      </p>
-      <a class="button button--secondary button--small" href="/portal/messages">Message the team</a>
     <% } %>
   </section>
 </div>

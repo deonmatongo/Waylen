@@ -7,11 +7,12 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../config/database.js';
 import { findStudentByUserId } from '../../models/student.model.js';
+import { countUnreadForStudent } from '../../models/message.model.js';
 import { applicationService } from '../../services/application.service.js';
 import { documentService } from '../../services/document.service.js';
 import { notificationService } from '../../services/notification.service.js';
 import { billingService } from '../../services/billing.service.js';
-import { DOCUMENT_TYPE_LABELS, APPLICATION_STAGE_LABELS } from '../../config/constants.js';
+import { DOCUMENT_TYPE_LABELS, APPLICATION_JOURNEY_LABELS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { features } from '../../config/env.js';
 
@@ -47,24 +48,19 @@ export async function index(req: Request, res: Response): Promise<void> {
         orderBy: { startsAt: 'asc' },
         take: 3,
       }),
-      prisma.message.count({
-        where: {
-          thread: { studentProfileId: student.id },
-          readAt: null,
-          isInternal: false,
-          // Only count messages from staff, not the student's own.
-          senderId: { not: userId },
-        },
-      }),
+      countUnreadForStudent(student.id, userId),
       features.payments ? billingService.outstandingBalance(student.id) : Promise.resolve(null),
     ]);
 
-  // The tracker shown on the dashboard follows the most recent application;
-  // a student with none yet sees the profile-creation step only.
+  // The tracker shown on the dashboard follows the most recent application's
+  // event history once one exists; before that it still shows where the
+  // student stands (Profile/Documents) from their own denormalised stage.
   const primaryApplication = applications[0];
-  const progress = primaryApplication
+  const rawProgress = primaryApplication
     ? await applicationService.buildProgress(primaryApplication.id)
-    : null;
+    : applicationService.stepsForStage(student.currentStage);
+  // Student-facing wording throughout the portal — see APPLICATION_JOURNEY_LABELS.
+  const progress = rawProgress.map((step) => ({ ...step, label: APPLICATION_JOURNEY_LABELS[step.stage] }));
 
   res.render('portal/dashboard', {
     title: 'Dashboard',
@@ -81,6 +77,6 @@ export async function index(req: Request, res: Response): Promise<void> {
     appointments,
     unreadMessages,
     outstandingBalance,
-    stageLabel: APPLICATION_STAGE_LABELS[student.currentStage],
+    stageLabel: APPLICATION_JOURNEY_LABELS[student.currentStage],
   });
 }
