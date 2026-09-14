@@ -241,3 +241,15 @@ export async function listFaqsByTopic(topic: string) {
     orderBy: { displayOrder: 'asc' },
   });
 }
+
+/**
+ * Every published, general-purpose FAQ, grouped by topic — for the portal's
+ * Help & Support page. Country-specific FAQs are excluded: those belong on
+ * their own country page (`countries/show.ejs`), not a generic support hub.
+ */
+export async function listAllFaqs() {
+  return prisma.faq.findMany({
+    where: { status: 'PUBLISHED', countryId: null },
+    orderBy: [{ topic: 'asc' }, { displayOrder: 'asc' }],
+  });
+}

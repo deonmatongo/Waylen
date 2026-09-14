@@ -1,0 +1,32 @@
+<%- include('../../partials/portal-subnav', { tabs: supportTabs }) %>
+
+<div class="page-actions">
+  <a class="button button--primary" href="/portal/support/tickets/new">New ticket</a>
+</div>
+
+<% if (!tickets.length) { %>
+  <%- include('../../partials/empty-state', {
+    heading: 'No tickets yet',
+    message: 'Raise a ticket if you run into an application, document, payment, appointment or technical issue.',
+    actionHref: '/portal/support/tickets/new',
+    actionLabel: 'New ticket',
+  }) %>
+<% } else { %>
+  <ul class="mini-list">
+    <% tickets.forEach(function (ticket) { %>
+      <li class="mini-list__item">
+        <a href="/portal/support/tickets/<%= ticket.id %>">
+          <strong><%= ticket.subject %></strong>
+          <small>
+            <%= ticket.reference %> · <%= categoryLabels[ticket.category] %>
+            · <%= ticket._count.messages %> message<%= ticket._count.messages === 1 ? '' : 's' %>
+            · <%= format.relativeTime(ticket.createdAt) %>
+          </small>
+        </a>
+        <span class="badge badge--<%= ticket.status === 'RESOLVED' ? 'positive' : ticket.status === 'AWAITING_STUDENT' ? 'warning' : ticket.status === 'IN_PROGRESS' ? 'info' : 'negative' %>">
+          <%= statusLabels[ticket.status] %>
+        </span>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

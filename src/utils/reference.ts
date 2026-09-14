@@ -23,6 +23,11 @@ export function appointmentReference(): string {
   return `WYL-APT-${nanoid()}`;
 }
 
+/** WYL-TKT-XXXXXX */
+export function ticketReference(): string {
+  return `WYL-TKT-${nanoid()}`;
+}
+
 /**
  * Sequential, gap-free invoice numbers: INV-2026-00042. Accounting reviews
  * expect no gaps, so the caller must derive `sequence` inside the same

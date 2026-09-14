@@ -23,13 +23,18 @@ export type NotificationEvent =
   | 'document.approved'
   | 'document.needs_correction'
   | 'document.issued'
+  | 'contract.issued'
+  | 'contract.status_changed'
   | 'application.stage_changed'
   | 'application.offer_received'
   | 'invoice.issued'
   | 'invoice.reminder'
   | 'payment.received'
   | 'payment.proof_rejected'
-  | 'message.received';
+  | 'message.received'
+  | 'support.ticket_created'
+  | 'support.ticket_reply'
+  | 'support.ticket_resolved';
 
 /**
  * Which channels each event uses. SMS and WHATSAPP are intentionally listed
@@ -47,6 +52,8 @@ const CHANNELS_BY_EVENT: Record<NotificationEvent, NotificationChannel[]> = {
   'document.approved': ['EMAIL', 'IN_APP'],
   'document.needs_correction': ['EMAIL', 'IN_APP'],
   'document.issued': ['EMAIL', 'IN_APP'],
+  'contract.issued': ['EMAIL', 'IN_APP'],
+  'contract.status_changed': ['IN_APP', 'EMAIL'],
   'application.stage_changed': ['IN_APP', 'EMAIL'],
   'application.offer_received': ['EMAIL', 'IN_APP'],
   'invoice.issued': ['EMAIL', 'IN_APP'],
@@ -54,6 +61,9 @@ const CHANNELS_BY_EVENT: Record<NotificationEvent, NotificationChannel[]> = {
   'payment.received': ['EMAIL', 'IN_APP'],
   'payment.proof_rejected': ['EMAIL', 'IN_APP'],
   'message.received': ['IN_APP', 'EMAIL'],
+  'support.ticket_created': ['IN_APP', 'EMAIL'],
+  'support.ticket_reply': ['IN_APP', 'EMAIL'],
+  'support.ticket_resolved': ['IN_APP', 'EMAIL'],
 };
 
 export interface DispatchOptions {

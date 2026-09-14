@@ -1,0 +1,76 @@
+<%# Help & Support ticket queue (client navigation feedback §10). %>
+<form class="filters filters--bar" method="get" action="/admin/support">
+  <div class="field">
+    <label class="field__label visually-hidden" for="q">Search</label>
+    <input class="field__input" type="search" id="q" name="q" value="<%= filters.q || '' %>"
+           placeholder="Subject or reference">
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="category">Category</label>
+    <select class="field__select" id="category" name="category">
+      <option value="">All categories</option>
+      <% ['APPLICATION','DOCUMENTS','PAYMENT','APPOINTMENT','TECHNICAL_ISSUE','OTHER'].forEach(function (category) { %>
+        <option value="<%= category %>" <%= filters.category === category ? 'selected' : '' %>>
+          <%= format.humaniseEnum(category) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="field__label visually-hidden" for="status">Status</label>
+    <select class="field__select" id="status" name="status">
+      <option value="">All statuses</option>
+      <% ['OPEN','IN_PROGRESS','AWAITING_STUDENT','RESOLVED'].forEach(function (status) { %>
+        <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>>
+          <%= format.humaniseEnum(status) %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <button class="button button--primary" type="submit">Filter</button>
+  <a class="button button--ghost" href="/admin/support">Clear</a>
+</form>
+
+<p class="listing-layout__count"><%= results.total %> ticket<%= results.total === 1 ? '' : 's' %></p>
+
+<% if (!results.items.length) { %>
+  <%- include('../../partials/empty-state', { heading: 'No tickets match those filters' }) %>
+<% } else { %>
+  <table class="table table--stacked">
+    <thead>
+      <tr>
+        <th scope="col">Reference</th><th scope="col">Student</th><th scope="col">Subject</th>
+        <th scope="col">Category</th><th scope="col">Status</th><th scope="col">Assigned to</th>
+        <th scope="col">Raised</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% results.items.forEach(function (ticket) { %>
+        <tr>
+          <td><code><%= ticket.reference %></code></td>
+          <td>
+            <%= ticket.studentProfile.user.fullName %>
+            <small class="table__hint"><%= ticket.studentProfile.reference %></small>
+          </td>
+          <td><a href="/admin/support/<%= ticket.id %>"><%= ticket.subject %></a></td>
+          <td><%= format.humaniseEnum(ticket.category) %></td>
+          <td>
+            <span class="badge badge--<%= ticket.status === 'RESOLVED' ? 'positive' : ticket.status === 'AWAITING_STUDENT' ? 'warning' : ticket.status === 'IN_PROGRESS' ? 'info' : 'negative' %>">
+              <%= format.humaniseEnum(ticket.status) %>
+            </span>
+          </td>
+          <td><%= ticket.assignedTo ? ticket.assignedTo.fullName : 'Unassigned' %></td>
+          <td><%= format.relativeTime(ticket.createdAt) %></td>
+          <td class="table__actions">
+            <a class="link-button" href="/admin/support/<%= ticket.id %>">Open</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <%- include('../../partials/pagination', { results: results, baseUrl: '/admin/support', query: filters }) %>
+<% } %>

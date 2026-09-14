@@ -68,6 +68,8 @@ model User {
 
   // Relations where this user is the actor rather than the subject
   sentMessages      Message[]           @relation("MessageSender")
+  assignedTickets   SupportTicket[]     @relation("SupportTicketAssignee")
+  sentTicketMessages SupportTicketMessage[] @relation("SupportTicketMessageSender")
   notifications     Notification[]
   auditEntries      AuditLog[]          @relation("AuditActor")
   documentReviews   Document[]          @relation("DocumentReviewer")
@@ -167,6 +169,7 @@ model StudentProfile {
   invoices            Invoice[]
   appointments        Appointment[]
   messageThreads      MessageThread[]
+  supportTickets      SupportTicket[]
   referrals           Referral[]
   insurancePolicies   InsurancePolicy[]
   webinarRegistrations WebinarRegistration[]
@@ -1010,6 +1013,69 @@ model Message {
 
   @@index([threadId, createdAt])
   @@map("messages")
+}
+
+/// Help & Support (client navigation feedback §10) — operational/technical
+/// issues, kept distinct from adviser Messages above.
+enum SupportTicketCategory {
+  APPLICATION
+  DOCUMENTS
+  PAYMENT
+  APPOINTMENT
+  TECHNICAL_ISSUE
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  AWAITING_STUDENT
+  RESOLVED
+}
+
+model SupportTicket {
+  id        String @id @default(cuid())
+  reference String @unique
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  category SupportTicketCategory
+  subject  String
+  status   SupportTicketStatus @default(OPEN)
+
+  assignedToId String?
+  assignedTo   User?   @relation("SupportTicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  resolvedAt DateTime?
+
+  messages SupportTicketMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentProfileId, createdAt])
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("SupportTicketMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  body       String
+  readAt     DateTime?
+  /// Staff-only note, hidden from the student
+  isInternal Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@map("support_ticket_messages")
 }
 
 enum NotificationChannel {

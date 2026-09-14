@@ -1,0 +1,31 @@
+<%- include('../../partials/portal-subnav', { tabs: supportTabs }) %>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Frequently asked questions</h2>
+
+    <% if (!faqGroups.length) { %>
+      <p class="panel__note">Nothing published yet.</p>
+    <% } else { %>
+      <% faqGroups.forEach(function (group) { %>
+        <h3 class="panel__subtitle"><%= format.humaniseEnum(group.topic) %></h3>
+        <dl class="detail-list">
+          <% group.items.forEach(function (faq) { %>
+            <div><dt><%= faq.question %></dt><dd><%- faq.answer %></dd></div>
+          <% }) %>
+        </dl>
+      <% }) %>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Still need help?</h2>
+    <p class="panel__note">
+      Raise a ticket for anything operational or technical — applications, documents, payments,
+      appointments or a technical issue — and the team will track it through to resolution.
+      For general questions for your adviser, use Messages instead.
+    </p>
+    <a class="button button--primary" href="/portal/support/tickets/new">New ticket</a>
+    <a class="button button--ghost" href="/portal/support/tickets">View my tickets</a>
+  </section>
+</div>

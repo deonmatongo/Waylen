@@ -26,6 +26,7 @@ import * as countryController from '../../controllers/admin/country.controller.j
 import * as partnerController from '../../controllers/admin/partner.controller.js';
 import * as referralController from '../../controllers/admin/referral.controller.js';
 import * as enquiryController from '../../controllers/admin/enquiry.controller.js';
+import * as supportController from '../../controllers/admin/support.controller.js';
 import * as reportController from '../../controllers/admin/report.controller.js';
 import * as auditController from '../../controllers/admin/audit.controller.js';
 import * as settingsController from '../../controllers/admin/settings.controller.js';
@@ -177,6 +178,13 @@ adminRouter.get('/enquiries', asyncHandler(enquiryController.index));
 adminRouter.get('/enquiries/:id', asyncHandler(enquiryController.show));
 adminRouter.post('/enquiries/:id/status', asyncHandler(enquiryController.updateStatus));
 adminRouter.post('/enquiries/:id/assign', asyncHandler(enquiryController.assign));
+
+// ── Help & Support tickets (client navigation feedback §10) ────────────────
+adminRouter.get('/support', asyncHandler(supportController.index));
+adminRouter.get('/support/:id', asyncHandler(supportController.show));
+adminRouter.post('/support/:id/reply', asyncHandler(supportController.reply));
+adminRouter.post('/support/:id/status', asyncHandler(supportController.updateStatus));
+adminRouter.post('/support/:id/assign', asyncHandler(supportController.assign));
 
 // ── Reporting & analytics (PRD §5.4, §10) ──────────────────────────────────
 adminRouter.get('/reports', asyncHandler(reportController.index));

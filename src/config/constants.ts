@@ -197,6 +197,29 @@ export const APPOINTMENT_TYPE_LABELS = {
 /** Roles that may reach the back-office (PRD §5.4). */
 export const STAFF_ROLES: UserRole[] = ['COUNSELLOR', 'ADMIN_STAFF', 'SUPER_ADMIN'];
 
+/** Help & Support ticket categories (client navigation feedback §10). */
+export const SUPPORT_TICKET_CATEGORY_LABELS = {
+  APPLICATION: 'Application',
+  DOCUMENTS: 'Documents',
+  PAYMENT: 'Payment',
+  APPOINTMENT: 'Appointment',
+  TECHNICAL_ISSUE: 'Technical Issue',
+  OTHER: 'Other',
+} as const;
+
+export const SUPPORT_TICKET_STATUS_LABELS = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In Progress',
+  AWAITING_STUDENT: 'Awaiting Student',
+  RESOLVED: 'Resolved',
+} as const;
+
+/** The 2 tabs of the portal's Help & Support section (FAQ vs. tickets). */
+export const SUPPORT_TABS = [
+  { label: 'FAQs', href: '/portal/support' },
+  { label: 'My tickets', href: '/portal/support/tickets' },
+] as const;
+
 /** PRD §4.3 — initial focus destinations, expandable via the admin dashboard. */
 export const INITIAL_DESTINATIONS = [
   { name: 'Poland', isoCode: 'PL' },
@@ -283,6 +306,7 @@ export const ADMIN_NAV = [
   { label: 'Invoices', href: '/admin/invoices', icon: 'credit-card', feature: 'payments', group: 'Operations' },
   { label: 'Webinars', href: '/admin/webinars', icon: 'video', group: 'Operations' },
   { label: 'CRM', href: '/admin/enquiries', icon: 'inbox', group: 'Operations' },
+  { label: 'Support Tickets', href: '/admin/support', icon: 'message-circle', group: 'Operations' },
   { label: 'Content', href: '/admin/content', icon: 'edit', group: 'Content' },
   { label: 'Countries', href: '/admin/countries', icon: 'globe', group: 'Content' },
   { label: 'Partners', href: '/admin/partners', icon: 'briefcase', feature: 'partnerDirectory', group: 'Content' },

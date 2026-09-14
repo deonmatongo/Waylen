@@ -135,8 +135,13 @@ portalRouter.get('/resources/:slug', asyncHandler(resourceController.show));
 // ── Services hub — Career Guidance + Insurance + catalogue (nav grouping) ──
 portalRouter.get('/services', asyncHandler(serviceController.index));
 
-// ── Help & Support — FAQs + message the team (nav grouping) ────────────────
+// ── Help & Support — FAQs + ticket system (nav grouping) ────────────────────
 portalRouter.get('/support', asyncHandler(supportController.index));
+portalRouter.get('/support/tickets', asyncHandler(supportController.tickets));
+portalRouter.get('/support/tickets/new', asyncHandler(supportController.newTicket));
+portalRouter.post('/support/tickets', asyncHandler(supportController.createTicket));
+portalRouter.get('/support/tickets/:ticketId', asyncHandler(supportController.showTicket));
+portalRouter.post('/support/tickets/:ticketId/reply', asyncHandler(supportController.replyTicket));
 
 // ── Refer a friend ──────────────────────────────────────────────────────────
 portalRouter.get('/refer', asyncHandler(referralController.show));
