@@ -11,6 +11,7 @@ import { uploadRateLimiter } from '../../middleware/rateLimit.js';
 import { singleDocument } from '../../middleware/upload.js';
 import { audit } from '../../middleware/audit.js';
 import { requireFeature } from '../../middleware/feature.js';
+import { attachPortalBadges } from '../../middleware/portalBadges.js';
 
 import * as dashboardController from '../../controllers/portal/dashboard.controller.js';
 import * as applicationController from '../../controllers/portal/application.controller.js';
@@ -25,10 +26,16 @@ import * as messageController from '../../controllers/portal/message.controller.
 import * as notificationController from '../../controllers/portal/notification.controller.js';
 import * as resourceController from '../../controllers/portal/resource.controller.js';
 import * as profileController from '../../controllers/portal/profile.controller.js';
+import * as settingsController from '../../controllers/portal/settings.controller.js';
+import * as serviceController from '../../controllers/portal/service.controller.js';
+import * as supportController from '../../controllers/portal/support.controller.js';
+import * as referralController from '../../controllers/portal/referral.controller.js';
+import * as contractController from '../../controllers/portal/contract.controller.js';
 
 export const portalRouter = Router();
 
 portalRouter.use(requireAuth, requireStudent);
+portalRouter.use(asyncHandler(attachPortalBadges));
 
 // ── Dashboard (PRD §5.2) ───────────────────────────────────────────────────
 portalRouter.get('/', asyncHandler(dashboardController.index));
@@ -39,6 +46,7 @@ portalRouter.get('/applications/:id', asyncHandler(applicationController.show));
 
 // ── Document Centre (PRD §5.2) ─────────────────────────────────────────────
 portalRouter.get('/documents', asyncHandler(documentController.index));
+portalRouter.get('/documents/checklist', asyncHandler(documentController.checklist));
 portalRouter.post(
   '/documents',
   uploadRateLimiter,
@@ -61,6 +69,14 @@ portalRouter.get(
   '/downloads/:id',
   audit({ action: 'DOWNLOAD', entity: 'Document', entityId: (req) => req.params.id }),
   asyncHandler(downloadController.download),
+);
+
+// ── Contracts & Agreements (client navigation feedback) ─────────────────────
+portalRouter.get('/contracts', asyncHandler(contractController.index));
+portalRouter.get(
+  '/contracts/:id',
+  audit({ action: 'VIEW', entity: 'Contract', entityId: (req) => req.params.id }),
+  asyncHandler(contractController.download),
 );
 
 // ── Invoices & Payments (PRD §5.2) ─────────────────────────────────────────
@@ -116,7 +132,19 @@ portalRouter.post('/notifications/read-all', asyncHandler(notificationController
 portalRouter.get('/resources', asyncHandler(resourceController.index));
 portalRouter.get('/resources/:slug', asyncHandler(resourceController.show));
 
-// ── Profile & account ──────────────────────────────────────────────────────
+// ── Services hub — Career Guidance + Insurance + catalogue (nav grouping) ──
+portalRouter.get('/services', asyncHandler(serviceController.index));
+
+// ── Help & Support — FAQs + message the team (nav grouping) ────────────────
+portalRouter.get('/support', asyncHandler(supportController.index));
+
+// ── Refer a friend ──────────────────────────────────────────────────────────
+portalRouter.get('/refer', asyncHandler(referralController.show));
+
+// ── Profile ──────────────────────────────────────────────────────────────────
 portalRouter.get('/profile', asyncHandler(profileController.show));
 portalRouter.post('/profile', asyncHandler(profileController.update));
-portalRouter.post('/profile/password', asyncHandler(profileController.changePassword));
+
+// ── Settings — password + account info (split out of Profile) ──────────────
+portalRouter.get('/settings', asyncHandler(settingsController.show));
+portalRouter.post('/settings/password', asyncHandler(profileController.changePassword));

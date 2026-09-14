@@ -7,8 +7,11 @@
   </div>
   <ul class="app-sidebar__list">
     <% portalNav.forEach(function (item) { %>
+      <% var isCurrent = currentPath === item.href
+           || (item.href !== '/portal' && currentPath.startsWith(item.href))
+           || ('match' in item && item.match.some(function (prefix) { return currentPath.startsWith(prefix); })); %>
       <li>
-        <a class="app-sidebar__link<%= currentPath === item.href || (item.href !== '/portal' && currentPath.startsWith(item.href)) ? ' is-current' : '' %>"
+        <a class="app-sidebar__link<%= isCurrent ? ' is-current' : '' %>"
            href="<%= item.href %>"
            <%= currentPath === item.href ? 'aria-current="page"' : '' %>>
           <span class="app-sidebar__icon icon icon--<%= item.icon %>" aria-hidden="true"></span>
@@ -18,11 +21,9 @@
     <% }) %>
   </ul>
 
+  <%# Profile, Refer a friend, Settings and Sign out live in the avatar %>
+  <%# dropdown in the topbar now — see portal-topbar.ejs. %>
   <div class="app-sidebar__footer">
-    <a class="app-sidebar__link" href="/portal/profile">
-      <span class="app-sidebar__icon icon icon--user" aria-hidden="true"></span>
-      <span class="app-sidebar__label">My profile</span>
-    </a>
     <a class="app-sidebar__link" href="/">
       <span class="app-sidebar__icon icon icon--external" aria-hidden="true"></span>
       <span class="app-sidebar__label">Main website</span>

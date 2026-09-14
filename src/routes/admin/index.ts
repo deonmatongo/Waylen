@@ -17,6 +17,7 @@ import * as overviewController from '../../controllers/admin/overview.controller
 import * as studentController from '../../controllers/admin/student.controller.js';
 import * as applicationController from '../../controllers/admin/application.controller.js';
 import * as documentController from '../../controllers/admin/document.controller.js';
+import * as contractController from '../../controllers/admin/contract.controller.js';
 import * as appointmentController from '../../controllers/admin/appointment.controller.js';
 import * as invoiceController from '../../controllers/admin/invoice.controller.js';
 import * as webinarController from '../../controllers/admin/webinar.controller.js';
@@ -63,6 +64,24 @@ adminRouter.post(
   // onto a student's file at any stage, and the student is notified.
   asyncHandler(studentController.issueDocument),
 );
+
+// ── Contracts & Agreements (client navigation feedback) ─────────────────────
+adminRouter.post(
+  '/students/:id/contracts',
+  singleDocument,
+  audit({
+    action: 'CREATE',
+    entity: 'Contract',
+    studentProfileId: (req) => req.params.id,
+  }),
+  asyncHandler(contractController.issue),
+);
+adminRouter.get(
+  '/contracts/:id/view',
+  audit({ action: 'VIEW', entity: 'Contract', entityId: (req) => req.params.id }),
+  asyncHandler(contractController.view),
+);
+adminRouter.post('/contracts/:id/status', asyncHandler(contractController.updateStatus));
 
 // ── Application management (PRD §5.4) ──────────────────────────────────────
 adminRouter.get('/applications', asyncHandler(applicationController.index));

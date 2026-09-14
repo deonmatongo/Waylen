@@ -5,7 +5,7 @@
  * navigation shape — views and services read from here rather than repeating
  * literals.
  */
-import type { ApplicationStage, DocumentType, UserRole } from '@prisma/client';
+import type { ApplicationStage, DocumentType, DocumentStatus, ContractStatus, UserRole } from '@prisma/client';
 
 /** PRD §5.3 — the progress tracker, in order. */
 export const APPLICATION_STAGE_ORDER: ApplicationStage[] = [
@@ -26,6 +26,46 @@ export const APPLICATION_STAGE_LABELS: Record<ApplicationStage, string> = {
   OFFER_RECEIVED: 'Offer Received',
   VISA_PROCESSING: 'Visa Processing',
   ENROLLED: 'Enrolled',
+};
+
+/**
+ * Same stages, worded for the student-facing journey tracker (client
+ * navigation feedback) rather than staff operations — e.g. "Under Review"
+ * (a staff queue state) reads to a student as "Programme Shortlist" (what's
+ * actually happening on their behalf). Used only where the tracker renders
+ * for a student; admin keeps `APPLICATION_STAGE_LABELS` throughout,
+ * including its own copy of the same tracker, so a stage filter and its
+ * tracker never disagree on a staff page.
+ */
+export const APPLICATION_JOURNEY_LABELS: Record<ApplicationStage, string> = {
+  PROFILE_CREATED: 'Profile',
+  DOCUMENTS_SUBMITTED: 'Documents',
+  UNDER_REVIEW: 'Programme Shortlist',
+  APPLICATION_SUBMITTED: 'Application',
+  OFFER_RECEIVED: 'Offer',
+  VISA_PROCESSING: 'Visa',
+  ENROLLED: 'Enrolment',
+};
+
+/**
+ * A coarser 5-step path for the compact per-card indicator on My
+ * Applications (client feedback) — the full 7-stage journey is more detail
+ * than a card needs; the tracker on the application's own detail page still
+ * shows every stage. "Programme Shortlist"/"Under Review" folds into
+ * Preparing here: that review happens before Waylen submits to the
+ * institution (see APPLICATION_STAGE_ORDER), not after, so it isn't a
+ * distinct "in review at the university" step the way it might first read.
+ */
+export const APPLICATION_CARD_PATH = ['Preparing', 'Submitted', 'Offer', 'Visa', 'Enrolled'] as const;
+
+export const APPLICATION_CARD_STEP: Record<ApplicationStage, number> = {
+  PROFILE_CREATED: 0,
+  DOCUMENTS_SUBMITTED: 0,
+  UNDER_REVIEW: 0,
+  APPLICATION_SUBMITTED: 1,
+  OFFER_RECEIVED: 2,
+  VISA_PROCESSING: 3,
+  ENROLLED: 4,
 };
 
 export function stageIndex(stage: ApplicationStage): number {
@@ -107,6 +147,33 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   LOAN_APPROVAL_LETTER: 'Loan Approval Letter',
 };
 
+/**
+ * Student-facing wording for DocumentStatus (client navigation feedback) —
+ * "NEEDS_CORRECTION" reads to a student as "Revision Required"; the rest are
+ * used as-is elsewhere via `format.humaniseEnum`, but spelling them out here
+ * keeps the four Documents-area views consistent with each other.
+ */
+export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
+  UNDER_REVIEW: 'Under Review',
+  APPROVED: 'Approved',
+  NEEDS_CORRECTION: 'Revision Required',
+  EXPIRED: 'Expired',
+};
+
+export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
+  AWAITING_SIGNATURE: 'Awaiting Signature',
+  SIGNED: 'Signed',
+  ACTIVE: 'Active',
+};
+
+/** The 4 tabs of the portal's one Documents section (client navigation feedback). */
+export const DOCUMENTS_TABS = [
+  { label: 'My uploads', href: '/portal/documents' },
+  { label: 'Required documents', href: '/portal/documents/checklist' },
+  { label: 'Waylen documents', href: '/portal/downloads' },
+  { label: 'Contracts & agreements', href: '/portal/contracts' },
+] as const;
+
 /** Accepted upload MIME types — deliberately narrow. */
 export const ALLOWED_UPLOAD_MIME_TYPES = [
   'application/pdf',
@@ -178,19 +245,32 @@ export const PUBLIC_NAV = [
   },
 ];
 
-/** PRD §5.2 — portal navigation. */
+/**
+ * Portal navigation (PRD §5.2), grouped into 8 sections per the client's
+ * navigation feedback rather than one entry per feature. `match` lists extra
+ * path prefixes folded into a section (e.g. Career Guidance and Insurance
+ * both live under Services now) so the right sidebar item still highlights
+ * when a student is on one of those pages.
+ */
 export const PORTAL_NAV = [
   { label: 'Dashboard', href: '/portal', icon: 'grid' },
   { label: 'My Applications', href: '/portal/applications', icon: 'file-text' },
-  { label: 'Document Centre', href: '/portal/documents', icon: 'upload' },
-  { label: 'Downloads', href: '/portal/downloads', icon: 'download' },
-  { label: 'Invoices & Payments', href: '/portal/invoices', icon: 'credit-card', feature: 'payments' },
+  {
+    label: 'Documents',
+    href: '/portal/documents',
+    icon: 'upload',
+    match: ['/portal/documents/checklist', '/portal/downloads', '/portal/contracts'],
+  },
   { label: 'Appointments', href: '/portal/appointments', icon: 'calendar' },
-  { label: 'Career Guidance', href: '/portal/career-guidance', icon: 'compass' },
-  { label: 'Insurance', href: '/portal/insurance', icon: 'shield', feature: 'insurance' },
-  { label: 'Webinars', href: '/portal/webinars', icon: 'video' },
-  { label: 'Messages', href: '/portal/messages', icon: 'message-circle' },
-  { label: 'Resource Library', href: '/portal/resources', icon: 'book-open' },
+  {
+    label: 'Services',
+    href: '/portal/services',
+    icon: 'compass',
+    match: ['/portal/career-guidance', '/portal/insurance'],
+  },
+  { label: 'Invoices & Payments', href: '/portal/invoices', icon: 'credit-card', feature: 'payments' },
+  { label: 'Resources', href: '/portal/resources', icon: 'book-open', match: ['/portal/webinars'] },
+  { label: 'Help & Support', href: '/portal/support', icon: 'message-circle' },
 ] as const;
 
 /** PRD §5.4 — back-office navigation. */
