@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { requireJwt, requireJwtStudent } from '../../middleware/apiAuth.js';
 import { findStudentByUserId } from '../../models/student.model.js';
+import { countUnreadForStudent } from '../../models/message.model.js';
 import { applicationService } from '../../services/application.service.js';
 import { documentService } from '../../services/document.service.js';
 import { appointmentService } from '../../services/appointment.service.js';
@@ -42,14 +43,7 @@ portalApiRouter.get(
           orderBy: { startsAt: 'asc' },
           take: 3,
         }),
-        prisma.message.count({
-          where: {
-            thread: { studentProfileId: student.id },
-            readAt: null,
-            isInternal: false,
-            senderId: { not: req.currentUser!.id },
-          },
-        }),
+        countUnreadForStudent(student.id, req.currentUser!.id),
       ]);
 
     const primaryApplication = applications[0] ?? null;

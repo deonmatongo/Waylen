@@ -10,6 +10,13 @@
   </button>
 
   <div class="app-topbar__actions">
+    <a class="app-topbar__icon-link" href="/portal/messages" aria-label="Messages">
+      <span class="app-topbar__icon icon icon--message-circle" aria-hidden="true"></span>
+      <% if (typeof unreadMessageCount !== 'undefined' && unreadMessageCount > 0) { %>
+        <span class="app-topbar__badge"><%= unreadMessageCount > 9 ? '9+' : unreadMessageCount %></span>
+      <% } %>
+    </a>
+
     <a class="app-topbar__icon-link" href="/portal/notifications" aria-label="Notifications">
       <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -17,14 +24,21 @@
       </svg>
     </a>
 
-    <div class="app-topbar__user">
-      <span class="avatar" aria-hidden="true"><%= format.initials(currentUser.fullName) %></span>
-      <span class="app-topbar__name"><%= currentUser.fullName %></span>
-    </div>
+    <div class="app-topbar__user" id="app-topbar-user">
+      <button class="app-topbar__user-trigger" type="button" data-user-menu-trigger aria-haspopup="true" aria-expanded="false" aria-controls="app-topbar-user-menu">
+        <span class="avatar" aria-hidden="true"><%= format.initials(currentUser.fullName) %></span>
+        <span class="app-topbar__name"><%= currentUser.fullName %></span>
+      </button>
 
-    <form method="post" action="/logout" class="app-topbar__logout">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button class="button button--ghost button--small" type="submit">Sign out</button>
-    </form>
+      <div class="app-topbar__user-menu" id="app-topbar-user-menu" role="menu">
+        <a class="app-topbar__user-menu-link" href="/portal/profile" role="menuitem">Profile</a>
+        <a class="app-topbar__user-menu-link" href="/portal/refer" role="menuitem">Refer a friend</a>
+        <a class="app-topbar__user-menu-link" href="/portal/settings" role="menuitem">Settings</a>
+        <form method="post" action="/logout" role="none">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="app-topbar__user-menu-link" type="submit" role="menuitem">Sign out</button>
+        </form>
+      </div>
+    </div>
   </div>
 </header>

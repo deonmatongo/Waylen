@@ -76,5 +76,5 @@ export async function changePassword(req: Request, res: Response): Promise<void>
   );
 
   req.flash('success', 'Your password has been changed.');
-  res.redirect('/portal/profile');
+  res.redirect('/portal/settings');
 }

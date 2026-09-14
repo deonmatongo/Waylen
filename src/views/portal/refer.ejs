@@ -1,0 +1,19 @@
+<div class="dash-grid">
+  <section class="panel">
+    <h2 class="panel__title">Share your link</h2>
+    <p class="panel__note">
+      Send this link to a friend considering studying abroad. When they sign up, we'll know they came from you.
+    </p>
+
+    <div class="field field--inline">
+      <input class="field__input" type="text" value="<%= referralLink %>" readonly data-referral-link
+             aria-label="Your referral link">
+      <button class="button button--primary" type="button" data-copy-referral>Copy link</button>
+    </div>
+  </section>
+
+  <%- include('../partials/coming-soon', {
+        title: 'Referral rewards',
+        detail: 'Tracking who you\'ve referred and any rewards will appear here.'
+      }) %>
+</div>
