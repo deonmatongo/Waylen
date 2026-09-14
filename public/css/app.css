@@ -12,71 +12,6 @@
    required (this file is served as-is; `npm run build:css` only minifies it).
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Fonts — Plus Jakarta Sans (body/accent) & Lora (headings) ────────────
-   Both files are variable fonts; one file per subset serves every weight
-   declared below (the browser instances the requested weight from it). ── */
-
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/fonts/jakarta-latin.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/fonts/jakarta-latin-ext.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Lora';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/lora-latin.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Lora';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/lora-latin-ext.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
-/* Montserrat — hero eyebrow and title only (client request), not a global token. */
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 700 800;
-  font-display: swap;
-  src: url('/fonts/montserrat-latin.woff2') format('woff2');
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 700 800;
-  font-display: swap;
-  src: url('/fonts/montserrat-latin-ext.woff2') format('woff2');
-  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 
 :root {
@@ -138,16 +73,12 @@
   --accent: var(--blue-600);
   --accent-hover: var(--blue-700);
 
-  /* Plus Jakarta Sans for body copy, UI and small uppercase accent labels
-     (eyebrows, kickers, badges); Lora for headings. Falls back to the prior
-     system-font stack. */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-    ui-sans-serif, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-display: 'Lora', Georgia, 'Times New Roman', ui-serif, serif;
-  --font-accent: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, ui-sans-serif,
-    'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-hero: 'Montserrat', -apple-system, BlinkMacSystemFont, ui-sans-serif, 'Helvetica Neue',
-    Helvetica, Arial, sans-serif;
+  /* Verdana throughout the site (client request) — a system font, so no
+     @font-face is needed; Geneva/sans-serif cover platforms without it. */
+  --font-sans: Verdana, Geneva, sans-serif;
+  --font-display: Verdana, Geneva, sans-serif;
+  --font-accent: Verdana, Geneva, sans-serif;
+  --font-hero: Verdana, Geneva, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, 'Menlo', 'Consolas', monospace;
 
   --text-xs: 0.75rem;
