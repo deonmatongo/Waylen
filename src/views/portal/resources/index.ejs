@@ -1,4 +1,11 @@
 <%# PRD §5.2 — country packs, visa checklists, recorded webinars, templates. %>
+<%- include('../../partials/portal-subnav', {
+      tabs: [
+        { label: 'Resource library', href: '/portal/resources' },
+        { label: 'Webinars', href: '/portal/webinars' },
+      ],
+    }) %>
+
 <% if (portalOnly.length) { %>
   <section class="panel">
     <h2 class="panel__title">For registered students</h2>
