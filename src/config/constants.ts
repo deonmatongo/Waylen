@@ -234,38 +234,10 @@ export const INITIAL_DESTINATIONS = [
 /** PRD §A.1 — public navigation. */
 export const PUBLIC_NAV = [
   { label: 'Home', href: '/' },
-  {
-    label: 'Services',
-    href: '/services',
-    children: [
-      { label: 'University Applications', href: '/services/university-applications', description: 'Programme selection, documents & submission' },
-      { label: 'Career Guidance', href: '/services/career-guidance', description: 'Assessments, coaching and long-term career planning' },
-      { label: 'Consultation Booking', href: '/book-consultation', description: 'Free 45-minute session with an advisor', highlight: true },
-      { label: 'Document Review', href: '/services/document-review', description: 'Every document verified before it is submitted' },
-      { label: 'Student Insurance', href: '/services/student-insurance', description: 'Health and travel cover through vetted providers' },
-      { label: 'Wealth & Business', href: '/services/wealth-and-business', description: 'Credit, mortgages and company formation abroad' },
-    ],
-  },
+  { label: 'Services', href: '/services' },
   { label: 'Opportunities', href: '/opportunities' },
-  { label: 'Countries', href: '/countries' },
-  {
-    label: 'Resources',
-    href: '/learning-hub',
-    children: [
-      { label: 'Learning Hub', href: '/learning-hub', description: 'Guides, articles and visa checklists' },
-      { label: 'Webinars', href: '/webinars', description: 'Live and recorded sessions with our advisors' },
-    ],
-  },
-  {
-    label: 'Company',
-    href: '/about',
-    children: [
-      { label: 'About Us', href: '/about', description: 'Our mission and the team behind Waylen' },
-      { label: 'For Institutions', href: '/for-institutions', description: 'Partner with us to reach qualified students' },
-      { label: 'For Partners', href: '/for-partners', description: 'Join our referral and co-advisory network' },
-      { label: 'Contact', href: '/contact', description: 'Get in touch with our team directly' },
-    ],
-  },
+  { label: 'Resources', href: '/learning-hub' },
+  { label: 'Company', href: '/about' },
 ];
 
 /**

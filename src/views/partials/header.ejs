@@ -1,4 +1,4 @@
-<%# Public site header — dropdown nav for items with children. %>
+<%# Public site header. %>
 <header class="site-header" data-nav>
   <div class="site-header__inner">
     <a class="site-header__brand" href="/" aria-label="<%= appName %> home">
@@ -14,39 +14,11 @@
       <ul class="site-nav__list">
         <% publicNav.forEach(function (item) {
           const isCurrent = currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href));
-          const hasChildren = item.children && item.children.length;
         %>
-          <li class="site-nav__item<%= hasChildren ? ' site-nav__item--has-dropdown' : '' %>">
-            <% if (hasChildren) { %>
-              <button class="site-nav__link site-nav__link--trigger<%= isCurrent ? ' is-current' : '' %>"
-                      aria-expanded="false" aria-haspopup="true" type="button">
-                <%= item.label %>
-                <svg class="site-nav__chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true" width="10" height="6">
-                  <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-
-              <div class="site-nav__dropdown" role="region">
-                <ul class="site-nav__dropdown-list">
-                  <% item.children.forEach(function (child) { %>
-                    <li>
-                      <a class="site-nav__dropdown-link<%= child.highlight ? ' site-nav__dropdown-link--highlight' : '' %>"
-                         href="<%= child.href %>"
-                         <%= currentPath === child.href ? 'aria-current="page"' : '' %>>
-                        <span class="site-nav__dropdown-label"><%= child.label %></span>
-                        <% if (child.description) { %>
-                          <span class="site-nav__dropdown-desc"><%= child.description %></span>
-                        <% } %>
-                      </a>
-                    </li>
-                  <% }) %>
-                </ul>
-              </div>
-            <% } else { %>
-              <a class="site-nav__link<%= isCurrent ? ' is-current' : '' %>"
-                 href="<%= item.href %>"
-                 <%= currentPath === item.href ? 'aria-current="page"' : '' %>><%= item.label %></a>
-            <% } %>
+          <li class="site-nav__item">
+            <a class="site-nav__link<%= isCurrent ? ' is-current' : '' %>"
+               href="<%= item.href %>"
+               <%= currentPath === item.href ? 'aria-current="page"' : '' %>><%= item.label %></a>
           </li>
         <% }) %>
       </ul>
