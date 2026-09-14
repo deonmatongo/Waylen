@@ -1,7 +1,3 @@
-<%- include('../../partials/scaffold-notice', {
-      phase: 'Phase 2 — online payment',
-      detail: 'Invoices, manual payments and proof-of-payment uploads are live. Card, Apple Pay, Google Pay and regional processor checkout is Phase 2.'
-    }) %>
 <% if (!invoices.length) { %>
   <%- include('../../partials/empty-state', { heading: 'No invoices yet', message: 'Invoices for consultations, application fees and services will appear here.' }) %>
 <% } else { %>

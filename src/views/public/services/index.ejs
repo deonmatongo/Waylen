@@ -15,10 +15,12 @@
       <% services.forEach(function (service) { %>
         <li class="card card--service">
           <div class="card__content">
-            <span class="card__icon icon icon--<%= service.icon %>" aria-hidden="true"></span>
+            <span class="card__icon-badge">
+              <span class="icon icon--<%= service.icon %>" aria-hidden="true"></span>
+            </span>
             <h2 class="card__title"><%= service.name %></h2>
             <p class="card__body"><%= service.summary %></p>
-            <a class="card__link" href="/services/<%= service.slug %>">Learn more</a>
+            <a class="card__cta" href="/services/<%= service.slug %>">Learn more</a>
           </div>
         </li>
       <% }) %>

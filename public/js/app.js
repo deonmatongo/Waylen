@@ -79,6 +79,57 @@
   }
 
   /**
+   * Portal topbar avatar dropdown — same trigger/outside-click/Escape idiom
+   * as `initPublicNav`'s dropdowns, applied to the account menu.
+   */
+  function initPortalUserMenu() {
+    var trigger = document.querySelector('[data-user-menu-trigger]');
+    var wrapper = document.getElementById('app-topbar-user');
+    if (!trigger || !wrapper) return;
+
+    function close() {
+      wrapper.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    trigger.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var isOpen = wrapper.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!wrapper.contains(event.target)) close();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && wrapper.classList.contains('is-open')) {
+        close();
+        trigger.focus();
+      }
+    });
+  }
+
+  /** Copy-to-clipboard button on the portal's "Refer a friend" page. */
+  function initReferralCopy() {
+    var button = document.querySelector('[data-copy-referral]');
+    var input = document.querySelector('[data-referral-link]');
+    if (!button || !input) return;
+
+    button.addEventListener('click', function () {
+      var restoreText = button.textContent;
+      navigator.clipboard.writeText(input.value).then(function () {
+        button.textContent = 'Copied!';
+        window.setTimeout(function () {
+          button.textContent = restoreText;
+        }, 1800);
+      }).catch(function () {
+        input.select();
+      });
+    });
+  }
+
+  /**
    * Guards against double submission — a second click on "Upload" or "Record
    * payment" would otherwise create a duplicate record.
    */
@@ -571,6 +622,8 @@
   function init() {
     initPublicNav();
     initAppSidebar();
+    initPortalUserMenu();
+    initReferralCopy();
     initCustomSelects();
     initSubmitGuards();
     initUploadHints();
