@@ -4182,7 +4182,7 @@ hr.rule {
 
 .cp-hero {
   position: relative;
-  background-color: var(--corp-navy);
+  background-color: var(--corp-navy-mid);
   background-image: url('/img/hero-bg.svg');
   background-size: cover;
   background-position: center top;
@@ -6093,7 +6093,7 @@ html[data-motion-ready] .reveal.is-visible {
   /* Slightly darker at the very top than mid-scroll — that's where the
      headline sits on every viewport, including the tall single-column
      mobile layout, so it needs the most protected contrast. */
-  background: linear-gradient(180deg, rgba(13, 31, 76, 0.44), rgba(13, 31, 76, 0.68) 55%, var(--corp-navy) 95%);
+  background: linear-gradient(180deg, rgba(31, 52, 116, 0.4), rgba(31, 52, 116, 0.6) 55%, var(--corp-navy-mid) 95%);
   z-index: 1;
 }
 
