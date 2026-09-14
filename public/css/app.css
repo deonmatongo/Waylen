@@ -3372,14 +3372,20 @@ hr.rule {
 @media (min-width: 768px) {
   .app__shell {
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    height: calc(100vh - var(--topbar-height));
   }
 
+  /* Sidebar and main content each scroll on their own — a long nav list */
+  /* or a long page no longer drag the other one along with it. */
   .app-sidebar {
     display: block;
-    min-height: calc(100vh - var(--topbar-height));
+    height: 100%;
+    overflow-y: auto;
   }
 
   .app__main {
+    height: 100%;
+    overflow-y: auto;
     padding: var(--sp-6) var(--sp-6) var(--sp-9);
   }
 }
@@ -5708,42 +5714,44 @@ hr.rule {
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+/* Light sidebar theme is admin-only; the portal sidebar keeps the base */
+/* dark-navy treatment defined earlier (blue background, light text). */
 
-.app .app-sidebar {
+.app--admin .app-sidebar {
   background-color: var(--app-bg);
   border-right: 1px solid var(--app-border);
 }
 
-.app .app-sidebar__brand {
+.app--admin .app-sidebar__brand {
   border-bottom: 1px solid var(--app-border);
 }
 
-.app .app-sidebar__brand-name {
+.app--admin .app-sidebar__brand-name {
   color: var(--app-ink);
 }
 
-.app .app-sidebar__brand-tag {
+.app--admin .app-sidebar__brand-tag {
   color: var(--app-accent-ink);
 }
 
-.app .app-sidebar__group-label {
+.app--admin .app-sidebar__group-label {
   color: var(--app-ink-muted);
   opacity: 1;
 }
 
-.app .app-sidebar__link {
+.app--admin .app-sidebar__link {
   color: var(--app-ink-muted);
   border-left: none;
   border-radius: var(--radius-sm);
   margin: 0 2px;
 }
 
-.app .app-sidebar__link:hover {
+.app--admin .app-sidebar__link:hover {
   background-color: var(--app-bg-hover);
   color: var(--app-ink);
 }
 
-.app .app-sidebar__link.is-current {
+.app--admin .app-sidebar__link.is-current {
   background-color: var(--app-accent-bg);
   color: var(--app-accent-ink);
   border-left: none;
@@ -5751,7 +5759,7 @@ hr.rule {
   font-weight: 600;
 }
 
-.app .app-sidebar__footer {
+.app--admin .app-sidebar__footer {
   border-top: 1px solid var(--app-border);
 }
 
