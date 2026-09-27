@@ -2,11 +2,27 @@
  * Rate limits. Auth and upload endpoints are held to tighter budgets than
  * ordinary page views.
  *
- * NOTE: the default store is per-process. Before running more than one
- * instance, swap in a shared store (Redis) so limits are enforced globally.
+ * KNOWN GAP: the store is per-process (express-rate-limit's in-memory
+ * default). On Vercel, each concurrent instance/container counts
+ * independently, so a configured "10 attempts per 15 minutes" is actually
+ * "10 per instance per 15 minutes" — the effective ceiling scales with
+ * however many instances are warm, not a hard global limit. This is a known,
+ * accepted gap, not an oversight: closing it needs a shared store (e.g.
+ * Upstash Redis, since Vercel functions can't hold a pooled TCP connection
+ * to a traditional Redis) via `rate-limit-redis` or similar, which requires
+ * provisioning that service first. Revisit before this app is a real target
+ * for credential-stuffing or scraping at meaningful traffic.
  */
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+
+if (env.isProduction) {
+  logger.warn(
+    'Rate limiting is using the in-memory per-process store in production — ' +
+      'limits are enforced per instance, not globally. See src/middleware/rateLimit.ts.',
+  );
+}
 
 const skipInTest = () => env.isTest;
 

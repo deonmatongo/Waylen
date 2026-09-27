@@ -1,11 +1,11 @@
 /**
  * Sessions, signed into a single cookie rather than kept server-side.
  *
- * This app's database is SQLite with no shared, persistent store available
- * across instances (the same reason migrations/seed re-run on every cold
- * start) — a server-side session store (in-memory or SQLite-backed) would
- * only be visible to whichever single instance wrote it, so a request
- * landed on a different instance would look logged out.
+ * The database (Supabase Postgres) is shared and persistent, so a
+ * server-side session store is possible now, unlike the old SQLite-on-
+ * ephemeral-disk setup this replaced — a signed cookie is still used
+ * deliberately, though: it needs no DB round-trip per request and carries
+ * no session-store cleanup/expiry job of its own.
  *
  * This started out on the `cookie-session` package, which signs via a
  * second `<name>.sig` cookie (the `cookies`/Keygrip convention). On Vercel
