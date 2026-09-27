@@ -6,6 +6,8 @@
  */
 import type { Request, Response } from 'express';
 import { listPublishedOpportunities, findOpportunityBySlug, countOpportunitiesByCategory, listPublishedCountries } from '../../models/content.model.js';
+import { enquiryService } from '../../services/enquiry.service.js';
+import { opportunityEnquirySchema } from '../../validators/opportunity.validator.js';
 import { OPPORTUNITY_CATEGORY_LABELS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
 
@@ -50,8 +52,25 @@ export async function show(req: Request, res: Response): Promise<void> {
 }
 
 export async function enquire(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): persist via enquiryService so the enquiry lands in the CRM
-  // (PRD §5.4) and triggers staff notification.
+  const slug = req.params.slug as string;
+  const opportunity = await findOpportunityBySlug(slug);
+  if (!opportunity) throw new NotFoundError('That opportunity is no longer listed.');
+
+  const parsed = opportunityEnquirySchema.safeParse(req.body);
+  if (!parsed.success) {
+    req.flash('error', 'Please enter your name and a valid email address.');
+    res.redirect(`/opportunities/${slug}`);
+    return;
+  }
+
+  await enquiryService.create({
+    fullName: parsed.data.fullName,
+    email: parsed.data.email,
+    message: parsed.data.message,
+    source: 'opportunity',
+    opportunityId: opportunity.id,
+  });
+
   req.flash('success', 'Thank you — a counsellor will be in touch shortly.');
-  res.redirect(`/opportunities/${req.params.slug}`);
+  res.redirect(`/opportunities/${slug}`);
 }

@@ -12,6 +12,7 @@ import { APPOINTMENT_DURATION_MINUTES, APPOINTMENT_TYPE_LABELS } from '../config
 import { appointmentReference } from '../utils/reference.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { notificationService } from './notification.service.js';
+import { mailService } from './mail.service.js';
 import { teamsService } from './teams.service.js';
 import { auditService } from './audit.service.js';
 import { getBusyBlocks, overlapsAnyBlock } from './availability.service.js';
@@ -200,9 +201,25 @@ export const appointmentService = {
           meetingUrl,
         },
       });
+    } else if (appointment.guestEmail) {
+      // Guests have no account and therefore no in-app notification target —
+      // email directly, same as the reminder job does for the same case.
+      try {
+        await mailService.send({
+          to: appointment.guestEmail,
+          subject: `${APPOINTMENT_TYPE_LABELS[appointment.type]} confirmed`,
+          template: 'appointment-confirmed',
+          data: {
+            fullName: appointment.guestName,
+            reference: appointment.reference,
+            startsAt: appointment.startsAt,
+            meetingUrl,
+          },
+        });
+      } catch (err) {
+        logger.error({ err, appointmentId }, 'Guest confirmation email failed');
+      }
     }
-    // TODO(phase-1): email guest bookings directly, since they have no account
-    // and therefore no in-app notification target.
 
     return updated;
   },

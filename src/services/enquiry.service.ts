@@ -5,6 +5,7 @@
 import type { EnquiryStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
+import { notificationService } from './notification.service.js';
 import { NotFoundError } from '../utils/errors.js';
 
 export interface CreateEnquiryInput {
@@ -34,7 +35,25 @@ export const enquiryService = {
 
     logger.info({ enquiryId: enquiry.id, source: enquiry.source }, 'Enquiry received');
 
-    // TODO(phase-1): notify the duty counsellor so no enquiry sits unseen.
+    // No duty-counsellor queue exists yet, so every admin/super-admin is
+    // notified — better an enquiry reaches more staff than none.
+    const staff = await prisma.user.findMany({
+      where: { role: { in: ['ADMIN_STAFF', 'SUPER_ADMIN'] }, status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    await Promise.allSettled(
+      staff.map((member) =>
+        notificationService.dispatch({
+          userId: member.id,
+          event: 'enquiry.received',
+          title: `New enquiry from ${enquiry.fullName}`,
+          body: enquiry.message ?? undefined,
+          actionUrl: `/admin/enquiries/${enquiry.id}`,
+        }),
+      ),
+    );
+
     return enquiry;
   },
 

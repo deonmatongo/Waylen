@@ -45,4 +45,11 @@ export const opportunitySchema = z.object({
   metaDescription: optionalText(z.string().trim().max(160)),
 });
 
+/** The public "Enquire about this programme" form. */
+export const opportunityEnquirySchema = z.object({
+  fullName: z.string().trim().min(2, 'Enter your full name').max(120),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address').max(254),
+  message: optionalText(z.string().trim().max(4000)),
+});
+
 export type OpportunityInput = z.infer<typeof opportunitySchema>;

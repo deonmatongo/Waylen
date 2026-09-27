@@ -43,9 +43,26 @@ export const supportService = {
         actionUrl: `/admin/support/${ticket.id}`,
       });
     } else {
-      // TODO(phase-1): route to a duty-staff queue once one exists — for now
-      // unassigned students' tickets only surface in the admin ticket list.
-      logger.info({ ticketId: ticket.id }, 'Support ticket created with no counsellor to notify');
+      // No duty-staff queue exists yet — notify every admin/super-admin
+      // rather than let an unassigned student's ticket sit unseen.
+      const staff = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN_STAFF', 'SUPER_ADMIN'] }, status: 'ACTIVE' },
+        select: { id: true },
+      });
+
+      await Promise.allSettled(
+        staff.map((member) =>
+          notificationService.dispatch({
+            userId: member.id,
+            event: 'support.ticket_created',
+            title: `New support ticket from ${student?.user.fullName ?? 'a student'}`,
+            body: input.subject,
+            actionUrl: `/admin/support/${ticket.id}`,
+          }),
+        ),
+      );
+
+      logger.info({ ticketId: ticket.id, notified: staff.length }, 'Unassigned support ticket routed to admin staff');
     }
 
     return ticket;

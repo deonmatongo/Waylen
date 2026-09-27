@@ -20,6 +20,7 @@ export type NotificationEvent =
   | 'appointment.cancelled'
   | 'webinar.registered'
   | 'webinar.reminder'
+  | 'enquiry.received'
   | 'document.approved'
   | 'document.needs_correction'
   | 'document.issued'
@@ -49,6 +50,7 @@ const CHANNELS_BY_EVENT: Record<NotificationEvent, NotificationChannel[]> = {
   'appointment.cancelled': ['EMAIL', 'IN_APP'],
   'webinar.registered': ['EMAIL', 'IN_APP'],
   'webinar.reminder': ['EMAIL'],
+  'enquiry.received': ['IN_APP', 'EMAIL'],
   'document.approved': ['EMAIL', 'IN_APP'],
   'document.needs_correction': ['EMAIL', 'IN_APP'],
   'document.issued': ['EMAIL', 'IN_APP'],
