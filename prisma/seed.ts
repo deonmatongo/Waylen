@@ -1100,21 +1100,22 @@ async function main() {
   await seedOpportunities(countries, partners);
   await seedContent();
   await seedWebinars();
-  await seedEnquiries();
   await seedSettings();
 
   if (isProduction) {
     console.log(`
-Done. Production mode: skipped the demo staff/student accounts — they share
-one hardcoded password that's in this file's git history, so they're never
-created outside development. Invite real staff from /admin/users.
+Done. Production mode: skipped the demo staff/student accounts and sample
+enquiries — the accounts share one hardcoded password that's in this file's
+git history, and the enquiries are placeholder @example.com contacts, so
+neither belongs outside development. Invite real staff from /admin/users.
 `);
     return;
   }
 
-  // Demo accounts — development only (see isProduction above).
+  // Demo accounts and sample CRM data — development only (see isProduction above).
   const staff = await seedStaff();
   await seedStudent(countries, staff, partners);
+  await seedEnquiries();
 
   console.log(`
 Done. Development sign-ins (password: ${DEV_PASSWORD})
