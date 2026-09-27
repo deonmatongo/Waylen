@@ -4,7 +4,8 @@
 import type { Request, Response } from 'express';
 import { listUpcomingWebinars, listPastWebinarsWithRecordings } from '../../models/webinar.model.js';
 import { findStudentByUserId } from '../../models/student.model.js';
-import { NotFoundError } from '../../utils/errors.js';
+import { webinarService } from '../../services/webinar.service.js';
+import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
@@ -24,8 +25,23 @@ export async function index(req: Request, res: Response): Promise<void> {
 }
 
 export async function register(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): register the student and send confirmation + reminder mail
-  // through webinarService.
-  req.flash('success', 'You are registered for that webinar.');
+  const student = await findStudentByUserId(req.currentUser!.id);
+  if (!student) throw new NotFoundError('We could not find your student profile.');
+
+  try {
+    await webinarService.registerStudent(req.params.id as string, {
+      studentProfileId: student.id,
+      userId: req.currentUser!.id,
+    });
+    req.flash('success', 'You are registered for that webinar.');
+  } catch (err) {
+    if (err instanceof ValidationError || err instanceof NotFoundError) {
+      req.flash('error', err.message);
+      res.redirect('/portal/webinars');
+      return;
+    }
+    throw err;
+  }
+
   res.redirect('/portal/webinars');
 }

@@ -3,7 +3,9 @@
  */
 import type { Request, Response } from 'express';
 import { listUpcomingWebinars, listPastWebinarsWithRecordings, findWebinarBySlug, remainingCapacity } from '../../models/webinar.model.js';
-import { NotFoundError } from '../../utils/errors.js';
+import { webinarService } from '../../services/webinar.service.js';
+import { webinarRegistrationSchema } from '../../validators/contact.validator.js';
+import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const [upcoming, recordings] = await Promise.all([
@@ -35,8 +37,26 @@ export async function show(req: Request, res: Response): Promise<void> {
 }
 
 export async function register(req: Request, res: Response): Promise<void> {
-  // TODO(phase-1): persist the registration and send the confirmation +
-  // reminder emails described in PRD §4.5 via webinarService.
-  req.flash('success', 'You are registered. A confirmation email is on its way.');
-  res.redirect(`/webinars/${req.params.slug}`);
+  const slug = req.params.slug as string;
+  const parsed = webinarRegistrationSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    req.flash('error', 'Please enter your name and a valid email address.');
+    res.redirect(`/webinars/${slug}`);
+    return;
+  }
+
+  try {
+    await webinarService.registerGuest(slug, parsed.data);
+    req.flash('success', 'You are registered. A confirmation email is on its way.');
+  } catch (err) {
+    if (err instanceof ValidationError || err instanceof NotFoundError) {
+      req.flash('error', err.message);
+      res.redirect(`/webinars/${slug}`);
+      return;
+    }
+    throw err;
+  }
+
+  res.redirect(`/webinars/${slug}`);
 }
