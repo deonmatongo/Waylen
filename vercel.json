@@ -10,8 +10,8 @@
     { "source": "/(.*)", "destination": "/api" }
   ],
   "crons": [
-    { "path": "/cron/appointment-reminders", "schedule": "0 * * * *" },
-    { "path": "/cron/webinar-reminders", "schedule": "0 * * * *" },
-    { "path": "/cron/overdue-invoices", "schedule": "0 */12 * * *" }
+    { "path": "/cron/appointment-reminders", "schedule": "0 6 * * *" },
+    { "path": "/cron/webinar-reminders", "schedule": "0 6 * * *" },
+    { "path": "/cron/overdue-invoices", "schedule": "0 18 * * *" }
   ]
 }
