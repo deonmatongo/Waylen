@@ -71,6 +71,12 @@ const schema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SENTRY_DSN: z.string().optional(),
 
+  // Authenticates Vercel Cron's calls to /cron/*. Vercel injects this as
+  // `Authorization: Bearer $CRON_SECRET` automatically once the env var is
+  // set on the project — required in production so those routes can't be
+  // triggered by anyone who finds the URL.
+  CRON_SECRET: z.string().min(32).optional(),
+
   FEATURE_PAYMENTS: bool.default('false'),
   FEATURE_INSURANCE: bool.default('false'),
   FEATURE_PARTNER_DIRECTORY: bool.default('false'),
@@ -78,7 +84,17 @@ const schema = z.object({
   FEATURE_AGENT_PORTAL: bool.default('false'),
 });
 
-const parsed = schema.safeParse(process.env);
+const refined = schema.superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && !data.CRON_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['CRON_SECRET'],
+      message: 'CRON_SECRET is required in production to authenticate /cron/* routes',
+    });
+  }
+});
+
+const parsed = refined.safeParse(process.env);
 
 if (!parsed.success) {
   const issues = parsed.error.issues
