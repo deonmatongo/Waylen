@@ -58,7 +58,7 @@ portalApiRouter.get(
         currentStage: student.currentStage,
         currentStageLabel: APPLICATION_STAGE_LABELS[student.currentStage],
         assignedCounsellor: student.assignedCounsellor
-          ? { name: (student.assignedCounsellor as any).fullName }
+          ? { name: student.assignedCounsellor.fullName }
           : null,
       },
       stats: {

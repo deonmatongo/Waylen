@@ -24,13 +24,13 @@ apiRouter.use((err: unknown, _req: Request, res: Response, _next: NextFunction) 
   const expected = isAppError && err.isOperational;
 
   if (expected) {
-    logger.warn({ err, status }, (err as AppError).message);
+    logger.warn({ err, status }, (err).message);
   } else {
     logger.error({ err }, 'Unhandled API error');
   }
 
   const message = expected
-    ? (err as AppError).message
+    ? (err).message
     : 'Something went wrong on our side. Please try again.';
 
   res.status(status).json({

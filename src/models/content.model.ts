@@ -56,7 +56,7 @@ export async function findCountryBySlug(slug: string) {
     ...country,
     opportunities: country.opportunities.map((o) => ({
       ...o,
-      intakePeriods: JSON.parse(o.intakePeriods as string) as string[],
+      intakePeriods: JSON.parse(o.intakePeriods) as string[],
     })),
   };
 }
@@ -124,7 +124,7 @@ export async function listPublishedOpportunities(filters: OpportunityFilters = {
     prisma.opportunity.count({ where }),
   ]);
 
-  const items = rawItems.map((o) => ({ ...o, intakePeriods: JSON.parse(o.intakePeriods as string) as string[] }));
+  const items = rawItems.map((o) => ({ ...o, intakePeriods: JSON.parse(o.intakePeriods) as string[] }));
   return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
@@ -140,7 +140,7 @@ export async function findOpportunityBySlug(slug: string) {
     },
   });
   if (!opp) return null;
-  return { ...opp, intakePeriods: JSON.parse(opp.intakePeriods as string) as string[] };
+  return { ...opp, intakePeriods: JSON.parse(opp.intakePeriods) as string[] };
 }
 
 export async function countOpportunitiesByCategory() {
@@ -191,7 +191,7 @@ export async function listPublicResources(options: {
     prisma.resource.count({ where }),
   ]);
 
-  const items = rawItems.map((r) => ({ ...r, tags: JSON.parse(r.tags as string) as string[] }));
+  const items = rawItems.map((r) => ({ ...r, tags: JSON.parse(r.tags) as string[] }));
   return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
@@ -204,7 +204,7 @@ export async function findResourceBySlug(slug: string, includeAuthOnly = false) 
     },
   });
   if (!resource) return null;
-  return { ...resource, tags: JSON.parse(resource.tags as string) as string[] };
+  return { ...resource, tags: JSON.parse(resource.tags) as string[] };
 }
 
 // ── Testimonials & trust signals (PRD §4.1, §4.9) ──────────────────────────

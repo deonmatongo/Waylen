@@ -17,6 +17,11 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    // Needed so `scripts/**/*.mjs` (listed in `include` below) is actually
+    // part of the program — without it, TS silently drops JS files from the
+    // project despite the include glob, which breaks type-aware ESLint on
+    // scripts/build-css.mjs ("not found in project").
+    "allowJs": true,
     "sourceMap": true,
     "declaration": false,
 

@@ -98,7 +98,7 @@ export async function findStudentById(id: string) {
     },
   });
   if (!student) return null;
-  return { ...student, preferredCourses: JSON.parse(student.preferredCourses as string) as string[] };
+  return { ...student, preferredCourses: JSON.parse(student.preferredCourses) as string[] };
 }
 
 export interface StudentListFilters {

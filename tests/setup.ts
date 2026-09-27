@@ -25,3 +25,9 @@ process.env.DATABASE_URL =
   process.env.TEST_DATABASE_URL ??
   process.env.DATABASE_URL ??
   'postgresql://waylen:waylen@127.0.0.1:5432/waylen_test?schema=public';
+
+// `env.ts` requires DIRECT_URL unconditionally (Prisma Migrate needs it even
+// though request-time code never reads it). Tests never run migrations
+// through it, so it only needs to parse — default it alongside DATABASE_URL
+// rather than making every CI run set it separately.
+process.env.DIRECT_URL ??= process.env.DATABASE_URL;

@@ -44,17 +44,13 @@ authApiRouter.post(
 );
 
 /** GET /api/v1/auth/me — return the profile for the authenticated token */
-authApiRouter.get(
-  '/me',
-  requireJwt,
-  asyncHandler(async (req, res) => {
-    const u = req.currentUser!;
-    res.json({
-      id: u.id,
-      email: u.email,
-      name: u.fullName,
-      role: u.role,
-      studentProfileId: u.studentProfile?.id ?? null,
-    });
-  }),
-);
+authApiRouter.get('/me', requireJwt, (req, res) => {
+  const u = req.currentUser!;
+  res.json({
+    id: u.id,
+    email: u.email,
+    name: u.fullName,
+    role: u.role,
+    studentProfileId: u.studentProfile?.id ?? null,
+  });
+});
