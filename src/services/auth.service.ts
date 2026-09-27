@@ -89,17 +89,26 @@ export const authService = {
     return user;
   },
 
+  /**
+   * A failed send must never undo the account creation (or token refresh)
+   * that already happened — the token is still valid and stored, so
+   * resendVerification() can retry once mail delivery is working again.
+   */
   async sendVerificationEmail(email: string, fullName: string, token: string): Promise<void> {
-    await mailService.send({
-      to: email,
-      subject: `Confirm your ${env.APP_NAME} account`,
-      template: 'verify-email',
-      data: {
-        fullName,
-        verifyUrl: `${env.APP_URL}/verify-email/${token}`,
-        expiresInHours: VERIFICATION_TTL_HOURS,
-      },
-    });
+    try {
+      await mailService.send({
+        to: email,
+        subject: `Confirm your ${env.APP_NAME} account`,
+        template: 'verify-email',
+        data: {
+          fullName,
+          verifyUrl: `${env.APP_URL}/verify-email/${token}`,
+          expiresInHours: VERIFICATION_TTL_HOURS,
+        },
+      });
+    } catch (err) {
+      logger.error({ err, email }, 'Verification email failed to send');
+    }
   },
 
   /**
@@ -240,16 +249,24 @@ export const authService = {
       },
     });
 
-    await mailService.send({
-      to: user.email,
-      subject: `Reset your ${env.APP_NAME} password`,
-      template: 'reset-password',
-      data: {
-        fullName: user.fullName,
-        resetUrl: `${env.APP_URL}/reset-password/${token}`,
-        expiresInMinutes: RESET_TTL_MINUTES,
-      },
-    });
+    // This method's contract (and the controller's) is to always resolve
+    // the same way whether or not the address exists — a delivery failure
+    // must not turn into a 500 that tells an attacker anything, or leave a
+    // real user staring at an error instead of the "check your email" page.
+    try {
+      await mailService.send({
+        to: user.email,
+        subject: `Reset your ${env.APP_NAME} password`,
+        template: 'reset-password',
+        data: {
+          fullName: user.fullName,
+          resetUrl: `${env.APP_URL}/reset-password/${token}`,
+          expiresInMinutes: RESET_TTL_MINUTES,
+        },
+      });
+    } catch (err) {
+      logger.error({ err, email: user.email }, 'Password reset email failed to send');
+    }
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -306,16 +323,23 @@ export const authService = {
       },
     });
 
-    await mailService.send({
-      to: user.email,
-      subject: `You're invited to join ${env.APP_NAME}`,
-      template: 'invite-staff',
-      data: {
-        fullName: user.fullName,
-        inviteUrl: `${env.APP_URL}/reset-password/${token}`,
-        expiresInDays: Math.round(INVITE_TTL_HOURS / 24),
-      },
-    });
+    // The account is already created at this point — a failed send must not
+    // surface as the generic catch-all error below, which would misreport a
+    // real success as "an account already exists" if the admin retries.
+    try {
+      await mailService.send({
+        to: user.email,
+        subject: `You're invited to join ${env.APP_NAME}`,
+        template: 'invite-staff',
+        data: {
+          fullName: user.fullName,
+          inviteUrl: `${env.APP_URL}/reset-password/${token}`,
+          expiresInDays: Math.round(INVITE_TTL_HOURS / 24),
+        },
+      });
+    } catch (err) {
+      logger.error({ err, email: user.email }, 'Staff invite email failed to send');
+    }
 
     logger.info({ userId: user.id, role: user.role }, 'Staff member invited');
     return user;
