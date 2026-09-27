@@ -19,6 +19,10 @@ const schema = z.object({
   TRUSTED_ORIGINS: z.string().default(''),
 
   DATABASE_URL: z.string().min(1),
+  // Direct (non-pooled) connection, used by Prisma Migrate. Not read at
+  // request time, but required so `prisma migrate deploy` never runs
+  // against a missing value in production.
+  DIRECT_URL: z.string().min(1),
 
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   CSRF_SECRET: z.string().min(32, 'CSRF_SECRET must be at least 32 characters'),

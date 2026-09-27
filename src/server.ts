@@ -6,97 +6,22 @@
  * invokes the default export directly, once per request, potentially against
  * a fresh container each time. `process.env.VERCEL` (set automatically by
  * the platform) is what tells this file which mode it's in; `getApp()` does
- * the one-time async setup (DB connect, migrate, seed) either way, memoized
- * so a warm serverless container does not repeat it per request.
+ * the one-time async setup (DB connect) either way, memoized so a warm
+ * serverless container does not repeat it per request.
+ *
+ * The database is Supabase Postgres — persistent and shared across
+ * instances, so (unlike the old SQLite-on-ephemeral-disk setup) schema
+ * migrations run once at deploy time (`prisma migrate deploy`, wired into
+ * the Vercel build command) rather than being replayed here on every cold
+ * start, and there is no automatic demo-account seeding in production.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { connectDatabase, disconnectDatabase, prisma } from './config/database.js';
+import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { startScheduledJobs, stopScheduledJobs } from './jobs/index.js';
 import { isGraphConfigured } from './services/graph-client.service.js';
-import argon2 from 'argon2';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-async function applyMigrationsAndSeed(): Promise<void> {
-  // Apply migration SQL directly — no CLI needed, no network access required.
-  // Critical for Vercel's ephemeral /tmp SQLite where tables are gone on every cold start.
-  try {
-    const migrationsDir = path.join(__dirname, '..', 'prisma', 'migrations');
-    if (fs.existsSync(migrationsDir)) {
-      const dirs = fs.readdirSync(migrationsDir)
-        .filter((f) => fs.statSync(path.join(migrationsDir, f)).isDirectory())
-        .sort();
-
-      for (const dir of dirs) {
-        const sqlFile = path.join(migrationsDir, dir, 'migration.sql');
-        if (!fs.existsSync(sqlFile)) continue;
-        const sql = fs.readFileSync(sqlFile, 'utf-8');
-        // Strip line comments then split on semicolons.
-        const statements = sql
-          .replace(/--[^\n]*/g, '')
-          .split(';')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        for (const stmt of statements) {
-          try {
-            await prisma.$executeRawUnsafe(stmt);
-          } catch {
-            // Ignore "already exists" — db may already be set up on a warm instance.
-          }
-        }
-      }
-      logger.info('Database migrations applied');
-    }
-  } catch (err) {
-    logger.warn({ err }, 'Migration step failed');
-  }
-
-  // Upsert demo accounts so demo credentials always work after a cold start.
-  try {
-    const passwordHash = await argon2.hash('123456789', { type: argon2.argon2id });
-    const demoUsers = [
-      { email: 'admin@waylen.com', fullName: 'Admin User', role: 'SUPER_ADMIN' as const, jobTitle: 'Administrator' },
-      { email: 'counselor@waylen.com', fullName: 'Counselor User', role: 'COUNSELLOR' as const, jobTitle: 'Education Counsellor' },
-    ];
-    for (const u of demoUsers) {
-      await prisma.user.upsert({
-        where: { email: u.email },
-        update: { passwordHash, status: 'ACTIVE', emailVerifiedAt: new Date() },
-        create: {
-          email: u.email,
-          fullName: u.fullName,
-          passwordHash,
-          role: u.role,
-          status: 'ACTIVE',
-          emailVerifiedAt: new Date(),
-          staffProfile: { create: { jobTitle: u.jobTitle, regions: '[]' } },
-        },
-      });
-    }
-    await prisma.user.upsert({
-      where: { email: 'student@waylen.com' },
-      update: { passwordHash, status: 'ACTIVE', emailVerifiedAt: new Date() },
-      create: {
-        email: 'student@waylen.com',
-        fullName: 'Student User',
-        passwordHash,
-        role: 'STUDENT',
-        status: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-        studentProfile: { create: { reference: 'WYL-STU-DEMO001' } },
-      },
-    });
-    logger.info('Demo accounts ready');
-  } catch (err) {
-    logger.warn({ err }, 'Demo seed failed');
-  }
-}
 
 type ExpressApp = ReturnType<typeof createApp>;
 
@@ -107,7 +32,6 @@ function getApp(): Promise<ExpressApp> {
   if (!appPromise) {
     appPromise = (async () => {
       await connectDatabase();
-      await applyMigrationsAndSeed();
       if (!isGraphConfigured) {
         logger.warn(
           'Microsoft Graph is not configured (MS_GRAPH_* env vars unset) — ' +

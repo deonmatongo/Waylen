@@ -21,7 +21,14 @@
     <tbody>
       <% countries.forEach(function (country) { %>
         <tr>
-          <td><%= country.name %><small class="table__hint">/countries/<%= country.slug %></small></td>
+          <td>
+            <%= country.name %>
+            <% if (country.status === 'PUBLISHED') { %>
+              <small class="table__hint"><a href="/countries/<%= country.slug %>" target="_blank" rel="noopener">/countries/<%= country.slug %></a></small>
+            <% } else { %>
+              <small class="table__hint">/countries/<%= country.slug %> (not live yet)</small>
+            <% } %>
+          </td>
           <td><%= country.isoCode %></td>
           <td>
             <span class="badge badge--<%= country.status === 'PUBLISHED' ? 'positive' : 'neutral' %>">
@@ -33,6 +40,9 @@
           <td><%= country._count.studentsTargeting %></td>
           <td><%= country.displayOrder %></td>
           <td class="table__actions">
+            <% if (country.status === 'PUBLISHED') { %>
+              <a class="link-button" href="/countries/<%= country.slug %>" target="_blank" rel="noopener">Explore</a>
+            <% } %>
             <a class="link-button" href="/admin/countries/<%= country.id %>/edit">Edit</a>
           </td>
         </tr>

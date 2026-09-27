@@ -8,6 +8,18 @@ import { PublishStatus } from '@prisma/client';
 import { prisma } from '../../config/database.js';
 import { countrySchema } from '../../validators/country.validator.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
+import type { CountryInput } from '../../validators/country.validator.js';
+
+/** Money is stored in minor units (cents); the admin form takes whole units. */
+const toMinorUnits = (value: number | undefined): number | undefined =>
+  value == null ? value : Math.round(value * 100);
+
+const toMinorUnitFields = (data: CountryInput) => ({
+  ...data,
+  indicativeTuitionMin: toMinorUnits(data.indicativeTuitionMin),
+  indicativeTuitionMax: toMinorUnits(data.indicativeTuitionMax),
+  costOfLivingMonthly: toMinorUnits(data.costOfLivingMonthly),
+});
 
 export async function index(req: Request, res: Response): Promise<void> {
   const countries = await prisma.country.findMany({
@@ -37,7 +49,10 @@ export async function create(req: Request, res: Response): Promise<void> {
     layout: 'layouts/admin',
     country: null,
     statuses: Object.values(PublishStatus),
-    values: {},
+    // Defaults the status dropdown to Published — otherwise the browser
+    // selects DRAFT (first in the enum) whenever the admin leaves it
+    // untouched, silently hiding the new country from the public site.
+    values: { status: PublishStatus.PUBLISHED },
     errors: {},
   });
 }
@@ -66,7 +81,9 @@ export async function store(req: Request, res: Response): Promise<void> {
     throw new ConflictError('A country with that name or ISO code already exists.');
   }
 
-  const country = await prisma.country.create({ data: { ...parsed.data, slug } });
+  const country = await prisma.country.create({
+    data: { ...toMinorUnitFields(parsed.data), slug },
+  });
 
   req.flash('success', `${country.name} has been added.`);
   res.redirect('/admin/countries');
@@ -81,7 +98,12 @@ export async function edit(req: Request, res: Response): Promise<void> {
     layout: 'layouts/admin',
     country,
     statuses: Object.values(PublishStatus),
-    values: country,
+    values: {
+      ...country,
+      indicativeTuitionMin: country.indicativeTuitionMin == null ? null : country.indicativeTuitionMin / 100,
+      indicativeTuitionMax: country.indicativeTuitionMax == null ? null : country.indicativeTuitionMax / 100,
+      costOfLivingMonthly: country.costOfLivingMonthly == null ? null : country.costOfLivingMonthly / 100,
+    },
     errors: {},
   });
 }
@@ -113,7 +135,7 @@ export async function update(req: Request, res: Response): Promise<void> {
     if (existing) throw new ConflictError('Another country already uses that ISO code.');
   }
 
-  await prisma.country.update({ where: { id: country.id }, data: parsed.data });
+  await prisma.country.update({ where: { id: country.id }, data: toMinorUnitFields(parsed.data) });
 
   req.flash('success', `${parsed.data.name} has been updated.`);
   res.redirect('/admin/countries');

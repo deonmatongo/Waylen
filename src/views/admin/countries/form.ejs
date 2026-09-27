@@ -81,21 +81,24 @@
 
     <div class="field-row">
       <div class="field">
-        <label class="field__label" for="indicativeTuitionMin">Tuition from (in cents)</label>
-        <input class="field__input" type="number" id="indicativeTuitionMin" name="indicativeTuitionMin" min="0"
+        <label class="field__label" for="indicativeTuitionMin">Tuition from</label>
+        <input class="field__input" type="number" id="indicativeTuitionMin" name="indicativeTuitionMin" min="0" step="1"
                value="<%= values.indicativeTuitionMin ?? '' %>">
+        <p class="field__hint">Whole units, e.g. 5000 for €5,000 — not cents.</p>
       </div>
 
       <div class="field">
-        <label class="field__label" for="indicativeTuitionMax">Tuition to (in cents)</label>
-        <input class="field__input" type="number" id="indicativeTuitionMax" name="indicativeTuitionMax" min="0"
+        <label class="field__label" for="indicativeTuitionMax">Tuition to</label>
+        <input class="field__input" type="number" id="indicativeTuitionMax" name="indicativeTuitionMax" min="0" step="1"
                value="<%= values.indicativeTuitionMax ?? '' %>">
+        <p class="field__hint">Whole units, e.g. 12000 for €12,000 — not cents.</p>
       </div>
 
       <div class="field">
-        <label class="field__label" for="costOfLivingMonthly">Cost of living / month (in cents)</label>
-        <input class="field__input" type="number" id="costOfLivingMonthly" name="costOfLivingMonthly" min="0"
+        <label class="field__label" for="costOfLivingMonthly">Cost of living / month</label>
+        <input class="field__input" type="number" id="costOfLivingMonthly" name="costOfLivingMonthly" min="0" step="1"
                value="<%= values.costOfLivingMonthly ?? '' %>">
+        <p class="field__hint">Whole units, e.g. 900 for €900 — not cents.</p>
       </div>
 
       <div class="field">
