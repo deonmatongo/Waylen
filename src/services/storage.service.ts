@@ -10,6 +10,7 @@
  * production uses object storage.
  */
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
@@ -32,15 +33,40 @@ interface StorageDriver {
 
 // ── Local driver (development) ─────────────────────────────────────────────
 
+// Vercel's Node runtime has a read-only filesystem everywhere except /tmp —
+// writing to env.STORAGE_LOCAL_PATH (a relative path under the deployment
+// bundle) throws EROFS on every upload. /tmp is at least writable, but it is
+// NOT a real fix: it is wiped between cold starts and is local to whichever
+// single instance handled the request, so a read on a different (or
+// recycled) instance loses the file. This only stops uploads from crashing
+// outright — it does not make document storage reliable. Treat any document
+// uploaded in production through this driver as liable to disappear, and
+// replace it with the S3 driver below before this app holds real student
+// documents long-term.
+const LOCAL_STORAGE_ROOT = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'waylen-documents')
+  : env.STORAGE_LOCAL_PATH;
+
+if (env.isProduction && env.STORAGE_DRIVER === 'local') {
+  logger.warn(
+    'STORAGE_DRIVER is "local" in production — documents are written to ' +
+      (process.env.VERCEL ? '/tmp, which' : env.STORAGE_LOCAL_PATH + ', which') +
+      ' does not persist across serverless instances or cold starts. ' +
+      'Uploaded documents will intermittently or permanently disappear. ' +
+      'This is a stop-gap only — implement the S3 driver in ' +
+      'src/services/storage.service.ts before relying on this in production.',
+  );
+}
+
 const localDriver: StorageDriver = {
   async put(key, data) {
-    const target = path.join(env.STORAGE_LOCAL_PATH, key);
+    const target = path.join(LOCAL_STORAGE_ROOT, key);
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, data, { mode: 0o600 });
   },
 
   async get(key) {
-    const target = path.join(env.STORAGE_LOCAL_PATH, key);
+    const target = path.join(LOCAL_STORAGE_ROOT, key);
     try {
       return await fs.readFile(target);
     } catch {
@@ -49,7 +75,7 @@ const localDriver: StorageDriver = {
   },
 
   async delete(key) {
-    const target = path.join(env.STORAGE_LOCAL_PATH, key);
+    const target = path.join(LOCAL_STORAGE_ROOT, key);
     await fs.rm(target, { force: true });
   },
 };
