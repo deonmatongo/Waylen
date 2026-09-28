@@ -4,16 +4,20 @@
 import type { Request, Response } from 'express';
 import { authService } from '../../services/auth.service.js';
 import { registerSchema } from '../../validators/auth.validator.js';
-import { listPublishedCountries } from '../../models/content.model.js';
+import { listPublishedCountries, listAllCountries } from '../../models/content.model.js';
 import { ValidationError } from '../../utils/errors.js';
 
 export async function show(_req: Request, res: Response): Promise<void> {
-  const countries = await listPublishedCountries();
+  const [originCountries, destinationCountries] = await Promise.all([
+    listAllCountries(),
+    listPublishedCountries(),
+  ]);
 
   res.render('auth/register', {
     title: 'Create your account',
     layout: 'layouts/auth',
-    countries,
+    originCountries,
+    destinationCountries,
     values: {},
     errors: {},
   });
@@ -24,11 +28,15 @@ export async function submit(req: Request, res: Response): Promise<void> {
 
   if (!parsed.success) {
     // Re-render with the submitted values so nothing has to be retyped.
-    const countries = await listPublishedCountries();
+    const [originCountries, destinationCountries] = await Promise.all([
+      listAllCountries(),
+      listPublishedCountries(),
+    ]);
     res.status(422).render('auth/register', {
       title: 'Create your account',
       layout: 'layouts/auth',
-      countries,
+      originCountries,
+      destinationCountries,
       values: req.body,
       errors: parsed.error.flatten().fieldErrors,
     });
@@ -53,11 +61,15 @@ export async function submit(req: Request, res: Response): Promise<void> {
     res.redirect('/verify-email/pending');
   } catch (err) {
     // A duplicate email is expected user error, not a failure worth a 500 page.
-    const countries = await listPublishedCountries();
+    const [originCountries, destinationCountries] = await Promise.all([
+      listAllCountries(),
+      listPublishedCountries(),
+    ]);
     res.status(err instanceof ValidationError ? 422 : 409).render('auth/register', {
       title: 'Create your account',
       layout: 'layouts/auth',
-      countries,
+      originCountries,
+      destinationCountries,
       values: req.body,
       errors: { email: [(err as Error).message] },
     });

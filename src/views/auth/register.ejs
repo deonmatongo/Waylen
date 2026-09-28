@@ -28,7 +28,7 @@
     <label class="field__label" for="countryOfOrigin">Country of origin</label>
     <select class="field__select" id="countryOfOrigin" name="countryOfOrigin">
       <option value="">Select a country</option>
-      <% countries.forEach(function (country) { %>
+      <% originCountries.forEach(function (country) { %>
         <option value="<%= country.isoCode %>"
                 <%= values.countryOfOrigin === country.isoCode ? 'selected' : '' %>>
           <%= country.name %>
@@ -56,7 +56,7 @@
   <fieldset class="field field--fieldset">
     <legend class="field__label">Destinations you are considering</legend>
     <div class="checkbox-grid">
-      <% countries.forEach(function (country) { %>
+      <% destinationCountries.forEach(function (country) { %>
         <label class="checkbox">
           <input type="checkbox" name="preferredDestinations" value="<%= country.slug %>">
           <span><%= country.name %></span>

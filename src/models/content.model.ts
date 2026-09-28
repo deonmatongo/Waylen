@@ -35,6 +35,19 @@ export async function listPublishedCountries(options: { featuredOnly?: boolean }
   });
 }
 
+/**
+ * Every country regardless of publish status — for "country of origin"
+ * selection, where a student can be from anywhere, not just from one of the
+ * handful of countries Waylen operates destinations in. Deliberately not
+ * filtered by `status: PUBLISHED`, unlike listPublishedCountries() above.
+ */
+export async function listAllCountries() {
+  return prisma.country.findMany({
+    select: { id: true, isoCode: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
 export async function findCountryBySlug(slug: string) {
   const country = await prisma.country.findFirst({
     where: { slug, status: 'PUBLISHED' },

@@ -13,6 +13,8 @@
 import { PrismaClient } from '@prisma/client';
 import argon2 from 'argon2';
 import { customAlphabet } from 'nanoid';
+import slugify from 'slugify';
+import { WORLD_COUNTRIES } from './data/world-countries.js';
 
 const prisma = new PrismaClient();
 const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
@@ -243,6 +245,38 @@ async function seedCountries() {
 
   console.log(`✓ ${DESTINATIONS.length} countries`);
   return countries;
+}
+
+/**
+ * Every country in the world, for "country of origin" at registration — a
+ * student can be from anywhere, not just from a Waylen study destination.
+ * `update: {}` means an existing row (any of the 8 destinations above) is
+ * never touched; this only fills in the ~190 countries that aren't one.
+ * Left as `status: DRAFT` (the schema default) so none of these appear on
+ * the destinations grid, in opportunities, or anywhere else that filters on
+ * `status: PUBLISHED`.
+ */
+async function seedWorldCountries(): Promise<void> {
+  let created = 0;
+
+  for (const country of WORLD_COUNTRIES) {
+    const existing = await prisma.country.findUnique({
+      where: { isoCode: country.isoCode },
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    await prisma.country.create({
+      data: {
+        isoCode: country.isoCode,
+        slug: slugify(country.name, { lower: true, strict: true }),
+        name: country.name,
+      },
+    });
+    created += 1;
+  }
+
+  console.log(`✓ ${created} additional countries (world reference list, unpublished)`);
 }
 
 async function seedStaff() {
@@ -1096,6 +1130,7 @@ async function main() {
 
   // Real content — safe in every environment.
   const countries = await seedCountries();
+  await seedWorldCountries();
   const partners = await seedPartners(countries);
   await seedOpportunities(countries, partners);
   await seedContent();
