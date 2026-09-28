@@ -64,6 +64,22 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
+/**
+ * Requires a signed-in account, but not an email-verified one — used only by
+ * the pending-verification page itself. Guarding that route with
+ * `requireAuth` instead is an infinite loop: an unverified user hits it,
+ * `requireAuth` sees no `emailVerifiedAt` and redirects back to the same
+ * route, forever.
+ */
+export function requireSession(req: Request, res: Response, next: NextFunction): void {
+  if (!req.currentUser) {
+    req.session!.returnTo = req.originalUrl;
+    res.redirect('/login');
+    return;
+  }
+  next();
+}
+
 /** Restricts a route to an explicit allow-list of roles. */
 export function requireRole(...roles: UserRole[]): RequestHandler {
   return (req, _res, next) => {

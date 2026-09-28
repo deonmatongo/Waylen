@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { authRateLimiter } from '../../middleware/rateLimit.js';
-import { requireAuth, requireGuest } from '../../middleware/auth.js';
+import { requireGuest, requireSession } from '../../middleware/auth.js';
 
 import * as registerController from '../../controllers/auth/register.controller.js';
 import * as loginController from '../../controllers/auth/login.controller.js';
@@ -31,7 +31,7 @@ authRouter.post('/login', requireGuest, authRateLimiter, asyncHandler(loginContr
 authRouter.post('/logout', asyncHandler(loginController.logout));
 
 // ── Email verification (required before portal access) ─────────────────────
-authRouter.get('/verify-email/pending', requireAuth, asyncHandler(verificationController.pending));
+authRouter.get('/verify-email/pending', requireSession, asyncHandler(verificationController.pending));
 authRouter.get('/verify-email/:token', asyncHandler(verificationController.verify));
 authRouter.post(
   '/verify-email/resend',
