@@ -22,6 +22,7 @@ export async function verify(req: Request, res: Response): Promise<void> {
     req.session!.role = user.role;
     req.session!.fullName = user.fullName;
     req.session!.emailVerified = true;
+    req.session!.issuedAt = Date.now();
 
     req.flash('success', 'Your email is confirmed. Welcome to Waylen.');
     res.redirect(STAFF_ROLES.includes(user.role) ? '/admin' : '/portal');

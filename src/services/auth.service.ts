@@ -288,6 +288,10 @@ export const authService = {
         passwordResetExpiresAt: null,
         failedLoginCount: 0,
         failedLoginAt: null,
+        // Invalidates every session/JWT issued before this moment — see
+        // passwordChangedAt on the model and the checks in middleware/auth.ts
+        // and middleware/apiAuth.ts.
+        passwordChangedAt: new Date(),
       },
     });
 
@@ -358,7 +362,7 @@ export const authService = {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: await hashPassword(newPassword) },
+      data: { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date() },
     });
   },
 };

@@ -3,6 +3,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { authService } from '../../services/auth.service.js';
 import { signToken } from '../../utils/jwt.js';
 import { requireJwt } from '../../middleware/apiAuth.js';
+import { authRateLimiter } from '../../middleware/rateLimit.js';
 import { UnauthorizedError } from '../../utils/errors.js';
 
 export const authApiRouter = Router();
@@ -10,6 +11,7 @@ export const authApiRouter = Router();
 /** POST /api/v1/auth/login — exchange credentials for a JWT */
 authApiRouter.post(
   '/login',
+  authRateLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body as Record<string, unknown>;
 

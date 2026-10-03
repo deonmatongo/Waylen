@@ -14,8 +14,25 @@
  * for credential-stuffing or scraping at meaningful traffic.
  */
 import rateLimit from 'express-rate-limit';
+import type { Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+
+/**
+ * express-rate-limit's default handler sends `message` via `res.send`, which
+ * renders as HTML for a browser form post. The JSON mobile API (POST
+ * /api/v1/auth/login) shares this limiter, so a rejected request there must
+ * still come back as JSON rather than a stray HTML body.
+ */
+function rateLimitHandler(message: string) {
+  return (req: Request, res: Response): void => {
+    if (req.accepts(['html', 'json']) === 'json') {
+      res.status(429).json({ error: message });
+      return;
+    }
+    res.status(429).send(message);
+  };
+}
 
 if (env.isProduction) {
   logger.warn(
@@ -43,6 +60,7 @@ export const authRateLimiter = rateLimit({
   skipSuccessfulRequests: true,
   skip: skipInTest,
   message: 'Too many attempts. Please wait a few minutes and try again.',
+  handler: rateLimitHandler('Too many attempts. Please wait a few minutes and try again.'),
 });
 
 /** Public forms — contact, enquiry, webinar registration. */

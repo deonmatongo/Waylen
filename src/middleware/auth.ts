@@ -31,12 +31,24 @@ export async function loadCurrentUser(
         role: true,
         status: true,
         emailVerifiedAt: true,
+        passwordChangedAt: true,
         studentProfile: { select: { id: true, reference: true, currentStage: true } },
       },
     });
 
     // Session outlived the account, or the account was suspended.
     if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
+      req.session = null;
+      return next();
+    }
+
+    // A reset/change bumps passwordChangedAt — any session issued before
+    // that (including one with no issuedAt at all, from before this cookie
+    // field existed) is stale and must not be treated as signed in.
+    if (
+      user.passwordChangedAt &&
+      (!req.session.issuedAt || req.session.issuedAt < user.passwordChangedAt.getTime())
+    ) {
       req.session = null;
       return next();
     }
@@ -52,7 +64,12 @@ export async function loadCurrentUser(
 /** Requires a signed-in, email-verified account. */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (!req.currentUser) {
-    req.session!.returnTo = req.originalUrl;
+    // loadCurrentUser nulls req.session (rather than leaving the stale data)
+    // for a suspended/deleted account or one whose password has since
+    // changed — re-seed it before writing, or this throws instead of
+    // redirecting.
+    if (!req.session) req.session = {};
+    req.session.returnTo = req.originalUrl;
     res.redirect('/login');
     return;
   }
@@ -73,7 +90,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
  */
 export function requireSession(req: Request, res: Response, next: NextFunction): void {
   if (!req.currentUser) {
-    req.session!.returnTo = req.originalUrl;
+    if (!req.session) req.session = {};
+    req.session.returnTo = req.originalUrl;
     res.redirect('/login');
     return;
   }

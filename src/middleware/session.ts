@@ -35,6 +35,13 @@ export interface SessionData {
   fullName?: string;
   /** Set after email verification so guarded routes can check cheaply. */
   emailVerified?: boolean;
+  /**
+   * Epoch ms this login was established. Compared against
+   * User.passwordChangedAt on every request (see loadCurrentUser) so a
+   * password reset/change invalidates sessions issued before it, even though
+   * the cookie itself has no server-side record to revoke.
+   */
+  issuedAt?: number;
   /** Where to send the user after a successful login. */
   returnTo?: string;
   flash?: { type: 'success' | 'error' | 'info' | 'warning'; message: string }[];

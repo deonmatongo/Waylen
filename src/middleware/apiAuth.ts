@@ -23,13 +23,22 @@ export async function requireJwt(req: Request, _res: Response, next: NextFunctio
     where: { id: payload.sub },
     select: {
       id: true, email: true, fullName: true, role: true,
-      status: true, emailVerifiedAt: true,
+      status: true, emailVerifiedAt: true, passwordChangedAt: true,
       studentProfile: { select: { id: true, reference: true, currentStage: true } },
     },
   });
 
   if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
     return next(new UnauthorizedError('That account is not active.'));
+  }
+
+  // A password reset/change invalidates every token issued before it — a
+  // token with no `iat` at all is also treated as stale rather than trusted.
+  if (
+    user.passwordChangedAt &&
+    (!payload.iat || payload.iat * 1000 < user.passwordChangedAt.getTime())
+  ) {
+    return next(new UnauthorizedError('Your password has changed. Please sign in again.'));
   }
 
   req.currentUser = user;

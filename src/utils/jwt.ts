@@ -7,6 +7,8 @@ export interface JwtPayload {
   name: string;
   role: string;
   spid?: string;     // studentProfileId (students only)
+  /** Seconds since epoch — set automatically by jsonwebtoken on sign(). */
+  iat?: number;
 }
 
 export function signToken(payload: JwtPayload): string {

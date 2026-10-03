@@ -43,6 +43,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
     req.session!.role = user.role;
     req.session!.fullName = user.fullName;
     req.session!.emailVerified = Boolean(user.emailVerifiedAt);
+    req.session!.issuedAt = Date.now();
 
     await auditService.record({
       actorId: user.id,
