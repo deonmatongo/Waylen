@@ -13,6 +13,7 @@ process.env.MAIL_DRIVER = 'console';
 // Deterministic, obviously-fake secrets so tests never depend on a real .env.
 process.env.SESSION_SECRET ??= 'test-session-secret-at-least-32-characters-long';
 process.env.CSRF_SECRET ??= 'test-csrf-secret-at-least-32-characters-long!!';
+process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long!!!!';
 process.env.DOCUMENT_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 process.env.APP_URL ??= 'http://localhost:3000';
 process.env.MAIL_FROM_ADDRESS ??= 'test@waylen.test';
