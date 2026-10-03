@@ -4462,7 +4462,7 @@ hr.rule {
 
 @media (min-width: 900px) {
   .cp-hero {
-    padding: 6rem var(--sp-6) 0;
+    padding: 8rem var(--sp-6) 3rem;
   }
 
   .cp-hero__inner {
