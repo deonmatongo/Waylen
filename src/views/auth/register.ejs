@@ -12,21 +12,22 @@
     <label class="field__label" for="fullName">Full name</label>
     <input class="field__input" type="text" id="fullName" name="fullName" autocomplete="name"
            value="<%= values.fullName || '' %>" required
-           <%= errors.fullName ? 'aria-invalid="true"' : '' %>>
-    <% if (errors.fullName) { %><p class="field-error"><%= errors.fullName[0] %></p><% } %>
+           <%= errors.fullName ? 'aria-invalid="true" aria-describedby="fullName-error"' : '' %>>
+    <% if (errors.fullName) { %><p class="field-error" id="fullName-error"><%= errors.fullName[0] %></p><% } %>
   </div>
 
   <div class="field">
     <label class="field__label" for="email">Official email address</label>
     <input class="field__input" type="email" id="email" name="email" autocomplete="email"
            value="<%= values.email || '' %>" required
-           <%= errors.email ? 'aria-invalid="true"' : '' %>>
-    <% if (errors.email) { %><p class="field-error"><%= errors.email[0] %></p><% } %>
+           <%= errors.email ? 'aria-invalid="true" aria-describedby="email-error"' : '' %>>
+    <% if (errors.email) { %><p class="field-error" id="email-error"><%= errors.email[0] %></p><% } %>
   </div>
 
   <div class="field">
     <label class="field__label" for="countryOfOrigin">Country of origin</label>
-    <select class="field__select" id="countryOfOrigin" name="countryOfOrigin">
+    <select class="field__select" id="countryOfOrigin" name="countryOfOrigin"
+            <%= errors.countryOfOrigin ? 'aria-invalid="true" aria-describedby="countryOfOrigin-error"' : '' %>>
       <option value="">Select a country</option>
       <% originCountries.forEach(function (country) { %>
         <option value="<%= country.isoCode %>"
@@ -35,7 +36,7 @@
         </option>
       <% }) %>
     </select>
-    <% if (errors.countryOfOrigin) { %><p class="field-error"><%= errors.countryOfOrigin[0] %></p><% } %>
+    <% if (errors.countryOfOrigin) { %><p class="field-error" id="countryOfOrigin-error"><%= errors.countryOfOrigin[0] %></p><% } %>
   </div>
 
   <div class="field">
@@ -69,30 +70,32 @@
     <label class="field__label" for="password">Password</label>
     <input class="field__input" type="password" id="password" name="password"
            autocomplete="new-password" required
+           aria-describedby="password-hint<%= errors.password ? ' password-error' : '' %>"
            <%= errors.password ? 'aria-invalid="true"' : '' %>>
-    <p class="field__hint">At least 10 characters, with an uppercase letter and a number.</p>
-    <% if (errors.password) { %><p class="field-error"><%= errors.password[0] %></p><% } %>
+    <p class="field__hint" id="password-hint">At least 10 characters, with an uppercase letter and a number.</p>
+    <% if (errors.password) { %><p class="field-error" id="password-error"><%= errors.password[0] %></p><% } %>
   </div>
 
   <div class="field">
     <label class="field__label" for="passwordConfirmation">Confirm password</label>
     <input class="field__input" type="password" id="passwordConfirmation" name="passwordConfirmation"
            autocomplete="new-password" required
-           <%= errors.passwordConfirmation ? 'aria-invalid="true"' : '' %>>
+           <%= errors.passwordConfirmation ? 'aria-invalid="true" aria-describedby="passwordConfirmation-error"' : '' %>>
     <% if (errors.passwordConfirmation) { %>
-      <p class="field-error"><%= errors.passwordConfirmation[0] %></p>
+      <p class="field-error" id="passwordConfirmation-error"><%= errors.passwordConfirmation[0] %></p>
     <% } %>
   </div>
 
   <div class="field">
     <label class="checkbox">
-      <input type="checkbox" name="acceptTerms" value="on" required>
+      <input type="checkbox" name="acceptTerms" value="on" required
+             <%= errors.acceptTerms ? 'aria-invalid="true" aria-describedby="acceptTerms-error"' : '' %>>
       <span>
         I agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and
         <a href="/privacy-policy" target="_blank" rel="noopener">privacy policy</a>.
       </span>
     </label>
-    <% if (errors.acceptTerms) { %><p class="field-error"><%= errors.acceptTerms[0] %></p><% } %>
+    <% if (errors.acceptTerms) { %><p class="field-error" id="acceptTerms-error"><%= errors.acceptTerms[0] %></p><% } %>
   </div>
 
   <button class="button button--primary button--block" type="submit">Create account</button>
