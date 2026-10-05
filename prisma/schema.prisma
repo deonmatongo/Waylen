@@ -88,6 +88,10 @@ model User {
   counselledStudents StudentProfile[]   @relation("AssignedCounsellor")
   hostedAppointments Appointment[]      @relation("AppointmentCounsellor")
 
+  // Revocable auth (security audit follow-up) — see Session/RefreshToken below.
+  sessions      Session[]
+  refreshTokens RefreshToken[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1234,4 +1238,74 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   @@map("settings")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// REVOCABLE SESSIONS & REFRESH TOKENS  (security audit follow-up, §8.1)
+//
+// Added alongside the existing stateless signed-cookie session
+// (middleware/session.ts) and mobile JWT (utils/jwt.ts). Those two already
+// reject anything issued before User.passwordChangedAt, which invalidates
+// EVERY session/token for a user at once — necessary for a password change,
+// but too blunt for an ordinary logout, which should revoke only the one
+// session/device involved. These two tables are the per-session/per-device
+// primitive that makes that possible.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// One row per browser session. The signed cookie (SessionData.sessionId)
+/// carries this row's id; loadCurrentUser (middleware/auth.ts) checks it
+/// against this table on every authenticated request, so logout — or a
+/// future "sign out this device" / "sign out all other devices" action —
+/// can revoke just that one row without touching the user's other sessions.
+model Session {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Nice-to-have context for a future "your active sessions" page.
+  userAgent String?
+  ipAddress String?
+
+  issuedAt   DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+/// Mobile refresh-token flow (services/refreshToken.service.ts). The
+/// plaintext token is handed to the client once and never stored — only its
+/// SHA-256 (`tokenHash`). A password-style slow hash isn't needed here: the
+/// token itself is a 256-bit random value (see utils/crypto.ts generateToken),
+/// so a fast hash is fine, the same tradeoff GitHub/GitLab make for PATs.
+///
+/// Rotated on every use: using a token revokes it and chains to its
+/// replacement via `replacedByHash`, while `familyId` ties every token
+/// descended from the same login together. Presenting an already-revoked
+/// token (i.e. one already rotated away, or already logged out) is treated
+/// as a reuse/compromise signal and revokes the whole family, not just that
+/// token — see refreshTokenService.rotate().
+model RefreshToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+  familyId  String
+
+  userAgent String?
+  ipAddress String?
+
+  issuedAt       DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  /// Hash of the token that replaced this one, set on rotation — audit trail
+  /// only, not used for lookups (tokenHash is unique and already indexed).
+  replacedByHash String?
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }
