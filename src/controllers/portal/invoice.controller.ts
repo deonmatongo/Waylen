@@ -4,6 +4,7 @@
 import type { Request, Response } from 'express';
 import { billingService } from '../../services/billing.service.js';
 import { storageService } from '../../services/storage.service.js';
+import { createCheckoutSession } from '../../services/payments/gateway.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
 import { submitProofOfPaymentSchema } from '../../validators/billing.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
@@ -34,13 +35,59 @@ export async function show(req: Request, res: Response): Promise<void> {
   });
 }
 
+/**
+ * Creates a gateway checkout session and redirects the student to it (PRD
+ * §8.1, phase 3). Bank transfer, SWIFT, Revolut and cash are handled
+ * separately via the proof-of-payment upload below.
+ *
+ * Which gateway is used is decided by `createCheckoutSession` from the
+ * invoice's currency — see `src/services/payments/gateway.service.ts` for the
+ * reasoning. If that gateway's secret key is not configured, the session is
+ * `null` and the student sees the same "not switched on yet" message as
+ * before, scoped to that invoice's gateway rather than every online payment.
+ */
 export async function startPayment(req: Request, res: Response): Promise<void> {
-  // TODO(phase-3): create a gateway checkout session and redirect. PRD §8.1
-  // requires card, Apple Pay and Google Pay; the processor choice (Stripe /
-  // Paystack / Flutterwave) is per-region. Bank transfer, SWIFT, Revolut and
-  // cash are already handled via the proof-of-payment upload below.
-  req.flash('info', 'Online card payment is not switched on yet. Please use the bank details on your invoice.');
-  res.redirect(`/portal/invoices/${req.params.id}`);
+  const student = await findStudentByUserId(req.currentUser!.id);
+  if (!student) throw new NotFoundError('We could not find your student profile.');
+
+  const invoice = await billingService.findForStudent(req.params.id as string, student.id);
+
+  if (!['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status)) {
+    throw new ValidationError('This invoice is not open for payment.');
+  }
+
+  const outstandingMinor = invoice.totalMinor - invoice.paidMinor;
+  if (outstandingMinor <= 0) {
+    req.flash('info', 'This invoice is already paid in full.');
+    res.redirect(`/portal/invoices/${invoice.id}`);
+    return;
+  }
+
+  const session = await createCheckoutSession({
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.number,
+    amountMinor: outstandingMinor,
+    currency: invoice.currency,
+    studentEmail: req.currentUser!.email,
+    studentName: req.currentUser!.fullName,
+  });
+
+  if (!session) {
+    req.flash('info', 'Online card payment is not switched on yet. Please use the bank details on your invoice.');
+    res.redirect(`/portal/invoices/${req.params.id}`);
+    return;
+  }
+
+  await billingService.createPendingGatewayPayment({
+    invoiceId: invoice.id,
+    method: session.method,
+    provider: session.provider,
+    providerReference: session.providerReference,
+    amountMinor: outstandingMinor,
+    currency: invoice.currency,
+  });
+
+  res.redirect(session.checkoutUrl);
 }
 
 export async function uploadProof(req: Request, res: Response): Promise<void> {

@@ -4,21 +4,20 @@
  * Every handler verifies the provider signature over the RAW body before
  * trusting a single field. An unverified webhook is rejected outright — it is
  * an unauthenticated request claiming money has moved.
+ *
+ * Once verified, each handler looks the Payment up by `providerReference` and
+ * hands off to `billingService.applyGatewayPaymentOutcome`, which is
+ * idempotent — see `src/services/payments/ledger.ts` — so a redelivered
+ * webhook (every one of these providers retries on anything but a 2xx) never
+ * double-applies.
  */
 import crypto from 'node:crypto';
+import Stripe from 'stripe';
 import type { Request, Response } from 'express';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { safeCompare } from '../../utils/crypto.js';
-
-/**
- * TODO(phase-2): once a processor is chosen, complete the handler bodies:
- *   1. verify the signature (already sketched below);
- *   2. look the payment up by `providerReference` — webhooks are delivered
- *      more than once, so handling must be idempotent;
- *   3. update Payment + Invoice inside one transaction;
- *   4. notify the student via notificationService.
- */
+import { billingService } from '../../services/billing.service.js';
 
 export async function stripe(req: Request, res: Response): Promise<void> {
   const signature = req.get('stripe-signature');
@@ -29,10 +28,41 @@ export async function stripe(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // Stripe signs "{timestamp}.{payload}" with HMAC-SHA256.
-  // TODO(phase-2): parse the t= and v1= parts of the header, reject timestamps
-  // outside a 5-minute tolerance, then compare.
-  logger.info('Stripe webhook received (handler not implemented)');
+  // Stripe signs "{timestamp}.{payload}" with HMAC-SHA256 and rejects
+  // timestamps outside a tolerance window itself; `constructEvent` does both
+  // the parsing of the `t=`/`v1=` header and the comparison.
+  let event: Stripe.Event;
+  try {
+    event = Stripe.webhooks.constructEvent(req.body as Buffer, signature, env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : err }, 'Stripe webhook signature verification failed');
+    res.status(400).json({ error: 'Signature verification failed' });
+    return;
+  }
+
+  switch (event.type) {
+    case 'checkout.session.completed':
+    case 'checkout.session.async_payment_succeeded': {
+      const session = event.data.object;
+      await billingService.applyGatewayPaymentOutcome({
+        providerReference: session.id,
+        outcome: 'SUCCEEDED',
+      });
+      break;
+    }
+    case 'checkout.session.expired':
+    case 'checkout.session.async_payment_failed': {
+      const session = event.data.object;
+      await billingService.applyGatewayPaymentOutcome({
+        providerReference: session.id,
+        outcome: 'FAILED',
+      });
+      break;
+    }
+    default:
+      logger.info({ type: event.type }, 'Stripe webhook event ignored');
+  }
+
   res.status(202).json({ received: true });
 }
 
@@ -55,7 +85,25 @@ export async function paystack(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  logger.info('Paystack webhook verified (handler not implemented)');
+  const event = JSON.parse((req.body as Buffer).toString('utf8')) as {
+    event: string;
+    data: { reference: string };
+  };
+
+  if (event.event === 'charge.success') {
+    await billingService.applyGatewayPaymentOutcome({
+      providerReference: event.data.reference,
+      outcome: 'SUCCEEDED',
+    });
+  } else if (event.event === 'charge.failed') {
+    await billingService.applyGatewayPaymentOutcome({
+      providerReference: event.data.reference,
+      outcome: 'FAILED',
+    });
+  } else {
+    logger.info({ type: event.event }, 'Paystack webhook event ignored');
+  }
+
   res.status(202).json({ received: true });
 }
 
@@ -73,6 +121,24 @@ export async function flutterwave(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  logger.info('Flutterwave webhook verified (handler not implemented)');
+  const event = JSON.parse((req.body as Buffer).toString('utf8')) as {
+    event: string;
+    data?: { tx_ref: string; status: string };
+  };
+
+  if (event.data?.status === 'successful') {
+    await billingService.applyGatewayPaymentOutcome({
+      providerReference: event.data.tx_ref,
+      outcome: 'SUCCEEDED',
+    });
+  } else if (event.data?.status === 'failed') {
+    await billingService.applyGatewayPaymentOutcome({
+      providerReference: event.data.tx_ref,
+      outcome: 'FAILED',
+    });
+  } else {
+    logger.info({ status: event.data?.status }, 'Flutterwave webhook event ignored');
+  }
+
   res.status(202).json({ received: true });
 }
