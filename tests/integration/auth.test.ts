@@ -603,16 +603,193 @@ describe('logout', () => {
     expect(afterLogoutNoCookie.status).toBe(302);
     expect(afterLogoutNoCookie.headers.location).toBe('/login');
 
-    // KNOWN GAP (see audit report): sessions are self-contained signed
-    // cookies with no server-side revocation list, and logout does not
-    // touch passwordChangedAt (correctly — no credential changed). So the
-    // *exact pre-logout cookie value*, if captured before logout (XSS,
-    // shared device, a proxy log), is still cryptographically valid and
-    // still works after "logout" — bounded only by SESSION_TTL_HOURS. This
-    // assertion documents that current behaviour rather than a desired one.
+    // FIXED (see audit report): logout now revokes the server-side Session
+    // row for this specific login (middleware/session.ts + services/
+    // session.service.ts), checked on every request in loadCurrentUser. So
+    // the *exact pre-logout cookie value*, even if captured before logout
+    // (XSS, shared device, a proxy log), is rejected immediately rather than
+    // remaining valid until SESSION_TTL_HOURS naturally expires.
     const replayedStaleCookie = await request(app).get('/portal').set('Cookie', loggedIn);
-    expect(replayedStaleCookie.status).toBe(200);
+    expect(replayedStaleCookie.status).toBe(302);
+    expect(replayedStaleCookie.headers.location).toBe('/login');
   }, 15_000);
+
+  it('revoking one session does not log out a different session for the same user', async () => {
+    const email = emailFor('logout-other-device');
+    const { cookies, csrfToken } = await primeCsrf('/register');
+    await request(app)
+      .post('/register')
+      .set('Cookie', cookies)
+      .type('form')
+      .send({
+        fullName: 'Logout Other Device Fixture',
+        email,
+        password: STRONG_PASSWORD,
+        passwordConfirmation: STRONG_PASSWORD,
+        acceptTerms: 'on',
+        _csrf: csrfToken,
+      });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date(), status: 'ACTIVE' },
+    });
+
+    // Two independent logins — two separate Session rows.
+    const loginFormA = await primeCsrf('/login');
+    const loginResA = await request(app)
+      .post('/login')
+      .set('Cookie', loginFormA.cookies)
+      .type('form')
+      .send({ email, password: STRONG_PASSWORD, _csrf: loginFormA.csrfToken });
+    const deviceA = mergeCookies(loginFormA.cookies, loginResA);
+
+    const loginFormB = await primeCsrf('/login');
+    const loginResB = await request(app)
+      .post('/login')
+      .set('Cookie', loginFormB.cookies)
+      .type('form')
+      .send({ email, password: STRONG_PASSWORD, _csrf: loginFormB.csrfToken });
+    const deviceB = mergeCookies(loginFormB.cookies, loginResB);
+
+    const settingsPage = await request(app).get('/portal').set('Cookie', deviceA);
+    const token = extractCsrfToken(settingsPage.text);
+
+    const logoutRes = await request(app)
+      .post('/logout')
+      .set('Cookie', deviceA)
+      .type('form')
+      .send({ _csrf: token });
+    expect(logoutRes.status).toBe(303);
+
+    // Device A is logged out...
+    const deviceAAfter = await request(app).get('/portal').set('Cookie', deviceA);
+    expect(deviceAAfter.status).toBe(302);
+    expect(deviceAAfter.headers.location).toBe('/login');
+
+    // ...but device B, a different session for the same user, is untouched —
+    // this is the key difference from passwordChangedAt / a single
+    // tokenVersion counter, either of which would have logged out both.
+    const deviceBAfter = await request(app).get('/portal').set('Cookie', deviceB);
+    expect(deviceBAfter.status).toBe(200);
+  }, 15_000);
+});
+
+describe('mobile refresh-token flow', () => {
+  /** Registers + verifies + activates a student, returning their email. */
+  async function registerAndVerify(label: string) {
+    const email = emailFor(label);
+    const { cookies, csrfToken } = await primeCsrf('/register');
+    await request(app)
+      .post('/register')
+      .set('Cookie', cookies)
+      .type('form')
+      .send({
+        fullName: 'Refresh Token Fixture',
+        email,
+        password: STRONG_PASSWORD,
+        passwordConfirmation: STRONG_PASSWORD,
+        acceptTerms: 'on',
+        _csrf: csrfToken,
+      });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date(), status: 'ACTIVE' },
+    });
+    return email;
+  }
+
+  async function apiLogin(email: string) {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: STRONG_PASSWORD });
+    expect(res.status).toBe(200);
+    return res.body as {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+      refreshTokenExpiresAt: string;
+      user: { id: string; email: string };
+    };
+  }
+
+  it('issues both an access token and a refresh token on login', async () => {
+    const email = await registerAndVerify('refresh-issue');
+    const body = await apiLogin(email);
+
+    expect(typeof body.accessToken).toBe('string');
+    expect(typeof body.refreshToken).toBe('string');
+    expect(body.expiresIn).toBeGreaterThan(0);
+
+    const me = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${body.accessToken}`);
+    expect(me.status).toBe(200);
+    expect(me.body.email).toBe(email);
+  });
+
+  it('trades a refresh token for a new access + refresh token pair (rotation)', async () => {
+    const email = await registerAndVerify('refresh-use');
+    const { refreshToken } = await apiLogin(email);
+
+    const refreshRes = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken });
+
+    expect(refreshRes.status).toBe(200);
+    expect(typeof refreshRes.body.accessToken).toBe('string');
+    expect(typeof refreshRes.body.refreshToken).toBe('string');
+    // Rotated — the new refresh token is not the same value as the old one.
+    expect(refreshRes.body.refreshToken).not.toBe(refreshToken);
+
+    const me = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${refreshRes.body.accessToken}`);
+    expect(me.status).toBe(200);
+  });
+
+  it('rejects a refresh token that has already been rotated away', async () => {
+    const email = await registerAndVerify('refresh-rotate-once');
+    const { refreshToken } = await apiLogin(email);
+
+    const first = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    expect(first.status).toBe(200);
+
+    // Replaying the original (now-rotated) token must fail.
+    const replay = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    expect(replay.status).toBe(401);
+  });
+
+  it('detects reuse of a rotated-away token and revokes the whole chain', async () => {
+    const email = await registerAndVerify('refresh-reuse-detect');
+    const { refreshToken: original } = await apiLogin(email);
+
+    const rotated = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: original });
+    expect(rotated.status).toBe(200);
+    const rotatedToken = rotated.body.refreshToken as string;
+
+    // Replaying the original, already-rotated token is the reuse signal —
+    // it must fail, AND burn the token that replaced it too.
+    const reuse = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: original });
+    expect(reuse.status).toBe(401);
+
+    const afterReuse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: rotatedToken });
+    expect(afterReuse.status).toBe(401);
+  });
+
+  it('logout revokes the refresh token so it can no longer be used', async () => {
+    const email = await registerAndVerify('refresh-logout');
+    const { refreshToken } = await apiLogin(email);
+
+    const logoutRes = await request(app).post('/api/v1/auth/logout').send({ refreshToken });
+    expect(logoutRes.status).toBe(204);
+
+    const afterLogout = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    expect(afterLogout.status).toBe(401);
+  });
 });
 
 describe('API login brute-force protection', () => {

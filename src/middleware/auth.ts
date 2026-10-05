@@ -9,6 +9,7 @@ import type { UserRole } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { STAFF_ROLES } from '../config/constants.js';
 import { ForbiddenError, UnauthorizedError } from '../utils/errors.js';
+import { sessionService, isSessionRecordActive } from '../services/session.service.js';
 
 /**
  * Loads the current user onto the request when a session exists. Never
@@ -22,19 +23,27 @@ export async function loadCurrentUser(
   if (!req.session?.userId) return next();
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.session.userId },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        status: true,
-        emailVerifiedAt: true,
-        passwordChangedAt: true,
-        studentProfile: { select: { id: true, reference: true, currentStage: true } },
-      },
-    });
+    const sessionId = req.session.sessionId;
+
+    // Run alongside the user lookup rather than after it — this is the only
+    // extra DB round trip the per-session revocation check costs, since an
+    // authenticated request already pays one here to load the user.
+    const [user, sessionRow] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: req.session.userId },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          role: true,
+          status: true,
+          emailVerifiedAt: true,
+          passwordChangedAt: true,
+          studentProfile: { select: { id: true, reference: true, currentStage: true } },
+        },
+      }),
+      sessionId ? sessionService.find(sessionId) : Promise.resolve(null),
+    ]);
 
     // Session outlived the account, or the account was suspended.
     if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
@@ -49,6 +58,14 @@ export async function loadCurrentUser(
       user.passwordChangedAt &&
       (!req.session.issuedAt || req.session.issuedAt < user.passwordChangedAt.getTime())
     ) {
+      req.session = null;
+      return next();
+    }
+
+    // Per-session revocation (logout) — a cookie with no sessionId at all
+    // predates this field and, like a missing issuedAt above, is treated as
+    // already signed out rather than trusted.
+    if (!isSessionRecordActive(sessionRow, user.id)) {
       req.session = null;
       return next();
     }

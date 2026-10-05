@@ -11,9 +11,14 @@ export interface JwtPayload {
   iat?: number;
 }
 
+/**
+ * Access tokens are now short-lived (see refreshToken.service.ts for the
+ * refresh side of this): ACCESS_TOKEN_TTL_MINUTES, not the old JWT_TTL_HOURS,
+ * drives expiry so a leaked token is only usable briefly on its own.
+ */
 export function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: `${env.JWT_TTL_HOURS}h`,
+    expiresIn: `${env.ACCESS_TOKEN_TTL_MINUTES}m`,
     audience: 'waylen-mobile',
     issuer: 'waylen-api',
   });

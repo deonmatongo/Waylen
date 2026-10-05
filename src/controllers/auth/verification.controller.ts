@@ -3,6 +3,7 @@
  */
 import type { Request, Response } from 'express';
 import { authService } from '../../services/auth.service.js';
+import { sessionService } from '../../services/session.service.js';
 import { STAFF_ROLES } from '../../config/constants.js';
 
 export async function pending(req: Request, res: Response): Promise<void> {
@@ -18,11 +19,18 @@ export async function verify(req: Request, res: Response): Promise<void> {
     const user = await authService.verifyEmail(req.params.token as string);
 
     // Sign the user straight in — they have just proved control of the inbox.
+    const session = await sessionService.create({
+      userId: user.id,
+      userAgent: req.get('user-agent') ?? null,
+      ipAddress: req.ip ?? null,
+    });
+
     req.session!.userId = user.id;
     req.session!.role = user.role;
     req.session!.fullName = user.fullName;
     req.session!.emailVerified = true;
     req.session!.issuedAt = Date.now();
+    req.session!.sessionId = session.id;
 
     req.flash('success', 'Your email is confirmed. Welcome to Waylen.');
     res.redirect(STAFF_ROLES.includes(user.role) ? '/admin' : '/portal');

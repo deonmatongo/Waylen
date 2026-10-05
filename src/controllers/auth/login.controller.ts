@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { authService } from '../../services/auth.service.js';
 import { loginSchema } from '../../validators/auth.validator.js';
 import { auditService } from '../../services/audit.service.js';
+import { sessionService } from '../../services/session.service.js';
 import { STAFF_ROLES } from '../../config/constants.js';
 
 export async function show(_req: Request, res: Response): Promise<void> {
@@ -38,12 +39,20 @@ export async function submit(req: Request, res: Response): Promise<void> {
     // store: there is no session id an attacker could pre-seed and have the
     // victim adopt — the cookie itself, signed with SESSION_SECRET, is the
     // only thing that carries the login, and setting these fields overwrites
-    // whatever an attacker could have staged in it.
+    // whatever an attacker could have staged in it. The server-side Session
+    // row created below is a fresh id either way, so this holds for it too.
+    const session = await sessionService.create({
+      userId: user.id,
+      userAgent: req.get('user-agent') ?? null,
+      ipAddress: req.ip ?? null,
+    });
+
     req.session!.userId = user.id;
     req.session!.role = user.role;
     req.session!.fullName = user.fullName;
     req.session!.emailVerified = Boolean(user.emailVerifiedAt);
     req.session!.issuedAt = Date.now();
+    req.session!.sessionId = session.id;
 
     await auditService.record({
       actorId: user.id,
@@ -85,6 +94,14 @@ export async function submit(req: Request, res: Response): Promise<void> {
 
 export async function logout(req: Request, res: Response): Promise<void> {
   const userId = req.currentUser?.id;
+  const sessionId = req.session?.sessionId;
+
+  // Revoke the server-side record for *this* session before clearing the
+  // cookie — this is what makes a captured pre-logout cookie stop working
+  // immediately, rather than only once SESSION_TTL_HOURS naturally expires.
+  if (sessionId) {
+    await sessionService.revoke(sessionId);
+  }
 
   req.session = null;
 

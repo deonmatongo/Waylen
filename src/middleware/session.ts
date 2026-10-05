@@ -38,10 +38,18 @@ export interface SessionData {
   /**
    * Epoch ms this login was established. Compared against
    * User.passwordChangedAt on every request (see loadCurrentUser) so a
-   * password reset/change invalidates sessions issued before it, even though
-   * the cookie itself has no server-side record to revoke.
+   * password reset/change invalidates every session issued before it at once.
    */
   issuedAt?: number;
+  /**
+   * Id of the server-side Session row (prisma/schema.prisma) for *this*
+   * login. Unlike issuedAt/passwordChangedAt above (which invalidate every
+   * session at once), loadCurrentUser checks this id's row individually, so
+   * logout can revoke just this one session without touching the user's
+   * other devices. A cookie from before this field existed has none, and is
+   * treated as already revoked.
+   */
+  sessionId?: string;
   /** Where to send the user after a successful login. */
   returnTo?: string;
   flash?: { type: 'success' | 'error' | 'info' | 'warning'; message: string }[];

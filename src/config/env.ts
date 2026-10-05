@@ -30,6 +30,15 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_TTL_HOURS: z.coerce.number().int().positive().default(720),
 
+  // Mobile refresh-token flow (security audit follow-up — see
+  // services/refreshToken.service.ts): a short-lived access JWT paired with a
+  // longer-lived, rotatable, revocable refresh token stored hashed server-side.
+  // JWT_TTL_HOURS above is superseded for newly issued access tokens by
+  // ACCESS_TOKEN_TTL_MINUTES; left in place rather than removed/renamed so an
+  // existing .env keeps parsing.
+  ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
   DOCUMENT_ENCRYPTION_KEY: z
     .string()
     .refine((v) => Buffer.from(v, 'base64').length === 32, {
