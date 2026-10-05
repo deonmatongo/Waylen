@@ -106,7 +106,12 @@ portalRouter.post('/appointments/:id/cancel', asyncHandler(appointmentController
 // ── Career Guidance (PRD §5.2) ─────────────────────────────────────────────
 portalRouter.get('/career-guidance', asyncHandler(careerController.index));
 portalRouter.get('/career-guidance/assessment', asyncHandler(careerController.assessment));
-portalRouter.post('/career-guidance/assessment', asyncHandler(careerController.submitAssessment));
+portalRouter.post(
+  '/career-guidance/assessment',
+  audit({ action: 'CREATE', entity: 'CareerAssessmentResult' }),
+  asyncHandler(careerController.submitAssessment),
+);
+portalRouter.get('/career-guidance/results/:id', asyncHandler(careerController.results));
 
 // ── Insurance (PRD §5.2, §6.1) ─────────────────────────────────────────────
 portalRouter.get('/insurance', requireFeature('insurance'), asyncHandler(insuranceController.index));

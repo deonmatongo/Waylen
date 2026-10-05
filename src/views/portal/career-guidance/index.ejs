@@ -24,11 +24,26 @@
       A structured assessment that produces personalised programme and career
       recommendations.
     </p>
-    <a class="button button--secondary" href="/portal/career-guidance/assessment">Start the assessment</a>
+    <a class="button button--secondary" href="/portal/career-guidance/assessment">
+      <%= latestResult ? 'Retake the assessment' : 'Start the assessment' %>
+    </a>
   </section>
 </div>
 
-<%- include('../../partials/coming-soon', {
-      title: 'Personalised recommendations & career report',
-      detail: 'Once you\'ve completed a career assessment, your recommendations and a full career report will appear here.'
-    }) %>
+<% if (latestResult) { %>
+  <section class="panel">
+    <h2 class="panel__title">Your recommendations</h2>
+    <p class="panel__note">
+      Your last assessment, completed <%= format.formatDate(latestResult.createdAt) %>, pointed to
+      <strong><%= categoryLabels[latestResult.recommendedCategory] %></strong>.
+    </p>
+    <a class="button button--primary" href="/portal/career-guidance/results/<%= latestResult.id %>">
+      View your results
+    </a>
+  </section>
+<% } else { %>
+  <%- include('../../partials/coming-soon', {
+        title: 'Personalised recommendations & career report',
+        detail: 'Once you\'ve completed a career assessment, your recommendations and a full career report will appear here.'
+      }) %>
+<% } %>

@@ -1,0 +1,83 @@
+<%# PRD §5.2 — personalised recommendations from the self-assessment. %>
+<section class="panel">
+  <p class="panel__note">
+    Based on your answers on <%= format.formatDate(result.createdAt) %>, your
+    best-fit path is:
+  </p>
+  <h2 class="panel__title"><%= categoryLabels[result.recommendedCategory] %></h2>
+  <% if (result.secondaryCategory) { %>
+    <p class="panel__note">
+      Worth a look too: <strong><%= categoryLabels[result.secondaryCategory] %></strong>
+    </p>
+  <% } %>
+</section>
+
+<div class="dash-grid dash-grid--2">
+  <section class="panel">
+    <h2 class="panel__title">Talk it through with a counsellor</h2>
+    <p class="panel__note">
+      A one-on-one Career Guidance session is the clearest next step — bring
+      these results and your counsellor will help you turn them into an
+      actual shortlist and application plan.
+    </p>
+    <a class="button button--primary" href="/portal/appointments/new">Book a Career Guidance session</a>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">Not feeling it?</h2>
+    <p class="panel__note">
+      People change their minds — and answers — all the time. You can retake
+      the assessment whenever you like.
+    </p>
+    <a class="button button--secondary" href="/portal/career-guidance/assessment">Retake the assessment</a>
+  </section>
+</div>
+
+<section class="panel">
+  <h2 class="panel__title">Programmes that match <%= categoryLabels[result.recommendedCategory] %></h2>
+
+  <% if (!recommendedOpportunities.length) { %>
+    <%- include('../../partials/empty-state', {
+          heading: 'No published programmes in this category yet',
+          message: 'Your counsellor can still point you to options that are not listed publicly.',
+          actionHref: '/portal/appointments/new',
+          actionLabel: 'Book a session'
+        }) %>
+  <% } else { %>
+    <ul class="listing">
+      <% recommendedOpportunities.forEach(function (opportunity) { %>
+        <li class="listing__item">
+          <div class="listing__body">
+            <p class="listing__eyebrow">
+              <%= categoryLabels[opportunity.category] %> · <%= opportunity.country.name %>
+            </p>
+            <h3 class="listing__title">
+              <a href="/opportunities/<%= opportunity.slug %>"><%= opportunity.title %></a>
+            </h3>
+            <p class="listing__summary"><%= format.truncate(opportunity.description, 180) %></p>
+
+            <dl class="listing__meta">
+              <% if (opportunity.duration) { %>
+                <div><dt>Duration</dt><dd><%= opportunity.duration %></dd></div>
+              <% } %>
+              <div>
+                <dt>Tuition</dt>
+                <dd><%= format.formatTuitionRange(opportunity.indicativeTuitionMin, opportunity.indicativeTuitionMax, opportunity.currency) %></dd>
+              </div>
+            </dl>
+
+            <% if (opportunity.scholarshipAvailable) { %>
+              <p class="badge badge--positive">Scholarships available</p>
+            <% } %>
+          </div>
+
+          <div class="listing__actions">
+            <a class="button button--primary button--small" href="/opportunities/<%= opportunity.slug %>">
+              View details
+            </a>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
