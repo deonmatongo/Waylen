@@ -78,8 +78,8 @@ const schema = z.object({
   CRON_SECRET: z.string().min(32).optional(),
 
   FEATURE_PAYMENTS: bool.default('false'),
-  FEATURE_INSURANCE: bool.default('false'),
-  FEATURE_PARTNER_DIRECTORY: bool.default('false'),
+  FEATURE_INSURANCE: bool.default('true'),
+  FEATURE_PARTNER_DIRECTORY: bool.default('true'),
   FEATURE_COMMUNITY: bool.default('false'),
   FEATURE_AGENT_PORTAL: bool.default('false'),
 });

@@ -100,6 +100,13 @@ export const PARTNER_CATEGORY_LABELS = {
   WELLBEING_COMMUNITY: 'Wellbeing & Community',
 } as const;
 
+/** PRD §5.2, §6.1 — student insurance coverage types. */
+export const INSURANCE_COVERAGE_TYPE_LABELS = {
+  HEALTH: 'Health cover',
+  TRAVEL: 'Travel cover',
+  COMBINED: 'Health & travel cover',
+} as const;
+
 /**
  * Documents the student is asked to upload (PRD §5.2 Document Centre), as
  * distinct from documents Waylen issues to them (Downloads).
