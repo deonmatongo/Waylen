@@ -61,6 +61,13 @@ const schema = z.object({
   PAYSTACK_SECRET_KEY: z.string().optional(),
   FLUTTERWAVE_SECRET_KEY: z.string().optional(),
 
+  // Shared rate-limit store (src/middleware/rateLimit.ts). Optional: when
+  // unset, rate limiting falls back to the per-process in-memory store.
+  // Upstash's REST client talks plain HTTPS, not a pooled TCP connection, so
+  // it's the one that works from Vercel's serverless functions.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
   MS_GRAPH_TENANT_ID: z.string().optional(),
   MS_GRAPH_CLIENT_ID: z.string().optional(),
   MS_GRAPH_CLIENT_SECRET: z.string().optional(),
@@ -90,6 +97,15 @@ const refined = schema.superRefine((data, ctx) => {
       code: z.ZodIssueCode.custom,
       path: ['CRON_SECRET'],
       message: 'CRON_SECRET is required in production to authenticate /cron/* routes',
+    });
+  }
+
+  if (Boolean(data.UPSTASH_REDIS_REST_URL) !== Boolean(data.UPSTASH_REDIS_REST_TOKEN)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['UPSTASH_REDIS_REST_TOKEN'],
+      message:
+        'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set together, or not at all',
     });
   }
 });
