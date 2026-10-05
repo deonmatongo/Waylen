@@ -93,6 +93,7 @@ export async function store(req: Request, res: Response): Promise<void> {
 
 export async function show(req: Request, res: Response): Promise<void> {
   const invoice = await billingService.findById(req.params.id as string);
+  await assertCanAccessStudent(req, invoice.studentProfileId);
 
   res.render('admin/invoices/show', {
     title: `Invoice ${invoice.number}`,
@@ -103,6 +104,8 @@ export async function show(req: Request, res: Response): Promise<void> {
 }
 
 export async function send(req: Request, res: Response): Promise<void> {
+  await assertCanAccessStudent(req, await loadInvoiceStudentProfileId(req.params.id as string));
+
   await billingService.markSent(req.params.id as string, req.currentUser!.id);
 
   req.flash('success', 'Invoice sent to the student.');
@@ -110,6 +113,8 @@ export async function send(req: Request, res: Response): Promise<void> {
 }
 
 export async function recordPayment(req: Request, res: Response): Promise<void> {
+  await assertCanAccessStudent(req, await loadInvoiceStudentProfileId(req.params.id as string));
+
   // Manual reconciliation for bank transfer, SWIFT and Revolut — these never
   // arrive through a gateway webhook, so staff record them here (PRD §8.1).
   await billingService.recordManualPayment({
@@ -125,6 +130,8 @@ export async function recordPayment(req: Request, res: Response): Promise<void> 
 }
 
 export async function sendReminder(req: Request, res: Response): Promise<void> {
+  await assertCanAccessStudent(req, await loadInvoiceStudentProfileId(req.params.id as string));
+
   await billingService.recordReminderSent(req.params.id as string);
 
   req.flash('success', 'Reminder sent.');
@@ -151,6 +158,15 @@ export async function pendingQueue(req: Request, res: Response): Promise<void> {
     layout: 'layouts/admin',
     payments,
   });
+}
+
+async function loadInvoiceStudentProfileId(invoiceId: string): Promise<string> {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { studentProfileId: true },
+  });
+  if (!invoice) throw new NotFoundError('That invoice could not be found.');
+  return invoice.studentProfileId;
 }
 
 async function loadPaymentStudentProfileId(paymentId: string): Promise<string> {
