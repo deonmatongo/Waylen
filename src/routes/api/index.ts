@@ -5,6 +5,7 @@ import { portalApiRouter } from './portal.routes.js';
 import { AppError } from '../../utils/errors.js';
 import { logger } from '../../config/logger.js';
 import { env } from '../../config/env.js';
+import { captureUnexpectedError } from '../../config/sentry.js';
 
 export const apiRouter = Router();
 
@@ -18,7 +19,7 @@ apiRouter.use((_req: Request, res: Response) => {
 
 // JSON error handler — must be 4-param for Express to recognise it as error middleware
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-apiRouter.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+apiRouter.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const isAppError = err instanceof AppError;
   const status = isAppError ? err.statusCode : 500;
   const expected = isAppError && err.isOperational;
@@ -27,6 +28,7 @@ apiRouter.use((err: unknown, _req: Request, res: Response, _next: NextFunction) 
     logger.warn({ err, status }, (err).message);
   } else {
     logger.error({ err }, 'Unhandled API error');
+    captureUnexpectedError(err, { path: req.path, method: req.method, status });
   }
 
   const message = expected

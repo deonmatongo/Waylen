@@ -19,9 +19,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
+import { initSentry, captureUnexpectedError } from './config/sentry.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { startScheduledJobs, stopScheduledJobs } from './jobs/index.js';
 import { isGraphConfigured } from './services/graph-client.service.js';
+
+// As early as possible in the process lifecycle — before the app is built,
+// before any request can arrive. A no-op when SENTRY_DSN is unset (every
+// environment today; see docs/architecture.md).
+initSentry();
 
 type ExpressApp = ReturnType<typeof createApp>;
 
@@ -62,11 +68,17 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 // Logging and carrying on is deliberate here: there is no server to drain
 // and no signal to forward, and killing the process mid-request is worse
 // than leaving the container up for the next invocation.
+// Sentry capture lives only here, not in main()'s copies below — on a
+// traditional host both pairs of listeners fire for the same event (these
+// unconditionally, main()'s additionally triggering `shutdown`), so
+// reporting in both would double-send every crash.
 process.on('unhandledRejection', (reason) => {
   logger.error({ reason }, 'Unhandled promise rejection');
+  captureUnexpectedError(reason, { source: 'unhandledRejection' });
 });
 process.on('uncaughtException', (err) => {
   logger.error({ err }, 'Uncaught exception');
+  captureUnexpectedError(err, { source: 'uncaughtException' });
 });
 
 async function main(): Promise<void> {

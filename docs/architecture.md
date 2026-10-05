@@ -193,6 +193,21 @@ malformed bodies) onto our own hierarchy before deciding a status. Two reasons:
 a rejected CSRF token is the user's problem, not a 500 claiming we broke; and
 expected client errors logged at `error` level would bury real bugs.
 
+### Error reporting (Sentry) — wired, inactive
+
+`src/config/sentry.ts` initialises `@sentry/node` from `SENTRY_DSN` and
+exposes `captureUnexpectedError`, called from the same `!isOperational`/500
+branch in `errorHandler.ts` and `routes/api/index.ts` that already logs via
+`logger.error`, plus the process-level `unhandledRejection`/`uncaughtException`
+handlers in `server.ts`. Only genuine bugs are reported — never 4xx/`AppError`
+— and only the path, method and status are attached, never request bodies,
+headers, or cookies.
+
+`SENTRY_DSN` is unset in every environment today, so `initSentry()` is a
+no-op and nothing is actually sent anywhere. To activate it in a real
+deployment: create a Sentry project, set `SENTRY_DSN` to its ingest DSN in
+that environment's config, and redeploy — no code change needed.
+
 ---
 
 ## 6. Things that will need attention
