@@ -8,6 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { captureUnexpectedError } from '../config/sentry.js';
 import {
   AppError,
   ForbiddenError,
@@ -80,6 +81,7 @@ export function errorHandler(
     logger.warn({ err: normalised, path: req.path, status }, normalised.message);
   } else {
     logger.error({ err: normalised, path: req.path }, 'Unhandled error');
+    captureUnexpectedError(normalised, { path: req.path, method: req.method, status });
   }
 
   const message = expected
