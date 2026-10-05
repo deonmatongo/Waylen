@@ -1,9 +1,63 @@
+<%# PRD §5.2, §6.1 — insurance quote + purchase, sold in-portal today. %>
 <section class="panel">
-  <% if (!quote) { %>
+  <h2 class="panel__title">Get a quote</h2>
+
+  <form class="form" method="get" action="/portal/insurance/quote">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="coverageType">Cover type</label>
+        <select class="field__select" id="coverageType" name="coverageType">
+          <% Object.entries(coverageTypeLabels).forEach(function (entry) { %>
+            <option value="<%= entry[0] %>" <%= values.coverageType === entry[0] ? 'selected' : '' %>>
+              <%= entry[1] %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="coverageStartsAt">Cover starts</label>
+        <input class="field__input" type="date" id="coverageStartsAt" name="coverageStartsAt"
+               value="<%= values.coverageStartsAt || '' %>" required>
+        <% if (errors.coverageStartsAt) { %><p class="field__error"><%= errors.coverageStartsAt[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="coverageEndsAt">Cover ends</label>
+        <input class="field__input" type="date" id="coverageEndsAt" name="coverageEndsAt"
+               value="<%= values.coverageEndsAt || '' %>" required>
+        <% if (errors.coverageEndsAt) { %><p class="field__error"><%= errors.coverageEndsAt[0] %></p><% } %>
+      </div>
+    </div>
+
+    <button class="button button--primary" type="submit">Get a quote</button>
+  </form>
+</section>
+
+<% if (quote) { %>
+  <section class="panel">
+    <h2 class="panel__title">Your quote</h2>
+
+    <dl class="detail-list">
+      <div><dt>Plan</dt><dd><%= quote.planName %></dd></div>
+      <div><dt>Cover</dt><dd><%= format.formatDate(quote.coverageStartsAt) %> – <%= format.formatDate(quote.coverageEndsAt) %> (<%= quote.days %> days)</dd></div>
+      <div><dt>Premium</dt><dd><%= format.formatMoney(quote.premiumMinor, quote.currency) %></dd></div>
+    </dl>
+
+    <form class="form" method="post" action="/portal/insurance/purchase">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="coverageType" value="<%= quote.coverageType %>">
+      <input type="hidden" name="coverageStartsAt" value="<%= values.coverageStartsAt %>">
+      <input type="hidden" name="coverageEndsAt" value="<%= values.coverageEndsAt %>">
+      <button class="button button--primary" type="submit">Purchase this policy</button>
+    </form>
+  </section>
+<% } else { %>
+  <section class="panel">
     <p class="panel__note">
       Message your counsellor with your travel dates and destination, and they will
       prepare a quote for you.
     </p>
     <a class="button button--secondary" href="/portal/messages">Message your counsellor</a>
-  <% } %>
-</section>
+  </section>
+<% } %>
