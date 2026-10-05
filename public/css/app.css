@@ -53,14 +53,20 @@
   --grey-200: #dadde5;
   --grey-300: #ccd3dd;
   --grey-500: #7b8698;
-  --grey-600: #657083;
+  /* Nudged one shade darker than the original handoff value — at #657083 the
+     --text-muted body copy fell to 4.35:1 on --bg-muted, just short of WCAG
+     AA's 4.5:1 for normal text; this clears it on every background it's used
+     against while reading as effectively the same grey. */
+  --grey-600: #616b7d;
 
-  /* Status */
-  --positive-600: #059669;
+  /* Status — darkened from the original design-handoff values so text set in
+     these colours on their matching *-100 tint (flash messages, badges)
+     clears WCAG AA's 4.5:1 for normal text; same hue, same *-100 pairing. */
+  --positive-600: #047d58;
   --positive-100: #d1fae5;
-  --warning-600: #d97706;
+  --warning-600: #a75c05;
   --warning-100: #fef3c7;
-  --negative-600: #e11d48;
+  --negative-600: #ca1a41;
   --negative-100: #ffe4e6;
 
   /* Semantic */
@@ -126,6 +132,16 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* Without this, an element the JS toggles with the `hidden` attribute (e.g.
+   .cookie-consent__prefs below) stays visible whenever a class rule also
+   sets its `display` — an authored declaration beats the user-agent
+   stylesheet's `[hidden] { display: none }` at equal specificity, so the
+   attribute silently did nothing and the element (and its now-incorrect
+   aria-expanded="false" trigger) stayed on screen. */
+[hidden] {
+  display: none !important;
 }
 
 html {
@@ -710,17 +726,6 @@ hr.rule {
   color: var(--corp-navy);
 }
 
-.button--ghost-inverse {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.35);
-  color: var(--white);
-}
-
-.button--ghost-inverse:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: var(--white);
-}
-
 .button--large {
   padding: var(--sp-4) var(--sp-6);
   font-size: var(--text-base);
@@ -765,98 +770,6 @@ hr.rule {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-}
-
-/* ── Hero ───────────────────────────────────────────────────────────────── */
-
-.hero {
-  padding: var(--sp-7) var(--sp-4);
-  background: linear-gradient(150deg, var(--ink-800) 0%, var(--blue-700) 55%, var(--blue-500) 100%);
-  color: var(--white);
-}
-
-.hero__eyebrow {
-  color: var(--blue-400);
-}
-
-.hero__title {
-  color: var(--white);
-}
-
-.hero__lede {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.hero__inner {
-  max-width: var(--container);
-  margin: 0 auto;
-  display: grid;
-  gap: var(--sp-6);
-}
-
-.hero__eyebrow {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--blue-600);
-  margin-bottom: var(--sp-3);
-}
-
-.hero__title {
-  font-size: var(--text-3xl);
-  margin-bottom: var(--sp-4);
-}
-
-.hero__lede {
-  font-size: var(--text-lg);
-  color: var(--text-muted);
-  max-width: 54ch;
-  margin-bottom: var(--sp-5);
-}
-
-.hero__actions {
-  display: flex;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--sp-6);
-}
-
-.hero__reassurance {
-  display: grid;
-  gap: var(--sp-2);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.hero__reassurance li::before {
-  content: '✓';
-  color: var(--positive-600);
-  font-weight: 700;
-  margin-right: var(--sp-2);
-}
-
-.hero__media img {
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  object-fit: cover;
-}
-
-@media (min-width: 900px) {
-  .hero {
-    padding: var(--sp-9) var(--sp-6);
-  }
-
-  .hero__inner {
-    grid-template-columns: 1.05fr 0.95fr;
-    align-items: center;
-    gap: var(--sp-8);
-  }
-
-  .hero__title {
-    font-size: var(--text-4xl);
-  }
 }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
@@ -1050,17 +963,6 @@ hr.rule {
   border-block: 1px solid var(--border);
 }
 
-.logo-strip__heading {
-  max-width: var(--container);
-  margin: 0 auto var(--sp-4);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  text-align: center;
-}
-
 .logo-strip__list {
   max-width: var(--container);
   margin: 0 auto;
@@ -1085,91 +987,6 @@ hr.rule {
 .logo-strip__item img:hover {
   filter: none;
   opacity: 1;
-}
-
-/* ── Steps ──────────────────────────────────────────────────────────────── */
-
-.steps {
-  display: grid;
-  gap: var(--sp-5);
-  counter-reset: step;
-}
-
-.steps__item {
-  padding-left: var(--sp-7);
-  position: relative;
-}
-
-.steps__number {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, var(--blue-600), var(--teal-600));
-  color: var(--white);
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.steps__title {
-  font-size: var(--text-base);
-  margin-bottom: var(--sp-2);
-}
-
-.steps__body {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-@media (min-width: 768px) {
-  .steps {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--sp-5);
-  }
-
-  .steps__item {
-    padding-left: 0;
-    padding-top: var(--sp-7);
-  }
-}
-
-/* ── Portal preview / split sections ────────────────────────────────────── */
-
-.portal-preview__inner {
-  display: grid;
-  gap: var(--sp-6);
-  align-items: center;
-}
-
-.portal-preview__media img {
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-}
-
-.tick-list {
-  display: grid;
-  gap: var(--sp-2);
-  margin: var(--sp-4) 0 var(--sp-5);
-  font-size: var(--text-sm);
-}
-
-.tick-list li::before {
-  content: '✓';
-  color: var(--positive-600);
-  font-weight: 700;
-  margin-right: var(--sp-2);
-}
-
-@media (min-width: 900px) {
-  .portal-preview__inner {
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: var(--sp-8);
-  }
 }
 
 /* ── Quotes ─────────────────────────────────────────────────────────────── */
@@ -1226,7 +1043,9 @@ hr.rule {
   height: 36px;
   flex-shrink: 0;
   background-color: var(--corp-navy);
-  color: var(--corp-gold);
+  /* --corp-gold (#2847d8) on --corp-navy is ~2.2:1 — well under WCAG AA's
+     4.5:1 for this small, bold initials text. White clears it easily. */
+  color: var(--white);
   border-radius: 50%;
   font-size: var(--text-xs);
   font-weight: 700;
@@ -1287,6 +1106,11 @@ hr.rule {
 
 .page-hero__image {
   width: 100%;
+  /* No stored natural width/height to put on the <img> itself (CMS upload),
+     so reserve space with aspect-ratio instead of letting height stay
+     unknown until the image loads — avoids a layout shift on this
+     above-the-fold banner. max-height still caps it on tall narrow images. */
+  aspect-ratio: 21 / 9;
   max-height: 340px;
   object-fit: cover;
 }
@@ -1495,6 +1319,12 @@ hr.rule {
 
 .article__cover {
   width: 100%;
+  /* CMS-uploaded covers have no stored width/height to put on the <img> tag
+     itself, so the browser can't reserve space before it loads — a fixed
+     aspect-ratio (matching .card__image/.cp-article__image elsewhere) gives
+     it a reserved box instead, preventing layout shift. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   border-radius: var(--radius-lg);
   margin-bottom: var(--sp-6);
 }
@@ -1616,11 +1446,6 @@ hr.rule {
   border-left: 3px solid var(--corp-gold);
   border-radius: 2px;
   margin-bottom: var(--sp-4);
-}
-
-.notice--action {
-  background-color: var(--corp-gold-bg);
-  border-left-color: var(--corp-gold);
 }
 
 /* Scaffolded features are visually distinct so nobody mistakes a placeholder
@@ -1779,7 +1604,10 @@ hr.rule {
 .field__input:focus,
 .field__textarea:focus {
   border-color: var(--corp-navy);
-  box-shadow: 0 0 0 3px rgba(13,31,76,0.1);
+  /* 0.1 alpha measured at ~1.4:1 against white — barely perceptible as a
+     focus change, confirmed by screenshot during this audit. 0.45 reads
+     clearly while keeping the same navy-tinted ring. */
+  box-shadow: 0 0 0 3px rgba(13,31,76,0.45);
   outline: none;
   background: #fff;
 }
@@ -1836,7 +1664,8 @@ hr.rule {
 
 .field__select:focus {
   border-color: var(--corp-navy);
-  box-shadow: 0 0 0 3px rgba(13,31,76,0.1);
+  /* See .field__input:focus above — 0.1 alpha was barely visible. */
+  box-shadow: 0 0 0 3px rgba(13,31,76,0.45);
   outline: none;
   background-color: #fff;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c5a028' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -1966,7 +1795,7 @@ hr.rule {
 .checkbox input[type='checkbox']:focus-visible,
 .radio input[type='radio']:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(13,31,76,0.15);
+  box-shadow: 0 0 0 3px rgba(13,31,76,0.45);
 }
 
 .checkbox-grid {
@@ -2020,7 +1849,7 @@ hr.rule {
 .cs.is-open .cs__trigger,
 .cs__trigger:focus-visible {
   border-color: var(--corp-navy);
-  box-shadow: 0 0 0 3px rgba(13,31,76,0.1);
+  box-shadow: 0 0 0 3px rgba(13,31,76,0.45);
   outline: none;
   background: #fff;
 }
@@ -2198,17 +2027,6 @@ hr.rule {
   pointer-events: none;
 }
 
-.cs__option--group-label {
-  padding: 8px var(--sp-4) 4px;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--corp-gold);
-  pointer-events: none;
-  cursor: default;
-}
-
 .cs__option.is-selected {
   background: var(--corp-navy);
   color: #fff;
@@ -2221,7 +2039,9 @@ hr.rule {
 
 .cs__option.is-selected .cs__option-check {
   opacity: 1;
-  color: var(--corp-gold);
+  /* --corp-gold against this row's --corp-navy background is ~1.7:1; white
+     keeps the checkmark actually visible against the selected-row fill. */
+  color: var(--white);
 }
 
 /* Empty state */
@@ -2708,12 +2528,16 @@ hr.rule {
 
 .tracker__step--complete .tracker__marker {
   background-color: var(--corp-navy);
-  color: var(--corp-gold);
+  /* --corp-gold on --corp-navy is ~2.2:1 — fails AA for this small bold
+     step-number text. --corp-gold-lt clears 4.5:1. */
+  color: var(--corp-gold-lt);
 }
 
 .tracker__step--current .tracker__marker {
   background-color: var(--corp-gold);
-  color: var(--corp-navy);
+  /* Same pair reversed (corp-navy text on corp-gold fill) is the same ~2.2:1
+     failure — white clears it easily and matches the primary-button pattern. */
+  color: var(--white);
   box-shadow: 0 0 0 4px var(--corp-gold-bg);
 }
 
@@ -2760,73 +2584,6 @@ hr.rule {
   .tracker__marker {
     margin-bottom: var(--sp-2);
   }
-}
-
-/* ── Pipeline (admin) ───────────────────────────────────────────────────── */
-
-.pipeline {
-  display: grid;
-  gap: 0;
-  overflow-x: auto;
-}
-
-@media (min-width: 600px) {
-  .pipeline {
-    grid-template-columns: repeat(7, 1fr);
-  }
-}
-
-.pipeline__stage {
-  padding: var(--sp-4) var(--sp-3);
-  background: #f8faff;
-  border: 1px solid rgba(13,31,76,0.08);
-  border-right: none;
-  text-align: center;
-  position: relative;
-  transition: background 0.15s;
-}
-
-.pipeline__stage:first-child { border-radius: 10px 0 0 10px; }
-.pipeline__stage:last-child  { border-radius: 0 10px 10px 0; border-right: 1px solid rgba(13,31,76,0.08); }
-
-.pipeline__stage:hover { background: #eef1fa; }
-
-/* Coloured left accent per stage */
-.pipeline__stage::before {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 3px;
-  border-radius: 10px 0 0 10px;
-  background: transparent;
-}
-
-.pipeline__stage:nth-child(1)::before { background: #cbd5e0; }
-.pipeline__stage:nth-child(2)::before { background: var(--corp-navy); }
-.pipeline__stage:nth-child(3)::before { background: var(--corp-gold); }
-.pipeline__stage:nth-child(4)::before { background: var(--corp-navy-mid); }
-.pipeline__stage:nth-child(5)::before { background: #6b7fa8; }
-.pipeline__stage:nth-child(6)::before { background: var(--corp-gold); }
-.pipeline__stage:nth-child(7)::before { background: var(--corp-navy); }
-
-.pipeline__count {
-  display: block;
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  color: var(--corp-navy);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin-bottom: var(--sp-1);
-}
-
-.pipeline__stage:nth-child(3) .pipeline__count,
-.pipeline__stage:nth-child(6) .pipeline__count { color: #9a7a18; }
-
-.pipeline__label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  letter-spacing: 0.03em;
-  line-height: 1.3;
 }
 
 /* ── Bar chart (reports) ────────────────────────────────────────────────── */
@@ -2891,7 +2648,11 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  /* --corp-gold on --corp-navy is ~2.2:1 — fails AA for this small bold
+     label. (The portal/admin shell overrides this to a light-on-light-blue
+     treatment below; this base rule only matters if the badge is ever used
+     outside that shell, but should still be contrast-safe on its own.) */
+  color: var(--corp-gold-lt);
   padding: 3px 8px;
   background-color: var(--corp-navy);
   border-radius: 2px;
@@ -3115,8 +2876,11 @@ hr.rule {
 
 .app-sidebar__link.is-current {
   background-color: transparent;
-  color: var(--corp-gold);
-  border-left: 3px solid var(--corp-gold);
+  /* --corp-gold on this sidebar's --corp-navy background is ~2.2:1 — fails
+     AA for this nav-link text, shown on every portal/admin page.
+     --corp-gold-lt clears 4.5:1. */
+  color: var(--corp-gold-lt);
+  border-left: 3px solid var(--corp-gold-lt);
   padding-left: calc(var(--sp-3) - 3px);
 }
 
@@ -3216,7 +2980,9 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  /* --corp-gold on this sidebar's --corp-navy background is ~2.2:1 — fails
+     AA; --corp-gold-lt clears 4.5:1 (see .app-sidebar__link.is-current). */
+  color: var(--corp-gold-lt);
   margin-top: 2px;
 }
 
@@ -3230,7 +2996,10 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.28);
+  /* 0.28 opacity white on the navy sidebar was ~2.5:1 — fails AA for this
+     admin-nav section heading, shown on every back-office page. 0.65 clears
+     4.5:1 while staying visibly de-emphasised next to the nav links. */
+  color: rgba(255, 255, 255, 0.65);
   padding: var(--sp-3) var(--sp-3) var(--sp-1);
 }
 
@@ -3865,64 +3634,6 @@ hr.rule {
   }
 }
 
-/* ── Demo credentials ───────────────────────────────────────────────────── */
-
-.demo-credentials {
-  margin-top: var(--sp-6);
-  padding: var(--sp-4);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-
-.demo-credentials__title {
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: var(--sp-3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: var(--text-xs);
-}
-
-.demo-credentials__table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.demo-credentials__table th,
-.demo-credentials__table td {
-  text-align: left;
-  padding: var(--sp-1) var(--sp-2);
-  border-bottom: 1px solid var(--border);
-}
-
-.demo-credentials__table th {
-  font-weight: 600;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding-bottom: var(--sp-2);
-}
-
-.demo-credentials__table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.demo-credentials__table td {
-  color: var(--text-base);
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-xs);
-}
-
-.demo-credentials__table td:first-child {
-  font-family: inherit;
-  font-weight: 500;
-  color: var(--text-muted);
-  width: 25%;
-}
-
 /* ── Error pages ────────────────────────────────────────────────────────── */
 
 .error-page__code {
@@ -4164,18 +3875,6 @@ hr.rule {
   min-height: 52px;
 }
 
-.btn--lg {
-  padding: 0.8125rem 1.875rem;
-  font-size: var(--text-sm);
-  min-height: 48px;
-}
-
-.btn--sm {
-  padding: 0.5rem 1.125rem;
-  font-size: var(--text-xs);
-  min-height: 36px;
-}
-
 /* ══════════════════════════════════════════════════════════════════════════
    Corporate hero
    ══════════════════════════════════════════════════════════════════════════ */
@@ -4233,7 +3932,10 @@ hr.rule {
 
 .cp-hero__title-em {
   font-style: normal;
-  color: var(--corp-gold);
+  /* --corp-gold is ~1.7:1 against this hero's navy background — fails even
+     the 3:1 large-text minimum. --corp-gold-lt clears 3:1 (this text is
+     large/bold so 3:1, not 4.5:1, applies) while keeping an accent colour. */
+  color: var(--corp-gold-lt);
 }
 
 .cp-hero__lede {
@@ -4249,38 +3951,6 @@ hr.rule {
   gap: var(--sp-3);
   flex-wrap: wrap;
   margin-bottom: var(--sp-8);
-}
-
-.cp-hero__credentials {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-5) 0 var(--sp-6);
-  list-style: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.cp-hero__cred-sep {
-  width: 1px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.cp-hero__cred-value {
-  display: block;
-  font-size: var(--text-xl);
-  font-weight: 800;
-  color: var(--corp-gold);
-  letter-spacing: -0.02em;
-}
-
-.cp-hero__cred-label {
-  display: block;
-  font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.55);
-  margin-top: 2px;
-  letter-spacing: 0.02em;
 }
 
 /* Hero aside panel */
@@ -4303,7 +3973,9 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  /* Small text on the dark glass panel — needs the full 4.5:1, which
+     --corp-gold doesn't clear here; white does (matches .cp-hero__eyebrow). */
+  color: var(--white);
   margin-bottom: 1.5rem;
 }
 
@@ -4504,7 +4176,9 @@ hr.rule {
   display: block;
   font-size: var(--text-2xl);
   font-weight: 800;
-  color: var(--corp-gold);
+  /* --corp-gold on this bar's --corp-navy background is ~2.2:1 — fails even
+     the 3:1 large-text minimum. --corp-gold-lt clears it. */
+  color: var(--corp-gold-lt);
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -4581,7 +4255,14 @@ hr.rule {
 }
 
 .cp-section__label--light {
-  color: var(--corp-gold);
+  /* This modifier is applied on .cp-section--navy (dark) sections, where
+     --corp-gold is ~2.2:1 against the navy background — fails AA for this
+     small bold label. --corp-gold-lt clears 4.5:1. */
+  color: var(--corp-gold-lt);
+}
+
+.cp-section__label--light::before {
+  background: var(--corp-gold-lt);
 }
 
 .cp-section__title {
@@ -4743,7 +4424,9 @@ hr.rule {
 .cp-service__icon {
   width: 40px;
   height: 40px;
-  color: var(--corp-gold);
+  /* --corp-gold on this card's --corp-navy background is ~2.2:1 — fails the
+     3:1 minimum for a meaningful icon. --corp-gold-lt clears it. */
+  color: var(--corp-gold-lt);
   margin-bottom: 1.25rem;
 }
 
@@ -4766,7 +4449,10 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  /* --corp-gold on this card's --corp-navy background is ~2.2:1 — fails AA.
+     White clears it and keeps the hover state (corp-gold-lt, below) visibly
+     distinct as a color change rather than a no-op. */
+  color: var(--white);
   border-bottom: 1px solid var(--corp-rule);
   padding-bottom: 2px;
   text-decoration: none;
@@ -5269,7 +4955,8 @@ hr.rule {
   height: 40px;
   border-radius: 50%;
   background: var(--corp-navy);
-  color: var(--corp-gold);
+  /* See .avatar above — --corp-gold on --corp-navy fails AA text contrast. */
+  color: var(--white);
   font-size: var(--text-xs);
   font-weight: 700;
   display: grid;
@@ -5419,7 +5106,9 @@ hr.rule {
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--corp-gold);
+  /* --corp-gold on this section's --corp-navy background is ~2.2:1 — fails
+     AA for this small bold eyebrow label. --corp-gold-lt clears 4.5:1. */
+  color: var(--corp-gold-lt);
   margin-bottom: var(--sp-4);
 }
 
@@ -5428,7 +5117,7 @@ hr.rule {
   display: block;
   width: 28px;
   height: 2px;
-  background: var(--corp-gold);
+  background: var(--corp-gold-lt);
 }
 
 .cp-cta__title {
@@ -5501,7 +5190,10 @@ hr.rule {
   display: block;
   font-size: 3rem;
   font-weight: 900;
-  color: var(--corp-gold);
+  /* Large/bold text, so the 3:1 minimum applies — --corp-gold is ~2.2:1
+     against this section's --corp-navy background and still fails it.
+     --corp-gold-lt clears it. */
+  color: var(--corp-gold-lt);
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -5872,11 +5564,6 @@ hr.rule {
   border-left-color: var(--app-accent);
 }
 
-.app .notice--action {
-  background-color: var(--app-accent-bg);
-  border-left-color: var(--app-accent);
-}
-
 .app .notice--scaffold {
   background-color: var(--app-bg-hover);
   border-left-color: var(--app-border-strong);
@@ -5949,29 +5636,6 @@ hr.rule {
   color: var(--app-ink);
 }
 
-/* ── Pipeline stage strip (admin overview) ──────────────────────────────── */
-
-.app .pipeline__stage {
-  background: var(--app-bg-muted);
-  border-color: var(--app-border);
-}
-
-.app .pipeline__stage:last-child {
-  border-color: var(--app-border);
-}
-
-.app .pipeline__stage:hover {
-  background: var(--app-bg-hover);
-}
-
-.app .pipeline__stage::before {
-  background: var(--app-border-strong) !important;
-}
-
-.app .pipeline__count {
-  color: var(--app-ink) !important;
-}
-
 /* ── Two pre-existing gaps, fixed while in this file ────────────────────── */
 
 /* Used across ~10 admin forms; had no layout rule at all. */
@@ -6002,12 +5666,9 @@ hr.rule {
    Colours are untouched; this is a typeface swap only.
    ══════════════════════════════════════════════════════════════════════════ */
 
-.hero__eyebrow,
 .card__eyebrow,
-.logo-strip__heading,
 .stat__label,
 .field__label,
-.cs__option--group-label,
 .review-list__eyebrow,
 .record-list__meta dt,
 .badge,
@@ -6018,8 +5679,6 @@ hr.rule {
 .app-sidebar__group-label,
 .dash-welcome__badge,
 .event-list__when,
-.demo-credentials__title,
-.demo-credentials__table th,
 .site-footer__heading,
 .cp-hero__eyebrow,
 .cp-hero__panel-tag,
