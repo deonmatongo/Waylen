@@ -184,6 +184,7 @@ model StudentProfile {
   insurancePolicies   InsurancePolicy[]
   webinarRegistrations WebinarRegistration[]
   enquiries           Enquiry[]
+  careerAssessmentResults CareerAssessmentResult[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -719,6 +720,36 @@ model Appointment {
   @@index([startsAt, status])
   @@index([counsellorId, startsAt])
   @@map("appointments")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CAREER GUIDANCE  (PRD §5.2 — self-assessment + personalised recommendations)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// One completed run of the career self-assessment (phase-2). A student may
+/// retake it, so this is one-to-many against StudentProfile rather than a
+/// singleton — the portal always reads the most recent by `createdAt`.
+model CareerAssessmentResult {
+  id String @id @default(cuid())
+
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  /// Raw submitted answers: { [questionId]: optionId }
+  answers Json
+
+  /// Points accumulated per OpportunityCategory — kept for transparency and
+  /// so staff/support can see why a recommendation was made.
+  scores Json
+
+  /// Best-fit result the recommendations are built from
+  recommendedCategory OpportunityCategory
+  secondaryCategory   OpportunityCategory?
+
+  createdAt DateTime @default(now())
+
+  @@index([studentProfileId, createdAt])
+  @@map("career_assessment_results")
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

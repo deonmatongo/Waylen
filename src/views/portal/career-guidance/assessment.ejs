@@ -1,6 +1,26 @@
+<%# PRD §5.2 — self-assessment feeding personalised recommendations. %>
 <section class="panel">
-  <% if (!questions.length) { %>
-    <p class="panel__note">The assessment is being prepared. Your counsellor can walk you through the same questions in a session.</p>
-    <a class="button button--secondary" href="/portal/appointments/new">Book a session instead</a>
-  <% } %>
+  <p class="panel__note">
+    Answer every question as it feels truest for you right now — there are no
+    right or wrong answers. It takes about five minutes, and your
+    recommendations are generated the moment you submit.
+  </p>
+
+  <form class="form" method="post" action="/portal/career-guidance/assessment">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <% questions.forEach(function (question, index) { %>
+      <fieldset class="field field--fieldset">
+        <legend class="field__label"><%= index + 1 %>. <%= question.prompt %></legend>
+        <% question.options.forEach(function (option) { %>
+          <label class="radio">
+            <input type="radio" name="<%= question.id %>" value="<%= option.id %>" required>
+            <span><%= option.label %></span>
+          </label>
+        <% }) %>
+      </fieldset>
+    <% }) %>
+
+    <button class="button button--primary" type="submit">See my recommendations</button>
+  </form>
 </section>
