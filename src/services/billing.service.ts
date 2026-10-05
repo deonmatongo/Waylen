@@ -14,6 +14,7 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { notificationService } from './notification.service.js';
 import { auditService } from './audit.service.js';
 import { storageService } from './storage.service.js';
+import { computeGatewayLedgerUpdate, type GatewayOutcome } from './payments/ledger.js';
 
 export interface LineItemInput {
   description: string;
@@ -302,6 +303,33 @@ export const billingService = {
     return payment;
   },
 
+  /**
+   * Opens a Payment row the moment a gateway checkout session is created.
+   * The webhook that eventually arrives — success or failure, possibly more
+   * than once — is matched back to it by `providerReference` (PRD §8.1,
+   * phase 3).
+   */
+  async createPendingGatewayPayment(input: {
+    invoiceId: string;
+    method: PaymentMethod;
+    provider: string;
+    providerReference: string;
+    amountMinor: number;
+    currency: string;
+  }) {
+    return prisma.payment.create({
+      data: {
+        invoiceId: input.invoiceId,
+        method: input.method,
+        status: 'PENDING',
+        amountMinor: input.amountMinor,
+        currency: input.currency,
+        provider: input.provider,
+        providerReference: input.providerReference,
+      },
+    });
+  },
+
   /** The staff queue of submitted payments awaiting confirmation. */
   async listPendingPayments(options: { counsellorId?: string } = {}) {
     return prisma.payment.findMany({
@@ -451,6 +479,113 @@ export const billingService = {
     });
 
     logger.info({ paymentId: payment.id }, 'Pending payment rejected');
+  },
+
+  /**
+   * Applies a verified gateway webhook outcome to the Payment it matches by
+   * `providerReference`, and on success settles the invoice (PRD §8.1,
+   * phase 2). Idempotent: `computeGatewayLedgerUpdate` refuses to re-apply a
+   * Payment that has already left PENDING, so a replayed webhook is a no-op
+   * rather than a double credit or a second notification.
+   */
+  async applyGatewayPaymentOutcome(input: { providerReference: string; outcome: GatewayOutcome }) {
+    const payment = await prisma.payment.findUnique({
+      where: { providerReference: input.providerReference },
+      select: {
+        id: true,
+        status: true,
+        amountMinor: true,
+        invoice: {
+          select: {
+            id: true,
+            totalMinor: true,
+            paidMinor: true,
+            currency: true,
+            studentProfileId: true,
+            studentProfile: { select: { userId: true } },
+          },
+        },
+      },
+    });
+
+    if (!payment) {
+      logger.warn({ providerReference: input.providerReference }, 'Webhook for unknown payment reference');
+      return { applied: false as const };
+    }
+
+    const update = computeGatewayLedgerUpdate(payment, payment.invoice, input.outcome);
+
+    if (!update.apply) {
+      logger.info(
+        { paymentId: payment.id, status: payment.status },
+        'Gateway webhook ignored — payment already settled (idempotent replay)',
+      );
+      return { applied: false as const };
+    }
+
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: update.paymentStatus,
+          ...(update.paymentStatus === 'SUCCEEDED' ? { paidAt: new Date() } : {}),
+          ...(update.paymentStatus === 'FAILED'
+            ? { failureReason: 'Declined by the payment gateway.' }
+            : {}),
+        },
+      }),
+      ...(update.invoice
+        ? [
+            prisma.invoice.update({
+              where: { id: payment.invoice.id },
+              data: {
+                paidMinor: update.invoice.paidMinor,
+                status: update.invoice.status,
+                ...(update.invoice.settled ? { paidAt: new Date() } : {}),
+              },
+            }),
+          ]
+        : []),
+    ]);
+
+    // actorId is null — this change was made by the gateway's webhook, not a
+    // signed-in user, and AuditLog.actorId is nullable for exactly this case.
+    await auditService.record({
+      actorId: null,
+      action: 'UPDATE',
+      entity: 'Payment',
+      entityId: payment.id,
+      studentProfileId: payment.invoice.studentProfileId,
+      changes: { status: { from: 'PENDING', to: update.paymentStatus } },
+    });
+
+    if (update.paymentStatus === 'SUCCEEDED') {
+      await notificationService.dispatch({
+        userId: payment.invoice.studentProfile.userId,
+        event: 'payment.received',
+        title: update.invoice?.settled ? 'Your invoice is paid in full' : 'We have received your payment',
+        actionUrl: `/portal/invoices/${payment.invoice.id}`,
+        emailTemplate: 'payment-received',
+        emailData: { amountMinor: payment.amountMinor, currency: payment.invoice.currency },
+      });
+    } else {
+      await notificationService.dispatch({
+        userId: payment.invoice.studentProfile.userId,
+        event: 'payment.proof_rejected',
+        title: 'We could not confirm your payment',
+        body: 'Your card payment was declined by the payment provider. Please try again or use the bank details on your invoice.',
+        actionUrl: `/portal/invoices/${payment.invoice.id}`,
+        emailTemplate: 'payment-proof-rejected',
+        emailData: { reason: 'Your card payment was declined by the payment provider.' },
+      });
+    }
+
+    logger.info(
+      { paymentId: payment.id, outcome: input.outcome, settled: update.invoice?.settled ?? false },
+      'Gateway payment outcome applied',
+    );
+
+    return { applied: true as const, paymentId: payment.id };
   },
 
   /** Marks a draft invoice SENT and notifies the student it is ready. */
