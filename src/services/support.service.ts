@@ -7,7 +7,8 @@ import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { notificationService } from './notification.service.js';
 import { ticketReference } from '../utils/reference.js';
-import { NotFoundError } from '../utils/errors.js';
+import { ForbiddenError, NotFoundError } from '../utils/errors.js';
+import { assertActiveStaff, assignedOrOwnStudentScope, type StaffViewer } from './staffAccess.service.js';
 
 const MESSAGE_SENDER_SELECT = { select: { fullName: true, role: true } } as const;
 
@@ -124,11 +125,17 @@ export const supportService = {
     assignedToId?: string;
     page?: number;
     perPage?: number;
+    /** Caller's visibility limit — a counsellor sees only their own work. */
+    viewer?: StaffViewer;
   } = {}) {
     const page = Math.max(1, filters.page ?? 1);
     const perPage = Math.min(100, filters.perPage ?? 25);
 
+    // AND-ed rather than spread so no user-supplied filter can loosen it.
+    const scope = filters.viewer ? assignedOrOwnStudentScope(filters.viewer).where : {};
+
     const where: Prisma.SupportTicketWhereInput = {
+      AND: [scope],
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.category ? { category: filters.category } : {}),
       ...(filters.assignedToId ? { assignedToId: filters.assignedToId } : {}),
@@ -159,7 +166,27 @@ export const supportService = {
     return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
   },
 
-  async findById(id: string) {
+  /**
+   * Throws unless `viewer` may act on this ticket. Admins always may; a
+   * counsellor only when it is assigned to them or raised by one of their
+   * students. Call before any read or write that takes an id from the client.
+   */
+  async assertCanAccess(id: string, viewer: StaffViewer): Promise<void> {
+    const { unrestricted, where } = assignedOrOwnStudentScope(viewer);
+    const found = await prisma.supportTicket.findFirst({
+      where: { AND: [{ id }, where] },
+      select: { id: true },
+    });
+    if (found) return;
+    if (!unrestricted && (await prisma.supportTicket.count({ where: { id } })) > 0) {
+      throw new ForbiddenError('This ticket is not assigned to you.');
+    }
+    throw new NotFoundError('That ticket could not be found.');
+  },
+
+  async findById(id: string, viewer?: StaffViewer) {
+    if (viewer) await this.assertCanAccess(id, viewer);
+
     const ticket = await prisma.supportTicket.findUnique({
       where: { id },
       include: {
@@ -217,6 +244,7 @@ export const supportService = {
   },
 
   async assign(id: string, assignedToId: string | null) {
+    if (assignedToId) await assertActiveStaff(assignedToId);
     return prisma.supportTicket.update({ where: { id }, data: { assignedToId } });
   },
 };

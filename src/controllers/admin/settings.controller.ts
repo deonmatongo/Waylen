@@ -4,6 +4,8 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../config/database.js';
 import { features } from '../../config/env.js';
+import { validateSettings } from '../../validators/settings.validator.js';
+import { auditService } from '../../services/audit.service.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const settings = await prisma.setting.findMany({ orderBy: [{ group: 'asc' }, { key: 'asc' }] });
@@ -24,7 +26,8 @@ export async function index(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const entries = Object.entries(req.body ?? {}).filter(([key]) => key !== '_csrf');
+  // Allow-listed keys only, each value validated — throws before any write.
+  const entries = validateSettings(req.body);
 
   await prisma.$transaction(
     entries.map(([key, value]) =>
@@ -35,6 +38,13 @@ export async function update(req: Request, res: Response): Promise<void> {
       }),
     ),
   );
+
+  await auditService.record({
+    actorId: req.currentUser!.id,
+    action: 'UPDATE',
+    entity: 'Setting',
+    changes: { keys: entries.map(([key]) => key) },
+  });
 
   req.flash('success', 'Settings saved.');
   res.redirect('/admin/settings');

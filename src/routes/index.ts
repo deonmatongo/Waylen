@@ -12,15 +12,11 @@ import { publicRouter } from './public/index.js';
 import { authRouter } from './auth/index.js';
 import { portalRouter } from './portal/index.js';
 import { adminRouter } from './admin/index.js';
-import { webhookRouter } from './webhooks.js';
-import { cronRouter } from './cron.js';
 import { seoRouter } from './seo.js';
 
 export function registerRoutes(app: Express): void {
-  // Signature-verified, session-free — mounted before session-dependent routes.
-  app.use('/webhooks', webhookRouter);
-  // Secret-authenticated, session-free — see cron.ts.
-  app.use('/cron', cronRouter);
+  // `/webhooks` and `/cron` are mounted in app.ts, ahead of the body parsers,
+  // session and CSRF middleware.
 
   app.use(loadCurrentUser);
 

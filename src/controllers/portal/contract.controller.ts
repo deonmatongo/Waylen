@@ -6,6 +6,7 @@ import { contractService } from '../../services/contract.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
 import { CONTRACT_STATUS_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { sendStoredFile } from '../../utils/fileResponse.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
@@ -35,10 +36,6 @@ export async function download(req: Request, res: Response): Promise<void> {
   const file = await contractService.retrieve(req.params.id as string);
   // `?download=1` forces a save-as; otherwise the browser is free to render
   // it inline — the "View" and "Download" actions share this one route.
-  const disposition = req.query.download === '1' ? 'attachment' : 'inline';
-
-  res.setHeader('Content-Type', file.mimeType);
-  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.send(file.buffer);
+  // Only PDFs and images ever render inline; other types always download.
+  sendStoredFile(res, file, { inline: req.query.download !== '1' });
 }

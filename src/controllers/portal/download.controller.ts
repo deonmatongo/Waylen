@@ -6,6 +6,7 @@ import { documentService } from '../../services/document.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
 import { DOCUMENT_TYPE_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { sendStoredFile } from '../../utils/fileResponse.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
@@ -33,8 +34,5 @@ export async function download(req: Request, res: Response): Promise<void> {
 
   const file = await documentService.retrieve(req.params.id as string);
 
-  res.setHeader('Content-Type', file.mimeType);
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`);
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.send(file.buffer);
+  sendStoredFile(res, file);
 }

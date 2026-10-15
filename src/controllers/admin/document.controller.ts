@@ -8,6 +8,7 @@ import { assertCanAccessStudent } from '../../middleware/auth.js';
 import { DOCUMENT_TYPE_LABELS } from '../../config/constants.js';
 import { reviewSchema } from '../../validators/document.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { sendStoredFile } from '../../utils/fileResponse.js';
 
 export async function queue(req: Request, res: Response): Promise<void> {
   const user = req.currentUser!;
@@ -34,11 +35,9 @@ export async function view(req: Request, res: Response): Promise<void> {
 
   const file = await documentService.retrieve(req.params.id as string);
 
-  // Inline so reviewers can read without downloading to disk.
-  res.setHeader('Content-Type', file.mimeType);
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`);
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.send(file.buffer);
+  // Inline (PDF and images only) so reviewers can read without downloading;
+  // anything else is forced to a download.
+  sendStoredFile(res, file, { inline: true });
 }
 
 export async function approve(req: Request, res: Response): Promise<void> {

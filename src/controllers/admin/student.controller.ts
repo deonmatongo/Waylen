@@ -15,6 +15,7 @@ import {
 import { documentService } from '../../services/document.service.js';
 import { auditService } from '../../services/audit.service.js';
 import { assertCanAccessStudent } from '../../middleware/auth.js';
+import { assertActiveCounsellor, parseAssigneeId } from '../../services/staffAccess.service.js';
 import {
   APPLICATION_STAGE_ORDER,
   APPLICATION_STAGE_LABELS,
@@ -83,7 +84,9 @@ export async function show(req: Request, res: Response): Promise<void> {
 export async function assignCounsellor(req: Request, res: Response): Promise<void> {
   await assertCanAccessStudent(req, req.params.id as string);
 
-  const counsellorId = typeof req.body?.counsellorId === 'string' ? req.body.counsellorId : null;
+  const counsellorId = parseAssigneeId(req.body?.counsellorId);
+  // Unassigning is allowed; assigning needs a real, active counsellor.
+  if (counsellorId) await assertActiveCounsellor(counsellorId);
 
   const before = await prisma.studentProfile.findUnique({
     where: { id: req.params.id as string },

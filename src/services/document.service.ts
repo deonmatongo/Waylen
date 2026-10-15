@@ -22,6 +22,23 @@ export interface RetrievedDocument {
   mimeType: string;
 }
 
+/**
+ * `applicationId` arrives from a form field, so it must be proven to belong to
+ * the student the document is being filed against — otherwise a document could
+ * be attached to (and surface on) someone else's application.
+ */
+async function assertApplicationBelongsToStudent(
+  applicationId: string | undefined,
+  studentProfileId: string,
+): Promise<void> {
+  if (!applicationId) return;
+  const owned = await prisma.application.findFirst({
+    where: { id: applicationId, studentProfileId },
+    select: { id: true },
+  });
+  if (!owned) throw new ValidationError('That application does not belong to this student.');
+}
+
 export const documentService = {
   /** Student-initiated upload. Lands as UNDER_REVIEW for staff triage. */
   async uploadForStudent(input: {
@@ -34,6 +51,7 @@ export const documentService = {
     if (!STUDENT_UPLOAD_DOCUMENT_TYPES.includes(input.type)) {
       throw new ValidationError('That document type cannot be uploaded here.');
     }
+    await assertApplicationBelongsToStudent(input.applicationId, input.studentProfileId);
 
     const stored = await storageService.store(input.file.buffer, {
       studentProfileId: input.studentProfileId,
@@ -78,6 +96,8 @@ export const documentService = {
     partnerId?: string;
     note?: string;
   }) {
+    await assertApplicationBelongsToStudent(input.applicationId, input.studentProfileId);
+
     const stored = await storageService.store(input.file.buffer, {
       studentProfileId: input.studentProfileId,
       originalFilename: input.file.originalname,

@@ -12,6 +12,7 @@ import {
   STUDENT_UPLOAD_DOCUMENT_TYPES,
 } from '../../config/constants.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { sendStoredFile } from '../../utils/fileResponse.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
@@ -81,11 +82,7 @@ export async function download(req: Request, res: Response): Promise<void> {
 
   const file = await documentService.retrieve(req.params.id as string);
 
-  res.setHeader('Content-Type', file.mimeType);
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`);
-  // Confidential — never cached by an intermediary (PRD §8.2).
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.send(file.buffer);
+  sendStoredFile(res, file);
 }
 
 export async function replace(req: Request, res: Response): Promise<void> {

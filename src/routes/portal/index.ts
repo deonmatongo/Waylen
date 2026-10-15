@@ -31,6 +31,8 @@ import * as serviceController from '../../controllers/portal/service.controller.
 import * as supportController from '../../controllers/portal/support.controller.js';
 import * as referralController from '../../controllers/portal/referral.controller.js';
 import * as contractController from '../../controllers/portal/contract.controller.js';
+import { formRateLimiter } from '../../middleware/rateLimit.js';
+import * as privacyController from '../../controllers/portal/privacy.controller.js';
 
 export const portalRouter = Router();
 
@@ -101,6 +103,8 @@ portalRouter.get('/invoices/:id/receipt', requireFeature('payments'), asyncHandl
 portalRouter.get('/appointments', asyncHandler(appointmentController.index));
 portalRouter.get('/appointments/new', asyncHandler(appointmentController.create));
 portalRouter.post('/appointments', asyncHandler(appointmentController.store));
+portalRouter.get('/appointments/:id/reschedule', asyncHandler(appointmentController.rescheduleForm));
+portalRouter.post('/appointments/:id/reschedule', asyncHandler(appointmentController.reschedule));
 portalRouter.post('/appointments/:id/cancel', asyncHandler(appointmentController.cancel));
 
 // ── Career Guidance (PRD §5.2) ─────────────────────────────────────────────
@@ -157,4 +161,6 @@ portalRouter.post('/profile', asyncHandler(profileController.update));
 
 // ── Settings — password + account info (split out of Profile) ──────────────
 portalRouter.get('/settings', asyncHandler(settingsController.show));
+// Data-subject access: a rate-limited JSON export of the student's own data.
+portalRouter.get('/privacy/export', formRateLimiter, asyncHandler(privacyController.exportData));
 portalRouter.post('/settings/password', asyncHandler(profileController.changePassword));

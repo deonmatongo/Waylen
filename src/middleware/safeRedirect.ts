@@ -29,3 +29,30 @@ export function safeRedirects(req: Request, res: Response, next: NextFunction): 
 
   next();
 }
+
+/**
+ * Where to send the user "back": the path of the Referer, but only when it is
+ * same-origin. Express's `res.redirect('back')` trusts the header verbatim,
+ * which lets a crafted cross-site request bounce a user to any URL. Anything
+ * that is missing, malformed or foreign falls back to `fallback`.
+ *
+ * Only the path and query are returned (never an absolute URL), and any
+ * `_csrf` query value is dropped so a token is never re-emitted.
+ */
+export function safeReferrerPath(req: Request, fallback: string): string {
+  const referer = req.get('referer');
+  const host = req.get('host');
+  if (!referer || !host) return fallback;
+
+  try {
+    const url = new URL(referer);
+    if (url.host !== host) return fallback;
+    url.searchParams.delete('_csrf');
+    const path = `${url.pathname}${url.search}`;
+    // `//evil.com` and `/\evil.com` are protocol-relative in some browsers.
+    if (!path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')) return fallback;
+    return path;
+  } catch {
+    return fallback;
+  }
+}

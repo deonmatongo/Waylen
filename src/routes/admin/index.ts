@@ -9,6 +9,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { requireAuth, requireStaff, requireRole, requireSuperAdmin } from '../../middleware/auth.js';
+import { requireMfaEnrolled } from '../../middleware/mfaRequired.js';
 import { singleDocument } from '../../middleware/upload.js';
 import { audit } from '../../middleware/audit.js';
 import { requireFeature } from '../../middleware/feature.js';
@@ -31,10 +32,16 @@ import * as reportController from '../../controllers/admin/report.controller.js'
 import * as auditController from '../../controllers/admin/audit.controller.js';
 import * as settingsController from '../../controllers/admin/settings.controller.js';
 import * as userController from '../../controllers/admin/user.controller.js';
+import * as privacyAdminController from '../../controllers/portal/privacy-admin.controller.js';
 
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireStaff);
+adminRouter.use(requireMfaEnrolled);
+
+// Counsellors are scoped to their own students; everything that is company-wide
+// (content, catalogue, partners, finance confirmation) needs an admin role.
+const adminOnly = requireRole('ADMIN_STAFF', 'SUPER_ADMIN');
 
 // ── Overview ───────────────────────────────────────────────────────────────
 adminRouter.get('/', asyncHandler(overviewController.index));
@@ -51,7 +58,7 @@ adminRouter.get(
   }),
   asyncHandler(studentController.show),
 );
-adminRouter.post('/students/:id/assign-counsellor', asyncHandler(studentController.assignCounsellor));
+adminRouter.post('/students/:id/assign-counsellor', adminOnly, asyncHandler(studentController.assignCounsellor));
 adminRouter.post('/students/:id/notes', asyncHandler(studentController.addNote));
 adminRouter.post(
   '/students/:id/documents',
@@ -121,15 +128,20 @@ adminRouter.get(
   audit({ action: 'VIEW', entity: 'Payment', entityId: (req) => req.params.id }),
   asyncHandler(invoiceController.viewProofOfPayment),
 );
-adminRouter.post('/invoices/payments/:id/confirm', asyncHandler(invoiceController.confirmPayment));
-adminRouter.post('/invoices/payments/:id/reject', asyncHandler(invoiceController.rejectPayment));
+adminRouter.post('/invoices/payments/:id/confirm', adminOnly, asyncHandler(invoiceController.confirmPayment));
+adminRouter.post('/invoices/payments/:id/reject', adminOnly, asyncHandler(invoiceController.rejectPayment));
+adminRouter.post('/invoices/payments/:id/refund', adminOnly, asyncHandler(invoiceController.refundPayment));
 adminRouter.get('/invoices/:id', asyncHandler(invoiceController.show));
 adminRouter.post('/invoices/:id/send', asyncHandler(invoiceController.send));
-adminRouter.post('/invoices/:id/record-payment', asyncHandler(invoiceController.recordPayment));
+adminRouter.post('/invoices/:id/record-payment', adminOnly, asyncHandler(invoiceController.recordPayment));
 adminRouter.post('/invoices/:id/remind', asyncHandler(invoiceController.sendReminder));
-adminRouter.post('/invoices/:id/void', requireRole('ADMIN_STAFF', 'SUPER_ADMIN'), asyncHandler(invoiceController.voidInvoice));
+adminRouter.post('/invoices/:id/void', adminOnly, asyncHandler(invoiceController.voidInvoice));
 
 // ── Webinar management (PRD §5.4) ──────────────────────────────────────────
+// Counsellors may view registrations and attendance; creating/editing is admin.
+adminRouter.use('/webinars', (req, res, next) =>
+  req.method === 'GET' && !/\/(new|edit)$/.test(req.path) ? next() : adminOnly(req, res, next),
+);
 adminRouter.get('/webinars', asyncHandler(webinarController.index));
 adminRouter.get('/webinars/new', asyncHandler(webinarController.create));
 adminRouter.post('/webinars', asyncHandler(webinarController.store));
@@ -139,6 +151,7 @@ adminRouter.get('/webinars/:id/registrations', asyncHandler(webinarController.re
 adminRouter.get('/webinars/:id/attendance', asyncHandler(webinarController.attendanceReport));
 
 // ── Content management (PRD §5.4 — CMS for non-technical staff, §8.1) ───────
+adminRouter.use('/content', adminOnly);
 adminRouter.get('/content', asyncHandler(contentController.index));
 adminRouter.get('/content/resources', asyncHandler(contentController.resources));
 adminRouter.get('/content/resources/new', asyncHandler(contentController.createResource));
@@ -150,10 +163,19 @@ adminRouter.get('/content/opportunities/new', asyncHandler(contentController.cre
 adminRouter.post('/content/opportunities', asyncHandler(contentController.storeOpportunity));
 adminRouter.get('/content/opportunities/:id/edit', asyncHandler(contentController.editOpportunity));
 adminRouter.post('/content/opportunities/:id', asyncHandler(contentController.updateOpportunity));
+adminRouter.get('/content/faqs/new', asyncHandler(contentController.createFaq));
+adminRouter.post('/content/faqs', asyncHandler(contentController.storeFaq));
 adminRouter.get('/content/faqs', asyncHandler(contentController.faqs));
+adminRouter.get('/content/faqs/:id/edit', asyncHandler(contentController.editFaq));
+adminRouter.post('/content/faqs/:id', asyncHandler(contentController.updateFaq));
+adminRouter.get('/content/testimonials/new', asyncHandler(contentController.createTestimonial));
+adminRouter.post('/content/testimonials', asyncHandler(contentController.storeTestimonial));
 adminRouter.get('/content/testimonials', asyncHandler(contentController.testimonials));
+adminRouter.get('/content/testimonials/:id/edit', asyncHandler(contentController.editTestimonial));
+adminRouter.post('/content/testimonials/:id', asyncHandler(contentController.updateTestimonial));
 
 // ── Country management (PRD §4.3, §5.4) ────────────────────────────────────
+adminRouter.use('/countries', adminOnly);
 adminRouter.get('/countries', asyncHandler(countryController.index));
 adminRouter.get('/countries/new', asyncHandler(countryController.create));
 adminRouter.post('/countries', asyncHandler(countryController.store));
@@ -161,8 +183,8 @@ adminRouter.get('/countries/:id/edit', asyncHandler(countryController.edit));
 adminRouter.post('/countries/:id', asyncHandler(countryController.update));
 
 // ── Partner Directory & referrals (PRD §6.2) ───────────────────────────────
-adminRouter.use('/partners', requireFeature('partnerDirectory'));
-adminRouter.use('/referrals', requireFeature('partnerDirectory'));
+adminRouter.use('/partners', requireFeature('partnerDirectory'), adminOnly);
+adminRouter.use('/referrals', requireFeature('partnerDirectory'), adminOnly);
 adminRouter.get('/partners', asyncHandler(partnerController.index));
 adminRouter.get('/partners/new', asyncHandler(partnerController.create));
 adminRouter.post('/partners', asyncHandler(partnerController.store));
@@ -191,10 +213,10 @@ adminRouter.get('/reports', asyncHandler(reportController.index));
 adminRouter.get('/reports/students', asyncHandler(reportController.students));
 adminRouter.get('/reports/applications', asyncHandler(reportController.applications));
 adminRouter.get('/reports/destinations', asyncHandler(reportController.destinations));
-adminRouter.get('/reports/revenue', requireRole('ADMIN_STAFF', 'SUPER_ADMIN'), asyncHandler(reportController.revenue));
+adminRouter.get('/reports/revenue', adminOnly, asyncHandler(reportController.revenue));
 adminRouter.get(
   '/reports/export',
-  requireRole('ADMIN_STAFF', 'SUPER_ADMIN'),
+  adminOnly,
   audit({ action: 'EXPORT', entity: 'Report' }),
   asyncHandler(reportController.exportCsv),
 );
@@ -207,6 +229,9 @@ adminRouter.get('/users', requireSuperAdmin, asyncHandler(userController.index))
 adminRouter.post('/users', requireSuperAdmin, asyncHandler(userController.store));
 adminRouter.post('/users/:id/role', requireSuperAdmin, asyncHandler(userController.updateRole));
 adminRouter.post('/users/:id/suspend', requireSuperAdmin, asyncHandler(userController.suspend));
+adminRouter.post('/users/:id/unsuspend', requireSuperAdmin, asyncHandler(userController.unsuspend));
+adminRouter.post('/users/:id/reset-mfa', requireSuperAdmin, asyncHandler(userController.resetMfa));
+adminRouter.post('/users/:id/anonymise', requireSuperAdmin, asyncHandler(privacyAdminController.anonymise));
 
 adminRouter.get('/settings', requireSuperAdmin, asyncHandler(settingsController.index));
 adminRouter.post('/settings', requireSuperAdmin, asyncHandler(settingsController.update));

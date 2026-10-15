@@ -2,6 +2,7 @@
  * In-app notifications (PRD §5.2).
  */
 import type { Request, Response } from 'express';
+import { safeReferrerPath } from '../../middleware/safeRedirect.js';
 import { notificationService } from '../../services/notification.service.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
@@ -16,7 +17,8 @@ export async function index(req: Request, res: Response): Promise<void> {
 
 export async function markRead(req: Request, res: Response): Promise<void> {
   await notificationService.markRead(req.params.id as string, req.currentUser!.id);
-  res.redirect('back');
+  // Never `back` — it trusts the client-supplied Referer header.
+  res.redirect(safeReferrerPath(req, '/portal/notifications'));
 }
 
 export async function markAllRead(req: Request, res: Response): Promise<void> {

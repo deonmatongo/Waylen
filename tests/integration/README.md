@@ -12,7 +12,8 @@ TEST_DATABASE_URL=postgresql://localhost:5432/waylen_test npx prisma migrate dep
 ```
 
 Then set `TEST_DATABASE_URL` in `.env`. `tests/setup.ts` redirects
-`DATABASE_URL` to it, so a misconfigured run cannot touch development data.
+`DATABASE_URL` to it, and ignores any non-local `DATABASE_URL` from `.env`, so a
+misconfigured run cannot touch development or hosted data.
 
 ## What to cover first
 

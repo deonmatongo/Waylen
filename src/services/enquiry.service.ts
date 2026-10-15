@@ -6,7 +6,8 @@ import type { EnquiryStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { notificationService } from './notification.service.js';
-import { NotFoundError } from '../utils/errors.js';
+import { ForbiddenError, NotFoundError } from '../utils/errors.js';
+import { assertActiveStaff, assignedOrOwnStudentScope, type StaffViewer } from './staffAccess.service.js';
 
 export interface CreateEnquiryInput {
   fullName: string;
@@ -63,11 +64,17 @@ export const enquiryService = {
     assignedToId?: string;
     page?: number;
     perPage?: number;
+    /** Caller's visibility limit — a counsellor sees only their own work. */
+    viewer?: StaffViewer;
   } = {}) {
     const page = Math.max(1, filters.page ?? 1);
     const perPage = Math.min(100, filters.perPage ?? 25);
 
+    // AND-ed rather than spread so no user-supplied filter can loosen it.
+    const scope = filters.viewer ? assignedOrOwnStudentScope(filters.viewer).where : {};
+
     const where: Prisma.EnquiryWhereInput = {
+      AND: [scope],
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.assignedToId ? { assignedToId: filters.assignedToId } : {}),
       ...(filters.search
@@ -97,7 +104,27 @@ export const enquiryService = {
     return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
   },
 
-  async findById(id: string) {
+  /**
+   * Throws unless `viewer` may act on this enquiry. Admins always may; a
+   * counsellor only when it is assigned to them or tied to one of their
+   * students. Call before any read or write that takes an id from the client.
+   */
+  async assertCanAccess(id: string, viewer: StaffViewer): Promise<void> {
+    const { unrestricted, where } = assignedOrOwnStudentScope(viewer);
+    const found = await prisma.enquiry.findFirst({
+      where: { AND: [{ id }, where] },
+      select: { id: true },
+    });
+    if (found) return;
+    if (!unrestricted && (await prisma.enquiry.count({ where: { id } })) > 0) {
+      throw new ForbiddenError('This enquiry is not assigned to you.');
+    }
+    throw new NotFoundError('That enquiry could not be found.');
+  },
+
+  async findById(id: string, viewer?: StaffViewer) {
+    if (viewer) await this.assertCanAccess(id, viewer);
+
     const enquiry = await prisma.enquiry.findUnique({
       where: { id },
       include: {
@@ -128,6 +155,7 @@ export const enquiryService = {
   },
 
   async assign(id: string, assignedToId: string | null) {
+    if (assignedToId) await assertActiveStaff(assignedToId);
     return prisma.enquiry.update({ where: { id }, data: { assignedToId } });
   },
 

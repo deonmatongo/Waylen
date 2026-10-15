@@ -121,20 +121,27 @@ export async function listStudents(
   const page = Math.max(1, filters.page ?? 1);
   const perPage = Math.min(100, filters.perPage ?? 25);
 
+  // `scope` is the caller's visibility limit and must never be loosened by a
+  // user-supplied filter, so every filter is AND-ed with it rather than spread
+  // over it.
   const where: Prisma.StudentProfileWhereInput = {
-    ...scope,
-    ...(filters.stage ? { currentStage: filters.stage } : {}),
-    ...(filters.counsellorId ? { assignedCounsellorId: filters.counsellorId } : {}),
-    ...(filters.countryId ? { countryOfOriginId: filters.countryId } : {}),
-    ...(filters.search
-      ? {
-          OR: [
-            { reference: { contains: filters.search } },
-            { user: { fullName: { contains: filters.search } } },
-            { user: { email: { contains: filters.search } } },
-          ],
-        }
-      : {}),
+    AND: [
+      scope,
+      ...(filters.stage ? [{ currentStage: filters.stage }] : []),
+      ...(filters.counsellorId ? [{ assignedCounsellorId: filters.counsellorId }] : []),
+      ...(filters.countryId ? [{ countryOfOriginId: filters.countryId }] : []),
+      ...(filters.search
+        ? [
+            {
+              OR: [
+                { reference: { contains: filters.search } },
+                { user: { fullName: { contains: filters.search } } },
+                { user: { email: { contains: filters.search } } },
+              ],
+            },
+          ]
+        : []),
+    ],
   };
 
   const [items, total] = await Promise.all([

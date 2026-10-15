@@ -16,6 +16,10 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
   },
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  // Bind each token to the signed-in session, so a token harvested from one
+  // session (or from an anonymous visit) is useless once the user logs in.
+  // Anonymous visitors share the empty identifier until login assigns one.
+  getSessionIdentifier: (req) => req.session?.sessionId ?? '',
   // Forms post `_csrf`; fetch/XHR callers send the header. Express types
   // `req.body` as `any`, so narrow explicitly rather than trusting it.
   //
@@ -24,16 +28,22 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
   // `req.body` is therefore never populated yet when this runs. Those forms
   // carry the token on the query string instead, appended to the form
   // `action` (see portal/documents, portal/invoices/show, admin/students/show).
+  // The query string is honoured ONLY for multipart requests, and the request
+  // logger masks `_csrf` in logged URLs (see `redactUrl`), so the token does
+  // not leak into logs. Every other content type must use the body or header.
   getTokenFromRequest: (req) => {
     const body = req.body as Record<string, unknown> | undefined;
     const fromBody = body?._csrf;
     if (typeof fromBody === 'string') return fromBody;
 
-    const fromQuery = req.query._csrf;
-    if (typeof fromQuery === 'string') return fromQuery;
-
     const fromHeader = req.headers['x-csrf-token'];
-    return typeof fromHeader === 'string' ? fromHeader : undefined;
+    if (typeof fromHeader === 'string') return fromHeader;
+
+    if (req.is('multipart/form-data')) {
+      const fromQuery = req.query._csrf;
+      if (typeof fromQuery === 'string') return fromQuery;
+    }
+    return undefined;
   },
 });
 
@@ -44,7 +54,10 @@ export const csrfProtection = doubleCsrfProtection;
  * embed it without each controller passing it through.
  */
 export function exposeCsrfToken(req: Request, res: Response, next: NextFunction): void {
-  res.locals.csrfToken = generateToken(req, res);
+  // `validateOnReuse: false` — a cookie minted for a previous session identity
+  // (e.g. the anonymous one, right after login) is quietly replaced rather
+  // than raised as a CSRF failure on an innocent GET.
+  res.locals.csrfToken = generateToken(req, res, false, false);
   next();
 }
 

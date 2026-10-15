@@ -4,6 +4,7 @@
  */
 import type { Request, Response } from 'express';
 import { supportService } from '../../services/support.service.js';
+import { parseAssigneeId } from '../../services/staffAccess.service.js';
 import { listCounsellors } from '../../models/student.model.js';
 import { ticketReplySchema, ticketStatusSchema } from '../../validators/support.validator.js';
 import { ValidationError } from '../../utils/errors.js';
@@ -16,6 +17,7 @@ export async function index(req: Request, res: Response): Promise<void> {
       status: status as never,
       category: category as never,
       search: typeof q === 'string' ? q : undefined,
+      viewer: req.currentUser!,
     }),
     listCounsellors(),
   ]);
@@ -31,7 +33,7 @@ export async function index(req: Request, res: Response): Promise<void> {
 
 export async function show(req: Request, res: Response): Promise<void> {
   const [ticket, counsellors] = await Promise.all([
-    supportService.findById(req.params.id as string),
+    supportService.findById(req.params.id as string, req.currentUser),
     listCounsellors(),
   ]);
 
@@ -44,6 +46,8 @@ export async function show(req: Request, res: Response): Promise<void> {
 }
 
 export async function reply(req: Request, res: Response): Promise<void> {
+  await supportService.assertCanAccess(req.params.id as string, req.currentUser!);
+
   const parsed = ticketReplySchema.safeParse(req.body);
   if (!parsed.success) throw new ValidationError('Please write a message before sending.');
 
@@ -54,6 +58,8 @@ export async function reply(req: Request, res: Response): Promise<void> {
 }
 
 export async function updateStatus(req: Request, res: Response): Promise<void> {
+  await supportService.assertCanAccess(req.params.id as string, req.currentUser!);
+
   const parsed = ticketStatusSchema.safeParse(req.body);
   if (!parsed.success) throw new ValidationError('Choose a valid status.');
 
@@ -64,7 +70,8 @@ export async function updateStatus(req: Request, res: Response): Promise<void> {
 }
 
 export async function assign(req: Request, res: Response): Promise<void> {
-  await supportService.assign(req.params.id as string, req.body?.assignedToId || null);
+  await supportService.assertCanAccess(req.params.id as string, req.currentUser!);
+  await supportService.assign(req.params.id as string, parseAssigneeId(req.body?.assignedToId));
 
   req.flash('success', 'Ticket reassigned.');
   res.redirect(`/admin/support/${req.params.id}`);

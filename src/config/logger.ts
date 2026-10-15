@@ -8,6 +8,24 @@
 import pino from 'pino';
 import { env } from './env.js';
 
+/**
+ * Masks single-use secrets that travel in a URL — the reset/verify tokens in
+ * the path and the CSRF token that multipart forms carry in the query string —
+ * so they never reach a log sink. Everything else in the URL is left intact.
+ */
+export function redactUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  return url
+    .replace(/^(\/(?:reset-password|verify-email)\/)(?!pending(?:[/?#]|$))[^/?#]+/i, '$1[redacted]')
+    .replace(/([?&]_csrf=)[^&#]*/gi, '$1[redacted]');
+}
+
+/** pino-http `req` serializer: the standard shape, with the URL redacted. */
+export function serializeRequest(req: Parameters<typeof pino.stdSerializers.req>[0]) {
+  const serialized = pino.stdSerializers.req(req);
+  return { ...serialized, url: redactUrl(serialized.url) };
+}
+
 export const logger = pino({
   level: env.LOG_LEVEL,
   transport: env.isDevelopment
@@ -17,6 +35,8 @@ export const logger = pino({
     paths: [
       'req.headers.cookie',
       'req.headers.authorization',
+      'req.headers["x-csrf-token"]',
+      'req.body._csrf',
       'req.body.password',
       'req.body.passwordConfirmation',
       'req.body.currentPassword',

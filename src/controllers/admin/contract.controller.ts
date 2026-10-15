@@ -7,6 +7,7 @@ import { contractService } from '../../services/contract.service.js';
 import { assertCanAccessStudent } from '../../middleware/auth.js';
 import { issueContractSchema, contractStatusSchema } from '../../validators/contract.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { sendStoredFile } from '../../utils/fileResponse.js';
 
 export async function issue(req: Request, res: Response): Promise<void> {
   await assertCanAccessStudent(req, req.params.id as string);
@@ -39,10 +40,7 @@ export async function view(req: Request, res: Response): Promise<void> {
 
   const file = await contractService.retrieve(req.params.id as string);
 
-  res.setHeader('Content-Type', file.mimeType);
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`);
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.send(file.buffer);
+  sendStoredFile(res, file, { inline: true });
 }
 
 export async function updateStatus(req: Request, res: Response): Promise<void> {
@@ -63,5 +61,7 @@ export async function updateStatus(req: Request, res: Response): Promise<void> {
   });
 
   req.flash('success', 'Agreement status updated.');
-  res.redirect('back');
+  // The status form lives on the student's file, so return there rather than
+  // trusting the Referer header.
+  res.redirect(`/admin/students/${contract.studentProfileId}`);
 }

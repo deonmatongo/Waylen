@@ -5,6 +5,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { env, features } from '../config/env.js';
 import { ADMIN_NAV, PORTAL_NAV, PUBLIC_NAV } from '../config/constants.js';
+import { sanitizeRichText } from '../utils/sanitize.js';
 
 export function attachLocals(req: Request, res: Response, next: NextFunction): void {
   // EJS runs templates in a `with` scope, so referencing an unset local throws
@@ -19,6 +20,8 @@ export function attachLocals(req: Request, res: Response, next: NextFunction): v
   res.locals.currentPath = req.path;
   res.locals.features = features;
   res.locals.isProduction = env.isProduction;
+  // Defence in depth for `<%- %>` output of CMS HTML that predates write-time sanitising.
+  res.locals.safeHtml = sanitizeRichText;
 
   res.locals.publicNav = PUBLIC_NAV;
   // Feature-gated items are filtered here so views stay declarative.

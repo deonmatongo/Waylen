@@ -15,7 +15,8 @@ import expressLayouts from 'express-ejs-layouts';
 import { pinoHttp } from 'pino-http';
 
 import { env } from './config/env.js';
-import { logger } from './config/logger.js';
+import { logger, serializeRequest } from './config/logger.js';
+import { prisma } from './config/database.js';
 import { sessionMiddleware } from './middleware/session.js';
 import { csrfProtection, exposeCsrfToken } from './middleware/csrf.js';
 import { attachLocals } from './middleware/locals.js';
@@ -24,6 +25,8 @@ import { safeRedirects } from './middleware/safeRedirect.js';
 import { globalRateLimiter } from './middleware/rateLimit.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { registerRoutes } from './routes/index.js';
+import { webhookRouter } from './routes/webhooks.js';
+import { cronRouter } from './routes/cron.js';
 import { apiRouter } from './routes/api/index.js';
 import * as viewHelpers from './utils/format.js';
 
@@ -71,20 +74,48 @@ export function createApp(): Express {
       },
       crossOriginEmbedderPolicy: false,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      // Helmet has no Permissions-Policy option, so it is set directly below.
       hsts: env.isProduction ? { maxAge: 31_536_000, includeSubDomains: true, preload: true } : false,
     }),
   );
 
+  app.use((_req, res, next) => {
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+    );
+    next();
+  });
+
   // ── Request pipeline ─────────────────────────────────────────────────────
-  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/healthz' } }));
+  // Reset/verify tokens and `_csrf` query values are masked in the logged URL.
+  app.use(
+    pinoHttp({
+      logger,
+      serializers: { req: serializeRequest },
+      autoLogging: { ignore: (req) => req.url === '/healthz' || req.url === '/readyz' },
+    }),
+  );
   app.use(compression());
+
+  // Provider webhooks need the untouched raw body for signature checks, and
+  // cron calls carry a bearer secret — neither uses cookies. Mount both before
+  // the body parsers, session and CSRF so none of them can interfere.
+  app.use('/webhooks', webhookRouter);
+  app.use('/cron', cronRouter);
+
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
   app.use(express.json({ limit: '256kb' }));
   app.use(cookieParser());
   app.use(globalRateLimiter);
 
-  // Static assets. Note: `public/uploads` is NOT served statically — student
-  // documents are streamed through an authorised controller (PRD §8.1, §8.2).
+  // Static assets. `public/uploads` is explicitly NOT served — student
+  // documents are streamed through an authorised controller (PRD §8.1, §8.2),
+  // so anything that ends up under that directory must never be reachable by
+  // URL. Without this guard `express.static` over `public/` would serve it.
+  app.use('/uploads', (_req, res) => {
+    res.status(404).end();
+  });
   app.use(
     express.static(path.join(process.cwd(), 'public'), {
       maxAge: env.isProduction ? '30d' : 0,
@@ -107,6 +138,19 @@ export function createApp(): Express {
   // ── Liveness probe ───────────────────────────────────────────────────────
   app.get('/healthz', (_req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
+  });
+
+  // ── Readiness probe ──────────────────────────────────────────────────────
+  // Unlike /healthz this touches the database, so an orchestrator can hold
+  // traffic back while the DB is unreachable. Reports nothing but up/down.
+  app.get('/readyz', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ status: 'ready' });
+    } catch (err) {
+      logger.error({ err }, 'Readiness check failed');
+      res.status(503).json({ status: 'unavailable' });
+    }
   });
 
   // ── Routes ───────────────────────────────────────────────────────────────
