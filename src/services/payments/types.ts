@@ -23,3 +23,17 @@ export interface CheckoutSession {
   /** The gateway's hosted checkout page the student is redirected to. */
   checkoutUrl: string;
 }
+
+export interface RefundInput {
+  /** The `Payment.providerReference` of the payment being refunded. */
+  providerReference: string;
+  amountMinor: number;
+  currency: string;
+  /** Stable per payment+amount so a retried call cannot refund twice (Stripe). */
+  idempotencyKey: string;
+}
+
+export interface RefundResult {
+  /** The gateway's own refund id, when it returns one. */
+  refundReference?: string;
+}

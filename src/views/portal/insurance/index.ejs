@@ -23,7 +23,7 @@
             </td>
             <td>
               <span class="badge badge--<%= policy.status === 'ACTIVE' ? 'positive' : policy.status === 'CANCELLED' || policy.status === 'EXPIRED' ? 'neutral' : 'warning' %>">
-                <%= format.humaniseEnum(policy.status) %>
+                <%= policy.status === 'PENDING' ? 'Awaiting payment' : format.humaniseEnum(policy.status) %>
               </span>
             </td>
           </tr>

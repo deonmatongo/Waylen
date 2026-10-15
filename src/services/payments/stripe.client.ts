@@ -8,12 +8,12 @@
 import Stripe from 'stripe';
 import { env } from '../../config/env.js';
 import { ServiceUnavailableError } from '../../utils/errors.js';
-import type { CheckoutSession, CheckoutSessionInput } from './types.js';
+import type { CheckoutSession, CheckoutSessionInput, RefundInput, RefundResult } from './types.js';
 
 let client: Stripe | null = null;
 
 function getClient(secretKey: string): Stripe {
-  client ??= new Stripe(secretKey);
+  client ??= new Stripe(secretKey, { timeout: 10_000, maxNetworkRetries: 1 });
   return client;
 }
 
@@ -53,4 +53,32 @@ export async function createStripeCheckoutSession(
     providerReference: session.id,
     checkoutUrl: session.url,
   };
+}
+
+/**
+ * Refunds a Checkout Session's payment (POST /v1/refunds). Our
+ * `providerReference` is the session id, so the PaymentIntent is looked up
+ * first. The idempotency key makes a retried call a no-op on Stripe's side.
+ */
+export async function refundStripePayment(input: RefundInput): Promise<RefundResult> {
+  if (!env.STRIPE_SECRET_KEY) throw new ServiceUnavailableError('Stripe is not configured.');
+  const stripeClient = getClient(env.STRIPE_SECRET_KEY);
+
+  try {
+    const session = await stripeClient.checkout.sessions.retrieve(input.providerReference);
+    const paymentIntent =
+      typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+    if (!paymentIntent) {
+      throw new ServiceUnavailableError('Stripe has no completed payment for that checkout session.');
+    }
+
+    const refund = await stripeClient.refunds.create(
+      { payment_intent: paymentIntent, amount: input.amountMinor },
+      { idempotencyKey: input.idempotencyKey },
+    );
+    return { refundReference: refund.id };
+  } catch (err) {
+    if (err instanceof ServiceUnavailableError) throw err;
+    throw new ServiceUnavailableError('Stripe refund request failed.');
+  }
 }

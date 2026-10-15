@@ -1,0 +1,17 @@
+<%#
+  Student-facing invoice status: Paid / Partially Paid / Outstanding / Overdue.
+  An open invoice past its due date reads Overdue even before the nightly job
+  has flipped the stored status.
+  Expects `invoice`.
+%>
+<%
+  const pastDue = invoice.dueAt && new Date(invoice.dueAt).getTime() < Date.now();
+  const open = ['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status);
+  let label = format.humaniseEnum(invoice.status);
+  let tone = 'neutral';
+  if (invoice.status === 'PAID') { label = 'Paid'; tone = 'positive'; }
+  else if (open && (invoice.status === 'OVERDUE' || pastDue)) { label = 'Overdue'; tone = 'negative'; }
+  else if (invoice.status === 'PARTIALLY_PAID') { label = 'Partially Paid'; tone = 'warning'; }
+  else if (invoice.status === 'SENT') { label = 'Outstanding'; tone = 'info'; }
+%>
+<span class="badge badge--<%= tone %>"><%= label %></span>

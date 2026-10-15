@@ -18,6 +18,8 @@ import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { safeCompare } from '../../utils/crypto.js';
 import { billingService } from '../../services/billing.service.js';
+import { verifyPaystackTransaction } from '../../services/payments/paystack.client.js';
+import { verifyFlutterwaveTransaction } from '../../services/payments/flutterwave.client.js';
 
 export async function stripe(req: Request, res: Response): Promise<void> {
   const signature = req.get('stripe-signature');
@@ -44,9 +46,24 @@ export async function stripe(req: Request, res: Response): Promise<void> {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded': {
       const session = event.data.object;
+      // `completed` fires when the Checkout finishes, not when the money
+      // lands — a delayed method (bank debit) is still 'unpaid' and settles
+      // later via `async_payment_succeeded`, which is itself the paid signal.
+      if (event.type === 'checkout.session.completed' && session.payment_status !== 'paid') {
+        logger.info(
+          { sessionId: session.id, paymentStatus: session.payment_status },
+          'Stripe checkout completed but not yet paid — awaiting async payment event',
+        );
+        break;
+      }
       await billingService.applyGatewayPaymentOutcome({
         providerReference: session.id,
         outcome: 'SUCCEEDED',
+        // Stripe amounts/currency are already minor units / lowercase ISO.
+        gatewayReported: {
+          amountMinor: session.amount_total ?? Number.NaN,
+          currency: session.currency ?? '',
+        },
       });
       break;
     }
@@ -85,19 +102,46 @@ export async function paystack(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const event = JSON.parse((req.body as Buffer).toString('utf8')) as {
-    event: string;
-    data: { reference: string };
-  };
+  let event: { event: string; data?: { reference?: string } };
+  try {
+    event = JSON.parse((req.body as Buffer).toString('utf8')) as typeof event;
+  } catch {
+    logger.warn('Paystack webhook body is not valid JSON');
+    res.status(400).json({ error: 'Invalid payload' });
+    return;
+  }
+
+  const reference = event.data?.reference;
+  if (!reference) {
+    logger.warn({ type: event.event }, 'Paystack webhook without a reference ignored');
+    res.status(202).json({ received: true });
+    return;
+  }
 
   if (event.event === 'charge.success') {
+    // The signed body is a claim, not proof — confirm with Paystack directly.
+    let verified;
+    try {
+      verified = await verifyPaystackTransaction(reference);
+    } catch (err) {
+      logger.error({ err: err instanceof Error ? err.message : err, reference }, 'Paystack verify failed');
+      // Non-2xx so Paystack redelivers once its API is reachable again.
+      res.status(503).json({ error: 'Verification unavailable' });
+      return;
+    }
+    if (verified.status !== 'success' || verified.reference !== reference) {
+      logger.warn({ reference, status: verified.status }, 'Paystack verify did not confirm success — not settling');
+      res.status(202).json({ received: true });
+      return;
+    }
     await billingService.applyGatewayPaymentOutcome({
-      providerReference: event.data.reference,
+      providerReference: reference,
       outcome: 'SUCCEEDED',
+      gatewayReported: { amountMinor: verified.amountMinor, currency: verified.currency },
     });
   } else if (event.event === 'charge.failed') {
     await billingService.applyGatewayPaymentOutcome({
-      providerReference: event.data.reference,
+      providerReference: reference,
       outcome: 'FAILED',
     });
   } else {
@@ -121,19 +165,40 @@ export async function flutterwave(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const event = JSON.parse((req.body as Buffer).toString('utf8')) as {
-    event: string;
-    data?: { tx_ref: string; status: string };
-  };
+  let event: { event: string; data?: { id?: number | string; tx_ref?: string; status?: string } };
+  try {
+    event = JSON.parse((req.body as Buffer).toString('utf8')) as typeof event;
+  } catch {
+    logger.warn('Flutterwave webhook body is not valid JSON');
+    res.status(400).json({ error: 'Invalid payload' });
+    return;
+  }
 
-  if (event.data?.status === 'successful') {
+  const txRef = event.data?.tx_ref;
+  if (event.data?.status === 'successful' && txRef) {
+    // The hash only proves who sent it — confirm the charge with Flutterwave.
+    let verified;
+    try {
+      if (event.data.id === undefined) throw new Error('Webhook carried no transaction id');
+      verified = await verifyFlutterwaveTransaction(event.data.id);
+    } catch (err) {
+      logger.error({ err: err instanceof Error ? err.message : err, txRef }, 'Flutterwave verify failed');
+      res.status(503).json({ error: 'Verification unavailable' });
+      return;
+    }
+    if (verified.status !== 'successful' || verified.txRef !== txRef) {
+      logger.warn({ txRef, status: verified.status }, 'Flutterwave verify did not confirm success — not settling');
+      res.status(202).json({ received: true });
+      return;
+    }
     await billingService.applyGatewayPaymentOutcome({
-      providerReference: event.data.tx_ref,
+      providerReference: txRef,
       outcome: 'SUCCEEDED',
+      gatewayReported: { amountMinor: verified.amountMinor, currency: verified.currency },
     });
-  } else if (event.data?.status === 'failed') {
+  } else if (event.data?.status === 'failed' && txRef) {
     await billingService.applyGatewayPaymentOutcome({
-      providerReference: event.data.tx_ref,
+      providerReference: txRef,
       outcome: 'FAILED',
     });
   } else {

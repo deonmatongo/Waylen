@@ -27,10 +27,17 @@
  * crashes, and it never silently substitutes a different gateway than the
  * one the currency implies.
  */
-import type { CheckoutSession, CheckoutSessionInput, GatewayProvider } from './types.js';
-import { createStripeCheckoutSession } from './stripe.client.js';
-import { createPaystackCheckoutSession } from './paystack.client.js';
-import { createFlutterwaveCheckoutSession } from './flutterwave.client.js';
+import { ValidationError } from '../../utils/errors.js';
+import type {
+  CheckoutSession,
+  CheckoutSessionInput,
+  GatewayProvider,
+  RefundInput,
+  RefundResult,
+} from './types.js';
+import { createStripeCheckoutSession, refundStripePayment } from './stripe.client.js';
+import { createPaystackCheckoutSession, refundPaystackPayment } from './paystack.client.js';
+import { createFlutterwaveCheckoutSession, refundFlutterwavePayment } from './flutterwave.client.js';
 
 const FLUTTERWAVE_CURRENCIES = new Set([
   'GHS',
@@ -59,4 +66,14 @@ export async function createCheckoutSession(
   if (provider === 'paystack') return createPaystackCheckoutSession(input);
   if (provider === 'flutterwave') return createFlutterwaveCheckoutSession(input);
   return createStripeCheckoutSession(input);
+}
+
+/** Routes a refund to the gateway that took the payment (`Payment.provider`). */
+export async function refundGatewayPayment(
+  input: RefundInput & { provider: string },
+): Promise<RefundResult> {
+  if (input.provider === 'stripe') return refundStripePayment(input);
+  if (input.provider === 'paystack') return refundPaystackPayment(input);
+  if (input.provider === 'flutterwave') return refundFlutterwavePayment(input);
+  throw new ValidationError(`Refunds are not supported for provider "${input.provider}".`);
 }

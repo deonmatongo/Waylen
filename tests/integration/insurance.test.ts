@@ -168,7 +168,8 @@ describe('insurance purchase (end-to-end)', () => {
       });
 
     expect(purchaseRes.status).toBe(303);
-    expect(purchaseRes.headers.location).toBe('/portal/insurance');
+    // Payments on: straight to the premium invoice; off: back to the policy list.
+    expect(purchaseRes.headers.location).toMatch(/^\/portal\/(insurance|invoices\/[^/]+)$/);
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
     const student = await prisma.studentProfile.findUniqueOrThrow({ where: { userId: user.id } });
@@ -182,6 +183,12 @@ describe('insurance purchase (end-to-end)', () => {
     expect(policy.coverageType).toBe('COMBINED');
     expect(policy.policyNumber).toMatch(/^WYL-INS-/);
     expect(policy.partnerId).not.toBeNull();
+    // Cover is only active once the premium invoice is paid.
+    expect(policy.status).toBe('PENDING');
+    const invoice = await prisma.invoice.findFirstOrThrow({
+      where: { studentProfileId: student.id, lineItems: { some: { category: 'INSURANCE' } } },
+    });
+    expect(invoice.totalMinor).toBe(policy.premiumMinor);
 
     const partner = await prisma.partner.findUniqueOrThrow({ where: { id: policy.partnerId! } });
     expect(partner.category).toBe('INSURANCE');

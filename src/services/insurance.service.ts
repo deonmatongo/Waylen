@@ -10,16 +10,20 @@
  * external partners, and the Referral is what makes that migration not a
  * rebuild.
  */
-import type { InsurancePolicy } from '@prisma/client';
+import type { Invoice, InsurancePolicy } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { policyNumber } from '../utils/reference.js';
 import { ServiceUnavailableError } from '../utils/errors.js';
+import { billingService } from './billing.service.js';
 import { referralService } from './referral.service.js';
 import { auditService } from './audit.service.js';
 import type { InsuranceQuoteInput } from '../validators/insurance.validator.js';
 
 const MS_PER_DAY = 86_400_000;
+
+/** How long a student has to pay the premium invoice. */
+const PREMIUM_DUE_DAYS = 7;
 
 /** Flat administration fee, in minor units, added to every quote. */
 const BASE_FEE_MINOR = 1500;
@@ -71,15 +75,18 @@ export const insuranceService = {
   },
 
   /**
-   * Creates the policy and logs a Referral against the active INSURANCE
-   * partner on file. There must be one on file — even while fulfilled
+   * Creates the policy PENDING plus an invoice for its premium — cover is
+   * never active until that invoice is PAID (`billingService` flips the
+   * policy to ACTIVE at settlement, matching on the policy number carried in
+   * the invoice description) — and logs a Referral against the active
+   * INSURANCE partner on file. There must be one on file — even while fulfilled
    * in-portal, insurance is only ever sold through a partner relationship —
    * so this refuses rather than silently skipping the referral if ops
    * hasn't configured a partner yet.
    */
   async purchase(
     input: InsuranceQuoteInput & { studentProfileId: string; actorId: string },
-  ): Promise<InsurancePolicy> {
+  ): Promise<{ policy: InsurancePolicy; invoice: Invoice }> {
     const partner = await prisma.partner.findFirst({
       where: { category: 'INSURANCE', status: 'ACTIVE' },
       orderBy: { displayOrder: 'asc' },
@@ -93,7 +100,6 @@ export const insuranceService = {
     }
 
     const computed = this.quote(input);
-    const now = new Date();
 
     const policy = await prisma.insurancePolicy.create({
       data: {
@@ -106,10 +112,34 @@ export const insuranceService = {
         coverageEndsAt: computed.coverageEndsAt,
         premiumMinor: computed.premiumMinor,
         currency: computed.currency,
-        // Cover that hasn't started yet is PENDING rather than ACTIVE.
-        status: computed.coverageStartsAt > now ? 'PENDING' : 'ACTIVE',
+        // Paid-for cover only: stays PENDING until the premium invoice is PAID.
+        status: 'PENDING',
       },
     });
+
+    let invoice: Invoice;
+    try {
+      const draft = await billingService.createInvoice({
+        studentProfileId: input.studentProfileId,
+        currency: computed.currency,
+        description: `Student insurance — policy ${policy.policyNumber}`,
+        dueAt: new Date(Date.now() + PREMIUM_DUE_DAYS * MS_PER_DAY),
+        lineItems: [
+          {
+            description: `${computed.planName}, ${computed.days} days (policy ${policy.policyNumber})`,
+            quantity: 1,
+            unitPriceMinor: computed.premiumMinor,
+            category: 'INSURANCE',
+          },
+        ],
+      });
+      await billingService.markSent(draft.id, input.actorId);
+      invoice = draft;
+    } catch (err) {
+      // No invoice means no way to pay — don't leave an unpayable policy behind.
+      await prisma.insurancePolicy.update({ where: { id: policy.id }, data: { status: 'CANCELLED' } });
+      throw err;
+    }
 
     const referral = await referralService.create({
       studentProfileId: input.studentProfileId,
@@ -130,14 +160,16 @@ export const insuranceService = {
         premiumMinor: policy.premiumMinor,
         currency: policy.currency,
         referralId: referral.id,
+        invoiceId: invoice.id,
+        status: 'PENDING',
       },
     });
 
     logger.info(
-      { policyId: policy.id, referralId: referral.id, partnerId: partner.id },
-      'Insurance policy purchased',
+      { policyId: policy.id, referralId: referral.id, partnerId: partner.id, invoiceId: invoice.id },
+      'Insurance policy created — awaiting premium payment',
     );
 
-    return policy;
+    return { policy, invoice };
   },
 };

@@ -1,3 +1,9 @@
+<% if (typeof paymentNotice !== 'undefined' && paymentNotice) { %>
+  <div class="flash-stack" role="status" aria-live="polite">
+    <div class="flash flash--<%= paymentNotice.type %>"><p class="flash__message"><%= paymentNotice.message %></p></div>
+  </div>
+<% } %>
+
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="/portal/invoices">Invoices</a>
   <span aria-hidden="true">/</span>
@@ -15,7 +21,7 @@
 <section class="panel">
   <dl class="detail-list">
     <div><dt>Invoice number</dt><dd><code><%= invoice.number %></code></dd></div>
-    <div><dt>Status</dt><dd><%= format.humaniseEnum(invoice.status) %></dd></div>
+    <div><dt>Status</dt><dd><%- include('_status-badge', { invoice: invoice }) %></dd></div>
     <div><dt>Issued</dt><dd><%= format.formatDate(invoice.issuedAt) %></dd></div>
     <div><dt>Due</dt><dd><%= format.formatDate(invoice.dueAt) %></dd></div>
   </dl>
@@ -131,6 +137,7 @@
   </section>
 <% } %>
 
+<%# Handled by public/js/app.js — CSP (script-src 'self') blocks inline scripts. %>
 <% if (typeof autoPrint !== 'undefined' && autoPrint) { %>
-  <script>window.onload = function () { window.print(); };</script>
+  <span data-auto-print hidden></span>
 <% } %>

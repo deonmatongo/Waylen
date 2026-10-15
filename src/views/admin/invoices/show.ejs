@@ -19,7 +19,7 @@
   <% } %>
   <% if (invoice.paidMinor === 0 && invoice.status !== 'VOID') { %>
     <form class="inline-form" method="post" action="/admin/invoices/<%= invoice.id %>/void"
-          onsubmit="return confirm('Void this invoice? This cannot be undone.');">
+          data-confirm="Void this invoice? This cannot be undone.">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="button button--ghost" type="submit">Void</button>
     </form>
@@ -98,14 +98,26 @@
       <hr class="rule">
       <h2 class="panel__title">Payment history</h2>
       <table class="table">
-        <thead><tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Reference</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Reference</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
           <% invoice.payments.forEach(function (payment) { %>
             <tr>
               <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
               <td><%= format.humaniseEnum(payment.method) %></td>
               <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
+              <td><%= format.humaniseEnum(payment.status) %></td>
               <td><%= payment.manualReference || payment.providerReference || '—' %></td>
+              <td>
+                <% if (payment.status === 'SUCCEEDED' && payment.provider && ['ADMIN_STAFF', 'SUPER_ADMIN'].includes(currentUser.role)) { %>
+                  <form class="inline-form" method="post" action="/admin/invoices/payments/<%= payment.id %>/refund"
+                        data-confirm="Refund this payment through <%= payment.provider %>? This cannot be undone.">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input class="field__input" type="number" name="amountMinor" min="1" max="<%= payment.amountMinor %>" step="1"
+                           placeholder="Full amount" aria-label="Refund amount in cents (blank for the full payment)">
+                    <button class="button button--ghost" type="submit">Refund</button>
+                  </form>
+                <% } %>
+              </td>
             </tr>
           <% }) %>
         </tbody>

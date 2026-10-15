@@ -42,6 +42,12 @@ export const rejectPaymentSchema = z.object({
   reason: z.string().trim().min(5, 'Explain why this payment could not be confirmed').max(2000),
 });
 
+/** Blank amount = refund the whole payment. */
+export const refundPaymentSchema = z.object({
+  amountMinor: optionalText(z.coerce.number().int().positive('Enter a refund amount in cents')),
+});
+
+export type RefundPaymentInput = z.infer<typeof refundPaymentSchema>;
 export type SubmitProofOfPaymentInput = z.infer<typeof submitProofOfPaymentSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type RejectPaymentInput = z.infer<typeof rejectPaymentSchema>;

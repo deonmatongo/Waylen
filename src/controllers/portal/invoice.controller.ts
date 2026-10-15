@@ -13,12 +13,18 @@ export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const invoices = await billingService.listForStudent(student.id);
+  const requestedPage = Number.parseInt(typeof req.query.page === 'string' ? req.query.page : '1', 10);
+  const results = await billingService.listPageForStudent(student.id, {
+    page: Number.isFinite(requestedPage) ? requestedPage : 1,
+    perPage: 20,
+  });
 
   res.render('portal/invoices/index', {
     title: 'Invoices & payments',
     layout: 'layouts/portal',
-    invoices,
+    invoices: results.items,
+    results,
+    baseUrl: '/portal/invoices',
   });
 }
 
@@ -28,10 +34,29 @@ export async function show(req: Request, res: Response): Promise<void> {
 
   const invoice = await billingService.findForStudent(req.params.id as string, student.id);
 
+  // Gateways bounce the student back with ?payment=… before (or without) the
+  // webhook having settled the invoice, so say so rather than show a stale
+  // balance with no explanation. Rendered inline: a flash would only appear
+  // on the *next* request.
+  const returned = req.query.payment;
+  const paymentNotice =
+    returned === 'return' || returned === 'success'
+      ? invoice.status === 'PAID'
+        ? { type: 'success', message: 'Payment received — thank you. This invoice is paid in full.' }
+        : {
+            type: 'info',
+            message:
+              'Payment received — we are confirming it with the payment provider. This invoice will update shortly.',
+          }
+      : returned === 'cancelled'
+        ? { type: 'info', message: 'Your card payment was cancelled and you have not been charged.' }
+        : null;
+
   res.render('portal/invoices/show', {
     title: `Invoice ${invoice.number}`,
     layout: 'layouts/portal',
     invoice,
+    paymentNotice,
   });
 }
 
@@ -59,6 +84,17 @@ export async function startPayment(req: Request, res: Response): Promise<void> {
   const outstandingMinor = invoice.totalMinor - invoice.paidMinor;
   if (outstandingMinor <= 0) {
     req.flash('info', 'This invoice is already paid in full.');
+    res.redirect(`/portal/invoices/${invoice.id}`);
+    return;
+  }
+
+  // A second session while one is open lets the student pay the same balance
+  // twice. The hosted-page URL is not stored, so tell them to wait/check.
+  if (await billingService.hasActiveGatewayCheckout(invoice.id)) {
+    req.flash(
+      'info',
+      'A card payment for this invoice is already in progress. If you have just paid, it is being confirmed — please check back shortly. Otherwise you can try again in about an hour.',
+    );
     res.redirect(`/portal/invoices/${invoice.id}`);
     return;
   }

@@ -10,6 +10,7 @@ import { listInsurancePoliciesForStudent } from '../../models/insurance.model.js
 import { insuranceService } from '../../services/insurance.service.js';
 import { insuranceQuoteSchema } from '../../validators/insurance.validator.js';
 import { INSURANCE_COVERAGE_TYPE_LABELS } from '../../config/constants.js';
+import { features } from '../../config/env.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
@@ -58,12 +59,25 @@ export async function purchase(req: Request, res: Response): Promise<void> {
     throw new ValidationError('Please check your cover dates.', parsed.error.flatten().fieldErrors);
   }
 
-  const policy = await insuranceService.purchase({
+  const { policy, invoice } = await insuranceService.purchase({
     ...parsed.data,
     studentProfileId: student.id,
     actorId: req.currentUser!.id,
   });
 
-  req.flash('success', `Your ${policy.planName} policy (${policy.policyNumber}) has been set up.`);
+  // Cover starts only once the premium invoice is paid.
+  if (features.payments) {
+    req.flash(
+      'success',
+      `Your ${policy.planName} policy (${policy.policyNumber}) is set up. Pay the premium invoice to activate your cover.`,
+    );
+    res.redirect(`/portal/invoices/${invoice.id}`);
+    return;
+  }
+
+  req.flash(
+    'success',
+    `Your ${policy.planName} policy (${policy.policyNumber}) is set up and awaiting payment. Your counsellor will be in touch to arrange it.`,
+  );
   res.redirect('/portal/insurance');
 }

@@ -1,26 +1,40 @@
 <% if (!invoices.length) { %>
   <%- include('../../partials/empty-state', { heading: 'No invoices yet', message: 'Invoices for consultations, application fees and services will appear here.' }) %>
 <% } else { %>
+  <section class="panel">
+    <h2 class="panel__title">Outstanding balance</h2>
+    <% if (!results.outstanding.length || results.outstanding.every(function (o) { return o.amountMinor <= 0; })) { %>
+      <p class="panel__note">You have nothing outstanding — all invoices are settled.</p>
+    <% } else { %>
+      <p>
+        <% results.outstanding.forEach(function (o, i) { %><%= i ? ' + ' : '' %><strong><%= format.formatMoney(o.amountMinor, o.currency) %></strong><% }) %>
+      </p>
+      <% if (results.overdueCount > 0) { %>
+        <p class="panel__note">
+          <%= results.overdueCount %> overdue invoice<%= results.overdueCount === 1 ? '' : 's' %> — please arrange payment.
+        </p>
+      <% } %>
+    <% } %>
+  </section>
+
   <table class="table">
     <thead>
       <tr>
         <th scope="col">Invoice</th><th scope="col">Description</th><th scope="col">Total</th>
-        <th scope="col">Paid</th><th scope="col">Status</th><th scope="col">Due</th>
+        <th scope="col">Paid</th><th scope="col">Balance</th><th scope="col">Status</th><th scope="col">Due</th>
         <th scope="col"><span class="visually-hidden">Actions</span></th>
       </tr>
     </thead>
     <tbody>
       <% invoices.forEach(function (invoice) { %>
+        <% const balanceMinor = ['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status) ? invoice.totalMinor - invoice.paidMinor : 0; %>
         <tr>
           <td><code><%= invoice.number %></code></td>
           <td><%= invoice.description || '—' %></td>
           <td><%= format.formatMoney(invoice.totalMinor, invoice.currency) %></td>
           <td><%= format.formatMoney(invoice.paidMinor, invoice.currency) %></td>
-          <td>
-            <span class="badge badge--<%= invoice.status === 'PAID' ? 'positive' : invoice.status === 'OVERDUE' ? 'negative' : 'neutral' %>">
-              <%= format.humaniseEnum(invoice.status) %>
-            </span>
-          </td>
+          <td><%= format.formatMoney(balanceMinor, invoice.currency) %></td>
+          <td><%- include('_status-badge', { invoice: invoice }) %></td>
           <td><%= format.formatDate(invoice.dueAt) %></td>
           <td class="table__actions">
             <a class="link-button" href="/portal/invoices/<%= invoice.id %>">View</a>
@@ -29,4 +43,6 @@
       <% }) %>
     </tbody>
   </table>
+
+  <%- include('../../partials/pagination', { results: results, baseUrl: baseUrl }) %>
 <% } %>

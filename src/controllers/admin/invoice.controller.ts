@@ -6,7 +6,11 @@ import { prisma } from '../../config/database.js';
 import { billingService } from '../../services/billing.service.js';
 import { listStudents, staffVisibilityFilter } from '../../models/student.model.js';
 import { assertCanAccessStudent } from '../../middleware/auth.js';
-import { createInvoiceSchema, rejectPaymentSchema } from '../../validators/billing.validator.js';
+import {
+  createInvoiceSchema,
+  refundPaymentSchema,
+  rejectPaymentSchema,
+} from '../../validators/billing.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { PaymentMethod } from '@prisma/client';
 
@@ -85,6 +89,7 @@ export async function store(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  await assertCanAccessStudent(req, parsed.data.studentProfileId);
   const invoice = await billingService.createInvoice(parsed.data);
 
   req.flash('success', 'Invoice created as a draft. Send it when you are ready.');
@@ -218,4 +223,32 @@ export async function rejectPayment(req: Request, res: Response): Promise<void> 
 
   req.flash('success', 'Payment rejected and the student notified.');
   res.redirect('/admin/invoices/pending');
+}
+
+/**
+ * Refunds a gateway payment (full, or partial when `amountMinor` is given).
+ * Route: adminOnly (ADMIN_STAFF / SUPER_ADMIN); the service re-checks the role.
+ */
+export async function refundPayment(req: Request, res: Response): Promise<void> {
+  const invoiceStudentProfileId = await loadPaymentStudentProfileId(req.params.id as string);
+  await assertCanAccessStudent(req, invoiceStudentProfileId);
+
+  const parsed = refundPaymentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ValidationError('Enter a valid refund amount.', parsed.error.flatten().fieldErrors);
+  }
+
+  const result = await billingService.refundPayment(
+    req.params.id as string,
+    req.currentUser!.id,
+    parsed.data.amountMinor as number | undefined,
+  );
+
+  const payment = await prisma.payment.findUnique({
+    where: { id: req.params.id as string },
+    select: { invoiceId: true },
+  });
+
+  req.flash('success', result.full ? 'Payment refunded in full.' : 'Partial refund issued.');
+  res.redirect(payment ? `/admin/invoices/${payment.invoiceId}` : '/admin/invoices');
 }
