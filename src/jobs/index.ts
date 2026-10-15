@@ -14,6 +14,7 @@
 import { logger } from '../config/logger.js';
 import { sendAppointmentReminders, sendWebinarReminders } from './reminders.job.js';
 import { flagOverdueInvoices } from './billing.job.js';
+import { runRetention } from './retention.job.js';
 
 interface ScheduledJob {
   name: string;
@@ -24,9 +25,16 @@ interface ScheduledJob {
 const HOUR = 3_600_000;
 
 const JOBS: ScheduledJob[] = [
-  { name: 'appointment-reminders', everyMs: HOUR, run: sendAppointmentReminders },
+  { name: 'appointment-reminders', everyMs: HOUR, run: () => sendAppointmentReminders({ lookaheadHours: 24 }) },
   { name: 'webinar-reminders', everyMs: HOUR, run: sendWebinarReminders },
   { name: 'overdue-invoices', everyMs: 12 * HOUR, run: flagOverdueInvoices },
+  {
+    name: 'retention',
+    everyMs: 24 * HOUR,
+    run: async () => {
+      await runRetention();
+    },
+  },
 ];
 
 const timers: NodeJS.Timeout[] = [];

@@ -1,8 +1,13 @@
 /**
  * Prisma client singleton.
  *
- * A single instance per process; in development the instance is cached on
- * `globalThis` so `tsx watch` reloads do not exhaust the connection pool.
+ * A single instance per process, cached on `globalThis` in every environment:
+ * `tsx watch` reloads in development, and warm serverless instances (Vercel)
+ * re-evaluating this module, must not each open a new connection pool.
+ *
+ * NOTE (serverless): DATABASE_URL should be the pooled (pgbouncer) URL and
+ * include `connection_limit=1`, e.g. `...?pgbouncer=true&connection_limit=1`,
+ * so each function instance holds a single connection.
  */
 import { PrismaClient } from '@prisma/client';
 import { env } from './env.js';
@@ -24,9 +29,9 @@ export const prisma =
       : [{ emit: 'stdout', level: 'error' }],
   });
 
-if (env.isDevelopment) {
-  globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
 
+if (env.isDevelopment) {
   // @ts-expect-error — the `query` event only exists when configured above
   prisma.$on('query', (e: { query: string; duration: number }) => {
     if (e.duration > 200) {

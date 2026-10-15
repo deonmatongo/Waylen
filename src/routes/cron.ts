@@ -17,6 +17,8 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { sendAppointmentReminders, sendWebinarReminders } from '../jobs/reminders.job.js';
 import { flagOverdueInvoices } from '../jobs/billing.job.js';
+import { runRetention } from '../jobs/retention.job.js';
+import { safeCompare } from '../utils/crypto.js';
 
 export const cronRouter = Router();
 
@@ -29,7 +31,8 @@ function requireCronSecret(req: Request, res: Response, next: NextFunction): voi
   const expected = env.CRON_SECRET;
   const provided = req.get('authorization');
 
-  if (!expected || provided !== `Bearer ${expected}`) {
+  // Constant-time comparison so response timing can't leak the secret.
+  if (!expected || !provided || !safeCompare(provided, `Bearer ${expected}`)) {
     logger.warn({ path: req.path }, 'Rejected unauthenticated cron request');
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -61,5 +64,13 @@ cronRouter.get(
   asyncHandler(async (_req, res) => {
     await flagOverdueInvoices();
     res.status(200).json({ ok: true });
+  }),
+);
+
+cronRouter.get(
+  '/retention',
+  asyncHandler(async (_req, res) => {
+    const result = await runRetention();
+    res.status(200).json({ ok: true, ...result });
   }),
 );

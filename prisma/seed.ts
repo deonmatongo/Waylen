@@ -20,12 +20,13 @@ const prisma = new PrismaClient();
 const nanoid = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 
 /**
- * Real content (countries, partners, opportunities, resources, webinars,
- * settings) is safe and idempotent to seed in any environment, production
- * included — that's the point of this flag. The demo staff/student accounts
- * below share one hardcoded password and are gated out of production so
- * `npm run db:seed` can never hand out real admin access with a password
- * that's sitting in plain text in this file's git history.
+ * Only reference data (countries, country FAQs, setting keys with EMPTY
+ * values) is seeded in production. Everything fabricated — partners,
+ * opportunities, resources, testimonials, webinars, example.com contact
+ * settings — and the demo staff/student accounts are development-only, so
+ * `npm run db:seed` can never put placeholder content in front of real users
+ * or hand out real admin access with a password that's sitting in plain text
+ * in this file's git history.
  */
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -1103,7 +1104,9 @@ async function seedEnquiries() {
 }
 
 async function seedSettings() {
-  const settings = [
+  // Production gets the keys with empty values so admins fill in real details
+  // via the settings UI; the placeholder values below are development-only.
+  const devSettings = [
     { key: 'contact.email', value: 'hello@waylen.example', group: 'contact' },
     { key: 'contact.phone', value: '+353 1 000 0000', group: 'contact' },
     { key: 'contact.whatsapp', value: '+353 86 000 0000', group: 'contact' },
@@ -1113,6 +1116,12 @@ async function seedSettings() {
     { key: 'social.instagram', value: 'https://instagram.com/waylen', group: 'social' },
     { key: 'consultation.duration_minutes', value: '45', group: 'operations' },
   ];
+  const settings = isProduction
+    ? devSettings.map((setting) =>
+        // Operational defaults (not contact details) are real in every env.
+        setting.key === 'consultation.duration_minutes' ? setting : { ...setting, value: '' },
+      )
+    : devSettings;
 
   for (const setting of settings) {
     await prisma.setting.upsert({
@@ -1128,26 +1137,26 @@ async function seedSettings() {
 async function main() {
   console.log(`\nSeeding Waylen ${isProduction ? 'production' : 'development'} database…\n`);
 
-  // Real content — safe in every environment.
+  // Reference data — safe and idempotent in every environment.
   const countries = await seedCountries();
   await seedWorldCountries();
-  const partners = await seedPartners(countries);
-  await seedOpportunities(countries, partners);
-  await seedContent();
-  await seedWebinars();
   await seedSettings();
 
   if (isProduction) {
     console.log(`
-Done. Production mode: skipped the demo staff/student accounts and sample
-enquiries — the accounts share one hardcoded password that's in this file's
-git history, and the enquiries are placeholder @example.com contacts, so
-neither belongs outside development. Invite real staff from /admin/users.
+Done. Production mode: seeded reference data only (countries, empty setting
+keys). Skipped placeholder partners, opportunities, resources, testimonials,
+webinars, demo accounts and sample enquiries. Fill in settings and invite real
+staff from /admin.
 `);
     return;
   }
 
-  // Demo accounts and sample CRM data — development only (see isProduction above).
+  // Placeholder content, demo accounts and sample CRM data — development only.
+  const partners = await seedPartners(countries);
+  await seedOpportunities(countries, partners);
+  await seedContent();
+  await seedWebinars();
   const staff = await seedStaff();
   await seedStudent(countries, staff, partners);
   await seedEnquiries();
