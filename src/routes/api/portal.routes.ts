@@ -5,7 +5,17 @@ import { findStudentByUserId } from '../../models/student.model.js';
 import { countUnreadForStudent } from '../../models/message.model.js';
 import { applicationService } from '../../services/application.service.js';
 import { documentService } from '../../services/document.service.js';
-import { appointmentService } from '../../services/appointment.service.js';
+import { requireFeature } from '../../middleware/feature.js';
+import { uploadRateLimiter } from '../../middleware/rateLimit.js';
+import { apiSingleDocument, paginate, parsePagination } from '../../controllers/api/helpers.js';
+import * as documents from '../../controllers/api/document.api.controller.js';
+import * as appointments from '../../controllers/api/appointment.api.controller.js';
+import * as invoices from '../../controllers/api/invoice.api.controller.js';
+import * as messages from '../../controllers/api/message.api.controller.js';
+import * as support from '../../controllers/api/support.api.controller.js';
+import * as services from '../../controllers/api/service.api.controller.js';
+import * as content from '../../controllers/api/content.api.controller.js';
+import * as profileApi from '../../controllers/api/profile.api.controller.js';
 import { notificationService } from '../../services/notification.service.js';
 import { prisma } from '../../config/database.js';
 import { APPLICATION_STAGE_LABELS, DOCUMENT_TYPE_LABELS } from '../../config/constants.js';
@@ -103,12 +113,17 @@ portalApiRouter.get(
     if (!student) throw new NotFoundError('Student profile not found.');
 
     const applications = await applicationService.listForStudent(student.id);
+    const labelled = applications.map((a) => ({
+      ...a,
+      stageLabel: APPLICATION_STAGE_LABELS[a.stage],
+    }));
 
+    // Bare array (the original shape) unless `page`/`perPage` opts in to the envelope.
+    res.setHeader('X-Total-Count', String(labelled.length));
     res.json(
-      applications.map((a) => ({
-        ...a,
-        stageLabel: APPLICATION_STAGE_LABELS[a.stage],
-      })),
+      req.query.page !== undefined || req.query.perPage !== undefined
+        ? paginate(labelled, parsePagination(req))
+        : labelled,
     );
   }),
 );
@@ -128,38 +143,19 @@ portalApiRouter.get(
 );
 
 /** GET /api/v1/portal/documents */
-portalApiRouter.get(
-  '/documents',
-  asyncHandler(async (req, res) => {
-    const student = await findStudentByUserId(req.currentUser!.id);
-    if (!student) throw new NotFoundError('Student profile not found.');
+portalApiRouter.get('/documents', asyncHandler(documents.list));
 
-    const [documents, outstanding] = await Promise.all([
-      documentService.listForStudent(student.id, { issuedByWaylen: false }),
-      documentService.outstandingRequirements(student.id),
-    ]);
+/** POST /api/v1/portal/documents (multipart) */
+portalApiRouter.post('/documents', uploadRateLimiter, apiSingleDocument, asyncHandler(documents.upload));
 
-    res.json({
-      documents: documents.map((d) => ({
-        ...d,
-        typeLabel: DOCUMENT_TYPE_LABELS[d.type],
-      })),
-      outstanding: outstanding.map((type) => ({ type, label: DOCUMENT_TYPE_LABELS[type] })),
-    });
-  }),
-);
+/** GET /api/v1/portal/documents/:id/download */
+portalApiRouter.get('/documents/:id/download', asyncHandler(documents.download));
 
 /** GET /api/v1/portal/appointments */
-portalApiRouter.get(
-  '/appointments',
-  asyncHandler(async (req, res) => {
-    const student = await findStudentByUserId(req.currentUser!.id);
-    if (!student) throw new NotFoundError('Student profile not found.');
-
-    const { upcoming, past } = await appointmentService.listForStudent(student.id);
-    res.json({ upcoming, past });
-  }),
-);
+portalApiRouter.get('/appointments', asyncHandler(appointments.list));
+portalApiRouter.get('/appointments/slots', asyncHandler(appointments.slots));
+portalApiRouter.post('/appointments', asyncHandler(appointments.book));
+portalApiRouter.post('/appointments/:id/cancel', asyncHandler(appointments.cancel));
 
 /** GET /api/v1/portal/profile */
 portalApiRouter.get(
@@ -190,23 +186,41 @@ portalApiRouter.get(
   }),
 );
 
-/** GET /api/v1/portal/notifications */
-portalApiRouter.get(
-  '/notifications',
-  asyncHandler(async (req, res) => {
-    const notifications = await notificationService.listForUser(req.currentUser!.id, { limit: 30 });
-    res.json(notifications);
-  }),
-);
+/** PATCH /api/v1/portal/profile */
+portalApiRouter.patch('/profile', asyncHandler(profileApi.update));
 
-/** POST /api/v1/portal/notifications/:id/read */
-portalApiRouter.post(
-  '/notifications/:id/read',
-  asyncHandler(async (req, res) => {
-    await prisma.notification.updateMany({
-      where: { id: req.params.id as string, userId: req.currentUser!.id },
-      data: { readAt: new Date() },
-    });
-    res.json({ ok: true });
-  }),
-);
+/** Notifications */
+portalApiRouter.get('/notifications', asyncHandler(profileApi.listNotifications));
+portalApiRouter.post('/notifications/read-all', asyncHandler(profileApi.markAllRead));
+portalApiRouter.post('/notifications/:id/read', asyncHandler(profileApi.markRead));
+
+/** Invoices & payments — behind FEATURE_PAYMENTS, like the web portal. */
+portalApiRouter.get('/invoices', requireFeature('payments'), asyncHandler(invoices.list));
+portalApiRouter.get('/invoices/:id', requireFeature('payments'), asyncHandler(invoices.show));
+portalApiRouter.post('/invoices/:id/pay', requireFeature('payments'), asyncHandler(invoices.pay));
+
+/** Messages */
+portalApiRouter.get('/messages/unread-count', asyncHandler(messages.unreadCount));
+portalApiRouter.get('/messages/threads', asyncHandler(messages.listThreads));
+portalApiRouter.post('/messages/threads', asyncHandler(messages.createThread));
+portalApiRouter.get('/messages/threads/:id', asyncHandler(messages.showThread));
+portalApiRouter.post('/messages/threads/:id/reply', asyncHandler(messages.reply));
+
+/** Support tickets */
+portalApiRouter.get('/support/tickets', asyncHandler(support.list));
+portalApiRouter.post('/support/tickets', asyncHandler(support.create));
+portalApiRouter.get('/support/tickets/:id', asyncHandler(support.show));
+portalApiRouter.post('/support/tickets/:id/reply', asyncHandler(support.reply));
+
+/** Services, contracts, Waylen-issued downloads */
+portalApiRouter.get('/services', asyncHandler(services.index));
+portalApiRouter.get('/contracts', asyncHandler(documents.listContracts));
+portalApiRouter.get('/contracts/:id/download', asyncHandler(documents.downloadContract));
+portalApiRouter.get('/downloads', asyncHandler(documents.listDownloads));
+portalApiRouter.get('/downloads/:id/download', asyncHandler(documents.downloadIssued));
+
+/** Resources & webinars */
+portalApiRouter.get('/resources', asyncHandler(content.listResources));
+portalApiRouter.get('/resources/:slug', asyncHandler(content.showResource));
+portalApiRouter.get('/webinars', asyncHandler(content.listWebinars));
+portalApiRouter.post('/webinars/:id/register', asyncHandler(content.registerWebinar));
