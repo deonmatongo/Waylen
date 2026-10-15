@@ -10,12 +10,39 @@ import { logger } from '../config/logger.js';
 import { storageService } from './storage.service.js';
 import { notificationService } from './notification.service.js';
 import { auditService } from './audit.service.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 export interface RetrievedContract {
   buffer: Buffer;
   filename: string;
   mimeType: string;
+}
+
+/**
+ * Allowed lifecycle moves. Contracts only go forward: signed, then active.
+ * Anything not listed (including no-op same-status moves) is rejected.
+ * Typed as a full Record so adding a ContractStatus (e.g. CANCELLED/EXPIRED)
+ * fails to compile until its transitions and copy are defined here.
+ */
+export const CONTRACT_TRANSITIONS: Record<ContractStatus, readonly ContractStatus[]> = {
+  AWAITING_SIGNATURE: ['SIGNED'],
+  SIGNED: ['ACTIVE'],
+  ACTIVE: [],
+};
+
+export function canTransitionContract(from: ContractStatus, to: ContractStatus): boolean {
+  return CONTRACT_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/** Student-facing wording per status, so copy never claims the wrong state. */
+const STATUS_COPY: Record<ContractStatus, string> = {
+  AWAITING_SIGNATURE: 'awaiting your signature',
+  SIGNED: 'signed',
+  ACTIVE: 'active',
+};
+
+export function contractStatusTitle(title: string, status: ContractStatus): string {
+  return `${title} is now ${STATUS_COPY[status] ?? `marked ${String(status).toLowerCase().replace(/_/g, ' ')}`}`;
 }
 
 export const contractService = {
@@ -78,19 +105,31 @@ export const contractService = {
     });
     if (!existing) throw new NotFoundError('That contract could not be found.');
 
-    const contract = await prisma.contract.update({
-      where: { id: input.contractId },
-      data: { status: input.status },
-    });
-
-    // Stamp signedAt the first time a contract reaches SIGNED — a later move
-    // (e.g. SIGNED -> ACTIVE) must not overwrite the original signing date.
-    if (input.status === 'SIGNED') {
-      await prisma.contract.updateMany({
-        where: { id: input.contractId, signedAt: null },
-        data: { signedAt: new Date() },
-      });
+    if (!canTransitionContract(existing.status, input.status)) {
+      throw new ValidationError(
+        `A contract that is ${existing.status.toLowerCase().replace(/_/g, ' ')} cannot be moved to ${input.status.toLowerCase().replace(/_/g, ' ')}.`,
+      );
     }
+
+    // Compare-and-set on the current status inside one transaction so two
+    // concurrent moves cannot both apply, and signedAt is stamped atomically.
+    // signedAt is only set on the first move into SIGNED (it stays null-guarded).
+    const contract = await prisma.$transaction(async (tx) => {
+      const moved = await tx.contract.updateMany({
+        where: { id: input.contractId, status: existing.status },
+        data: { status: input.status },
+      });
+      if (moved.count === 0) {
+        throw new ValidationError('That contract was changed by someone else. Please refresh and try again.');
+      }
+      if (input.status === 'SIGNED') {
+        await tx.contract.updateMany({
+          where: { id: input.contractId, signedAt: null },
+          data: { signedAt: new Date() },
+        });
+      }
+      return tx.contract.findUniqueOrThrow({ where: { id: input.contractId } });
+    });
 
     await auditService.record({
       actorId: input.actorId,
@@ -104,7 +143,7 @@ export const contractService = {
     await notificationService.dispatch({
       userId: existing.studentProfile.userId,
       event: 'contract.status_changed',
-      title: `${existing.title} is now ${input.status === 'SIGNED' ? 'signed' : input.status === 'ACTIVE' ? 'active' : 'awaiting your signature'}`,
+      title: contractStatusTitle(existing.title, input.status),
       actionUrl: '/portal/contracts',
     });
 

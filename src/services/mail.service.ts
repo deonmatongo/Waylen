@@ -24,6 +24,49 @@ export interface MailOptions {
   replyTo?: string;
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', copy: '(c)',
+  ndash: '-', mdash: '-', hellip: '...', lsquo: "'", rsquo: "'", ldquo: '"', rdquo: '"',
+};
+
+function decodeEntities(input: string): string {
+  return input.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, body: string) => {
+    if (body[0] === '#') {
+      const code = body[1]?.toLowerCase() === 'x' ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+    }
+    return NAMED_ENTITIES[body.toLowerCase()] ?? match;
+  });
+}
+
+/**
+ * Plain-text alternative for an HTML email: links become `text (url)`,
+ * block elements become line breaks, entities are decoded.
+ */
+export function htmlToText(html: string): string {
+  const text = html
+    .replace(/<(head|style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<a\b[^>]*?href\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>([\s\S]*?)<\/a>/gi, (_m, d: string, sq: string, inner: string) => {
+      const url = decodeEntities((d ?? sq ?? '').trim());
+      const label = decodeEntities(inner.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+      if (!url || url.startsWith('#') || url.toLowerCase().startsWith('javascript:')) return label;
+      if (!label || label === url || label === url.replace(/^mailto:/i, '')) return url;
+      return `${label} (${url})`;
+    })
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '\n- ')
+    .replace(/<\/(p|div|h[1-6]|tr|ul|ol|table|li|blockquote)>/gi, '\n\n')
+    .replace(/<\/(td|th)>/gi, ' ')
+    .replace(/<[^>]+>/g, '');
+
+  return decodeEntities(text)
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 let transporter: Transporter | null = null;
 
 function getTransporter(): Transporter {
@@ -48,6 +91,15 @@ function getTransporter(): Transporter {
 
 export const mailService = {
   async send(options: MailOptions): Promise<void> {
+    // Fail loudly rather than silently pretending to deliver real mail.
+    if (env.NODE_ENV === 'production' && env.MAIL_DRIVER === 'console') {
+      logger.error(
+        { to: options.to, template: options.template },
+        'MAIL_DRIVER=console in production: email NOT sent. Configure MAIL_DRIVER=smtp.',
+      );
+      throw new Error('Mail is not configured for production (MAIL_DRIVER=console); email was not sent.');
+    }
+
     // `ejs.renderFile` is typed as returning `any`; with `async: true` it is a
     // string, so narrow it once here rather than at every use below.
     const html: string = await ejs.renderFile(
@@ -67,8 +119,7 @@ export const mailService = {
       to: options.to,
       subject: options.subject,
       html,
-      // Crude but adequate plain-text fallback for clients that need one.
-      text: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      text: htmlToText(html),
       ...(options.replyTo ? { replyTo: options.replyTo } : {}),
     });
 

@@ -18,11 +18,52 @@ export interface RegisterGuestInput {
   phone?: string;
 }
 
-async function assertHasCapacity(webinarId: string, capacity: number | null): Promise<void> {
-  if (capacity == null) return;
-  const count = await prisma.webinarRegistration.count({ where: { webinarId } });
-  if (count >= capacity) {
-    throw new ValidationError('That webinar is fully booked. Please check back for future sessions.');
+type RegistrationData = Parameters<typeof prisma.webinarRegistration.create>[0]['data'];
+
+const MAX_TX_ATTEMPTS = 4;
+
+function prismaCode(err: unknown): string | undefined {
+  return typeof err === 'object' && err !== null ? (err as { code?: string }).code : undefined;
+}
+
+/**
+ * Capacity check and insert in one Serializable transaction, so two
+ * concurrent sign-ups for the last seat cannot both pass the count. A
+ * serialization conflict (P2034) is retried; a unique violation (P2002, the
+ * same email racing itself) resolves to the row that won, keeping
+ * registration idempotent. `created` tells callers whether to send confirmation.
+ */
+async function createWithCapacity(webinarId: string, email: string, capacity: number | null, data: RegistrationData) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.webinarRegistration.findUnique({
+            where: { webinarId_email: { webinarId, email } },
+          });
+          if (existing) return { registration: existing, created: false };
+
+          if (capacity != null) {
+            const count = await tx.webinarRegistration.count({ where: { webinarId } });
+            if (count >= capacity) {
+              throw new ValidationError('That webinar is fully booked. Please check back for future sessions.');
+            }
+          }
+          return { registration: await tx.webinarRegistration.create({ data }), created: true };
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (err) {
+      const code = prismaCode(err);
+      if (code === 'P2002') {
+        const winner = await prisma.webinarRegistration.findUnique({
+          where: { webinarId_email: { webinarId, email } },
+        });
+        if (winner) return { registration: winner, created: false };
+      }
+      if (code === 'P2034' && attempt < MAX_TX_ATTEMPTS) continue;
+      throw err;
+    }
   }
 }
 
@@ -42,16 +83,13 @@ export const webinarService = {
     });
     if (existing) return existing;
 
-    await assertHasCapacity(webinar.id, webinar.capacity);
-
-    const registration = await prisma.webinarRegistration.create({
-      data: {
-        webinarId: webinar.id,
-        fullName: input.fullName.trim(),
-        email,
-        phone: input.phone ?? null,
-      },
+    const { registration, created } = await createWithCapacity(webinar.id, email, webinar.capacity, {
+      webinarId: webinar.id,
+      fullName: input.fullName.trim(),
+      email,
+      phone: input.phone ?? null,
     });
+    if (!created) return registration;
 
     try {
       await mailService.send({
@@ -101,16 +139,13 @@ export const webinarService = {
     });
     if (existing) return existing;
 
-    await assertHasCapacity(webinarId, webinar.capacity);
-
-    const registration = await prisma.webinarRegistration.create({
-      data: {
-        webinarId,
-        studentProfileId: options.studentProfileId,
-        fullName: student.user.fullName,
-        email,
-      },
+    const { registration, created } = await createWithCapacity(webinarId, email, webinar.capacity, {
+      webinarId,
+      studentProfileId: options.studentProfileId,
+      fullName: student.user.fullName,
+      email,
     });
+    if (!created) return registration;
 
     try {
       await notificationService.dispatch({

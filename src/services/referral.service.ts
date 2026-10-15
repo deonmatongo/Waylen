@@ -7,6 +7,7 @@
 import type { ReferralStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
 import { auditService } from './audit.service.js';
 
 export const referralService = {
@@ -65,7 +66,7 @@ export const referralService = {
         ...(options.commissionAmountMinor !== undefined
           ? {
               commissionAmountMinor: options.commissionAmountMinor,
-              commissionCurrency: options.commissionCurrency ?? 'EUR',
+              commissionCurrency: options.commissionCurrency ?? DEFAULT_CURRENCY,
             }
           : {}),
       },

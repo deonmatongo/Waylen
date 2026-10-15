@@ -79,7 +79,80 @@ export interface DispatchOptions {
   emailData?: Record<string, unknown>;
 }
 
+const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const RETRY_SUFFIX = /\s\[retry:(\d+)\]$/;
+
+/** The schema has no attempts column, so the count rides on failureReason as " [retry:N]". */
+export function parseRetryCount(failureReason: string | null): number {
+  const match = failureReason ? RETRY_SUFFIX.exec(failureReason) : null;
+  return match ? Number(match[1]) : 0;
+}
+
+export function withRetryCount(failureReason: string | null, attempts: number): string {
+  const base = (failureReason ?? 'Unknown error').replace(RETRY_SUFFIX, '');
+  return `${base} [retry:${attempts}]`;
+}
+
 export const notificationService = {
+  /**
+   * Re-sends EMAIL rows that failed within the last 24h and have been retried
+   * fewer than `maxAttempts` times. Meant to be called from a cron/job.
+   * Retries use the generic template (title/body/actionUrl) because the
+   * original template name and data are not persisted on the row.
+   * Returns how many rows were sent and how many failed again.
+   */
+  async retryFailed(limit = 50, maxAttempts = 3): Promise<{ sent: number; failed: number }> {
+    const rows = await prisma.notification.findMany({
+      where: {
+        channel: 'EMAIL',
+        sentAt: null,
+        failureReason: { not: null },
+        createdAt: { gte: new Date(Date.now() - RETRY_WINDOW_MS) },
+        NOT: { failureReason: { endsWith: `[retry:${maxAttempts}]` } },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      include: { user: { select: { email: true, fullName: true } } },
+    });
+
+    let sent = 0;
+    let failed = 0;
+    for (const row of rows) {
+      const attempts = parseRetryCount(row.failureReason);
+      if (attempts >= maxAttempts) continue;
+
+      // Claim the row (compare-and-set on failureReason) so overlapping cron
+      // runs do not double-send.
+      const claimed = await prisma.notification.updateMany({
+        where: { id: row.id, sentAt: null, failureReason: row.failureReason },
+        data: { failureReason: withRetryCount(row.failureReason, attempts + 1) },
+      });
+      if (claimed.count === 0) continue;
+
+      try {
+        await mailService.send({
+          to: row.user.email,
+          subject: row.title,
+          template: 'generic',
+          data: { fullName: row.user.fullName, title: row.title, body: row.body, actionUrl: row.actionUrl },
+        });
+        await prisma.notification.update({
+          where: { id: row.id },
+          data: { sentAt: new Date(), failureReason: null },
+        });
+        sent++;
+      } catch (err) {
+        failed++;
+        logger.error({ err, notificationId: row.id, attempt: attempts + 1 }, 'Notification email retry failed');
+        await prisma.notification.update({
+          where: { id: row.id },
+          data: { failureReason: withRetryCount(err instanceof Error ? err.message : null, attempts + 1) },
+        });
+      }
+    }
+    return { sent, failed };
+  },
+
   /**
    * Fans an event out across its configured channels. Individual channel
    * failures are logged and recorded on the row — one failing transport must
