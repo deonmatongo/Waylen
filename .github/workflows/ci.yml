@@ -26,6 +26,13 @@ jobs:
 
     env:
       NODE_ENV: test
+      APP_URL: http://localhost:3000
+      MAIL_FROM_ADDRESS: ci@waylen.test
+      MAIL_DRIVER: console
+      SESSION_SECRET: test-session-secret-at-least-32-characters-long
+      CSRF_SECRET: test-csrf-secret-at-least-32-characters-long!!
+      JWT_SECRET: test-jwt-secret-at-least-32-characters-long!!!!
+      DOCUMENT_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       DATABASE_URL: postgresql://waylen:waylen@localhost:5432/waylen_test?schema=public
       DIRECT_URL: postgresql://waylen:waylen@localhost:5432/waylen_test?schema=public
       TEST_DATABASE_URL: postgresql://waylen:waylen@localhost:5432/waylen_test?schema=public
@@ -35,7 +42,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.11.0'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -47,8 +54,19 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Create shadow database
+        run: PGPASSWORD=waylen psql -h localhost -U waylen -d waylen_test -c 'CREATE DATABASE waylen_shadow'
+
       - name: Apply migrations to test database
         run: npx prisma migrate deploy
+
+      - name: Check migrations match schema.prisma
+        run: >-
+          npx prisma migrate diff
+          --from-migrations prisma/migrations
+          --to-schema-datamodel prisma/schema.prisma
+          --shadow-database-url "postgresql://waylen:waylen@localhost:5432/waylen_shadow?schema=public"
+          --exit-code
 
       - name: Build
         run: npm run build
@@ -57,5 +75,4 @@ jobs:
         run: npm test
 
       - name: Audit dependencies
-        run: npm audit --production --audit-level=high
-        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high

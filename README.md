@@ -198,10 +198,14 @@ EU, so PRD §8.2 sets GDPR-level expectations. What is implemented:
 - **Log redaction** — passwords, tokens, storage keys and card fields are censored at the logger.
 - **Account enumeration** — login, password reset and verification resend return identical responses for known and unknown addresses.
 
+### Storage
+
+`STORAGE_DRIVER=local` (default) writes encrypted blobs to disk for development. `STORAGE_DRIVER=s3` stores the same encrypted blobs, under the same keys, in AWS S3 or any S3-compatible service (Cloudflare R2, Supabase Storage) with SSE-AES256. Set `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and optionally `S3_ENDPOINT` for non-AWS providers. In production the app refuses to boot with the local driver on Vercel, or with `s3` and missing settings.
+
 ### Before going live
 
 - [ ] Draft the privacy policy and terms with legal counsel (both pages are deliberately empty)
-- [ ] Switch `STORAGE_DRIVER=s3` and complete the S3 driver in `storage.service.ts`
+- [ ] Switch `STORAGE_DRIVER=s3` and set the `S3_*` variables (see Storage below)
 - [ ] Move sessions and rate limits to Redis before running more than one instance
 - [ ] Complete a payment processor: verify webhooks and make handlers idempotent (`controllers/webhooks/payment.controller.ts`)
 - [ ] Complete the Microsoft Graph client in `teams.service.ts` (a stub issues placeholder links in development)
@@ -238,6 +242,26 @@ does not exist yet.
 - A reverse proxy terminating TLS
 
 `GET /healthz` is the liveness probe.
+
+### Vercel
+
+- **Builds:** `vercel.json` generates the Prisma client at install time and
+  runs `build:ts`, `build:views` and `build:css` in the build step.
+  `prisma migrate deploy` runs **only when `VERCEL_ENV=production`**; preview
+  builds never migrate.
+- **Separate env scopes:** give Preview and Production different values in
+  Vercel's Environment Variables, especially `DATABASE_URL`/`DIRECT_URL`
+  (a separate Supabase project or branch for Preview), `CRON_SECRET`, storage
+  and gateway keys. Never point Preview at the production database.
+- **Back up before migrating:** take a database backup/snapshot before merging
+  anything that adds a migration; the production deploy applies it
+  automatically and a failed migration fails the build.
+- **Cron limits:** the `crons` in `vercel.json` run daily. Vercel Hobby allows
+  only daily crons (at most 2 per project, with hourly-precision timing), so
+  the three entries there need a Pro plan or an external scheduler
+  (hit `/cron/*` with `Authorization: Bearer $CRON_SECRET`).
+- **Function timeout:** `maxDuration` is 30s; the Hobby cap may be lower.
+- **Production boot checks:** see the Core section of `.env.example`.
 
 Scheduled jobs currently run in-process via `setInterval`. **They are not
 guarded against multiple instances** — running two replicas means two

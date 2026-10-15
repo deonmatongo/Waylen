@@ -7,6 +7,14 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+// Fail closed on serverless: Vercel always sets NODE_ENV=production, but if it
+// is ever missing there, defaulting to 'development' would silently disable
+// secure cookies, HSTS and `trust proxy`. Locally (tsx watch) it stays
+// 'development' by default.
+if (!process.env.NODE_ENV && (process.env.VERCEL || process.env.VERCEL_ENV)) {
+  process.env.NODE_ENV = 'production';
+}
+
 const bool = z
   .enum(['true', 'false', '1', '0'])
   .transform((v) => v === 'true' || v === '1');
@@ -98,7 +106,14 @@ const schema = z.object({
   FEATURE_PARTNER_DIRECTORY: bool.default('true'),
   FEATURE_COMMUNITY: bool.default('false'),
   FEATURE_AGENT_PORTAL: bool.default('false'),
+
+  // When true, staff without TOTP enrolled are redirected to /account/security
+  // from every /admin route until they enrol.
+  MFA_REQUIRED_FOR_STAFF: bool.default('false'),
 });
+
+// Case-insensitive substrings that mark a copied-from-.env.example or test value.
+const PLACEHOLDER_MARKERS = ['replace-me', 'changeme', 'test-'];
 
 const refined = schema.superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.CRON_SECRET) {
@@ -107,6 +122,103 @@ const refined = schema.superRefine((data, ctx) => {
       path: ['CRON_SECRET'],
       message: 'CRON_SECRET is required in production to authenticate /cron/* routes',
     });
+  }
+
+  if (data.NODE_ENV === 'production') {
+    if (!data.APP_URL.startsWith('https://')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['APP_URL'],
+        message: 'APP_URL must be an https:// URL in production',
+      });
+    }
+    if (!data.TRUSTED_ORIGINS.split(',').some((s) => s.trim())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['TRUSTED_ORIGINS'],
+        message: 'TRUSTED_ORIGINS must be set in production (CSRF/origin allow-list)',
+      });
+    }
+
+    if (data.MAIL_DRIVER === 'console') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MAIL_DRIVER'],
+        message: 'MAIL_DRIVER=console only logs emails; set MAIL_DRIVER=smtp in production',
+      });
+    } else {
+      for (const key of ['MAIL_HOST', 'MAIL_PORT', 'MAIL_USER'] as const) {
+        if (!data[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when MAIL_DRIVER=smtp in production`,
+          });
+        }
+      }
+    }
+
+    if (!data.UPSTASH_REDIS_REST_URL || !data.UPSTASH_REDIS_REST_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['UPSTASH_REDIS_REST_URL'],
+        message:
+          'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production (shared rate-limit store)',
+      });
+    }
+
+    const secrets = {
+      SESSION_SECRET: data.SESSION_SECRET,
+      CSRF_SECRET: data.CSRF_SECRET,
+      JWT_SECRET: data.JWT_SECRET,
+      DOCUMENT_ENCRYPTION_KEY: data.DOCUMENT_ENCRYPTION_KEY,
+      CRON_SECRET: data.CRON_SECRET,
+    };
+    for (const [key, value] of Object.entries(secrets)) {
+      const marker = value && PLACEHOLDER_MARKERS.find((m) => value.toLowerCase().includes(m));
+      if (marker) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} contains the placeholder marker "${marker}"; generate a real secret`,
+        });
+      }
+    }
+
+    if (
+      data.FEATURE_PAYMENTS &&
+      !data.STRIPE_SECRET_KEY &&
+      !data.PAYSTACK_SECRET_KEY &&
+      !data.FLUTTERWAVE_SECRET_KEY
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['FEATURE_PAYMENTS'],
+        message:
+          'FEATURE_PAYMENTS=true requires at least one gateway key (STRIPE_SECRET_KEY, PAYSTACK_SECRET_KEY or FLUTTERWAVE_SECRET_KEY) in production',
+      });
+    }
+
+    if (data.STORAGE_DRIVER === 'local' && process.env.VERCEL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['STORAGE_DRIVER'],
+        message:
+          'STORAGE_DRIVER=local is not viable on Vercel/serverless (ephemeral filesystem); set STORAGE_DRIVER=s3',
+      });
+    }
+    if (data.STORAGE_DRIVER === 's3') {
+      const required = ['S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
+      for (const key of required) {
+        if (!data[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when STORAGE_DRIVER=s3 in production`,
+          });
+        }
+      }
+    }
   }
 
   if (Boolean(data.UPSTASH_REDIS_REST_URL) !== Boolean(data.UPSTASH_REDIS_REST_TOKEN)) {
