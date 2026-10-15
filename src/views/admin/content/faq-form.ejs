@@ -1,0 +1,64 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/content/faqs">FAQs</a>
+  <span aria-hidden="true">/</span>
+  <span><%= faq ? 'Edit FAQ' : 'New FAQ' %></span>
+</nav>
+
+<form class="form" method="post"
+      action="<%= faq ? `/admin/content/faqs/${faq.id}` : '/admin/content/faqs' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <div class="field">
+      <label class="field__label" for="question">Question</label>
+      <input class="field__input" type="text" id="question" name="question" required maxlength="300" value="<%= values.question || '' %>">
+      <% if (errors.question) { %><p class="field__error"><%= errors.question[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="answer">Answer</label>
+      <textarea class="field__textarea" id="answer" name="answer" rows="8" required><%= values.answer || '' %></textarea>
+      <p class="field__hint">Basic HTML only (paragraphs, lists, bold/italic, https links). Anything else is removed on save.</p>
+      <% if (errors.answer) { %><p class="field__error"><%= errors.answer[0] %></p><% } %>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="topic">Topic</label>
+        <input class="field__input" type="text" id="topic" name="topic" required maxlength="60"
+               placeholder="visas, payments, countries" value="<%= values.topic || '' %>">
+        <% if (errors.topic) { %><p class="field__error"><%= errors.topic[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="countryId">Country</label>
+        <select class="field__select" id="countryId" name="countryId">
+          <option value="">General (all countries)</option>
+          <% countries.forEach(function (country) { %>
+            <option value="<%= country.id %>" <%= values.countryId === country.id ? 'selected' : '' %>><%= country.name %></option>
+          <% }) %>
+        </select>
+        <% if (errors.countryId) { %><p class="field__error"><%= errors.countryId[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% statuses.forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="displayOrder">Display order</label>
+        <input class="field__input" type="number" id="displayOrder" name="displayOrder" value="<%= values.displayOrder || 0 %>">
+      </div>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= faq ? 'Save changes' : 'Create FAQ' %></button>
+    <a class="button button--ghost" href="/admin/content/faqs">Cancel</a>
+  </div>
+</form>

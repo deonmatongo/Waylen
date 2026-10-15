@@ -1,9 +1,13 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/content/faqs/new">New FAQ</a>
+</div>
+
 <% if (!faqs.length) { %>
-  <%- include('../../partials/empty-state', { heading: 'No FAQs yet' }) %>
+  <%- include('../../partials/empty-state', { heading: 'No FAQs yet', actionHref: '/admin/content/faqs/new', actionLabel: 'Create the first one' }) %>
 <% } else { %>
   <table class="table table--stacked">
     <thead>
-      <tr><th scope="col">Question</th><th scope="col">Topic</th><th scope="col">Country</th><th scope="col">Status</th><th scope="col">Order</th></tr>
+      <tr><th scope="col">Question</th><th scope="col">Topic</th><th scope="col">Country</th><th scope="col">Status</th><th scope="col">Order</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
     </thead>
     <tbody>
       <% faqs.forEach(function (faq) { %>
@@ -13,6 +17,7 @@
           <td><%= faq.country ? faq.country.name : 'General' %></td>
           <td><%= format.humaniseEnum(faq.status) %></td>
           <td><%= faq.displayOrder %></td>
+          <td class="table__actions"><a class="link-button" href="/admin/content/faqs/<%= faq.id %>/edit">Edit</a></td>
         </tr>
       <% }) %>
     </tbody>

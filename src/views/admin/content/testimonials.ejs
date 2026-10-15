@@ -1,9 +1,13 @@
+<div class="page-actions">
+  <a class="button button--primary" href="/admin/content/testimonials/new">New testimonial</a>
+</div>
+
 <% if (!testimonials.length) { %>
-  <%- include('../../partials/empty-state', { heading: 'No testimonials yet', message: 'PRD §A.10 allows placeholders until real student stories are available.' }) %>
+  <%- include('../../partials/empty-state', { heading: 'No testimonials yet', message: 'Add real student and partner stories as they become available.', actionHref: '/admin/content/testimonials/new', actionLabel: 'Add the first one' }) %>
 <% } else { %>
   <table class="table table--stacked">
     <thead>
-      <tr><th scope="col">Author</th><th scope="col">Source</th><th scope="col">Quote</th><th scope="col">Status</th><th scope="col">Featured</th></tr>
+      <tr><th scope="col">Author</th><th scope="col">Source</th><th scope="col">Quote</th><th scope="col">Status</th><th scope="col">Featured</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
     </thead>
     <tbody>
       <% testimonials.forEach(function (testimonial) { %>
@@ -16,6 +20,7 @@
           <td><%= format.truncate(testimonial.quote, 90) %></td>
           <td><%= format.humaniseEnum(testimonial.status) %></td>
           <td><%= testimonial.isFeatured ? 'Yes' : 'No' %></td>
+          <td class="table__actions"><a class="link-button" href="/admin/content/testimonials/<%= testimonial.id %>/edit">Edit</a></td>
         </tr>
       <% }) %>
     </tbody>

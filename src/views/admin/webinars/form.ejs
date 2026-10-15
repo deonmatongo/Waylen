@@ -83,6 +83,7 @@
       <div class="field">
         <label class="field__label" for="joinUrl">Join URL</label>
         <input class="field__input" type="text" id="joinUrl" name="joinUrl" value="<%= values.joinUrl || '' %>">
+        <% if (errors.joinUrl) { %><p class="field__error"><%= errors.joinUrl[0] %></p><% } %>
       </div>
     </div>
 
@@ -100,6 +101,7 @@
       <div class="field">
         <label class="field__label" for="recordingUrl">Recording URL</label>
         <input class="field__input" type="text" id="recordingUrl" name="recordingUrl" value="<%= values.recordingUrl || '' %>">
+        <% if (errors.recordingUrl) { %><p class="field__error"><%= errors.recordingUrl[0] %></p><% } %>
       </div>
     </div>
   </section>

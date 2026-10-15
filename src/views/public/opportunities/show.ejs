@@ -8,16 +8,16 @@
       <p class="listing__eyebrow"><%= categoryLabel %> · <%= opportunity.country.name %></p>
       <h1><%= opportunity.title %></h1>
 
-      <%- opportunity.description %>
+      <%- include('../../partials/rich-text', { html: opportunity.description }) %>
 
       <% if (opportunity.entryRequirements) { %>
         <h2>Entry requirements</h2>
-        <%- opportunity.entryRequirements %>
+        <%- include('../../partials/rich-text', { html: opportunity.entryRequirements }) %>
       <% } %>
 
       <% if (opportunity.scholarshipAvailable && opportunity.scholarshipDetails) { %>
         <h2>Scholarships</h2>
-        <%- opportunity.scholarshipDetails %>
+        <%- include('../../partials/rich-text', { html: opportunity.scholarshipDetails }) %>
       <% } %>
     </div>
 

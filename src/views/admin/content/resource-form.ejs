@@ -55,11 +55,13 @@
       <div class="field">
         <label class="field__label" for="filePath">Downloadable file URL</label>
         <input class="field__input" type="text" id="filePath" name="filePath" value="<%= values.filePath || '' %>">
+        <% if (errors.filePath) { %><p class="field__error"><%= errors.filePath[0] %></p><% } %>
       </div>
 
       <div class="field">
         <label class="field__label" for="externalUrl">External / video URL</label>
         <input class="field__input" type="text" id="externalUrl" name="externalUrl" value="<%= values.externalUrl || '' %>">
+        <% if (errors.externalUrl) { %><p class="field__error"><%= errors.externalUrl[0] %></p><% } %>
       </div>
 
       <div class="field">

@@ -18,7 +18,7 @@
 
     <div class="prose">
       <%# Body HTML is authored by Waylen staff through the admin CMS. %>
-      <%- resource.body %>
+      <%- include('../../partials/rich-text', { html: resource.body }) %>
     </div>
 
     <% if (resource.filePath) { %>

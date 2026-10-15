@@ -1,0 +1,6 @@
+<%#
+  Renders CMS rich text unescaped. Content is sanitised on write; `safeHtml`
+  (res.locals, from utils/sanitize) re-sanitises at render so rows saved
+  before that existed can't reach the page either. Expects `html`.
+%>
+<%- typeof safeHtml === 'function' ? safeHtml(html) : html %>

@@ -6,7 +6,7 @@
 
 <article class="panel prose">
   <% if (resource.excerpt) { %><p class="article-head__lede"><%= resource.excerpt %></p><% } %>
-  <%- resource.body %>
+  <%- include('../../partials/rich-text', { html: resource.body }) %>
 
   <% if (resource.filePath) { %>
     <p><a class="button button--primary" href="<%= resource.filePath %>" download>Download</a></p>

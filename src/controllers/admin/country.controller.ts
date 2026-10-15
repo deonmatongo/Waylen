@@ -8,14 +8,31 @@ import { PublishStatus } from '@prisma/client';
 import { prisma } from '../../config/database.js';
 import { countrySchema } from '../../validators/country.validator.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
+import { sanitizeRichText } from '../../utils/sanitize.js';
 import type { CountryInput } from '../../validators/country.validator.js';
 
 /** Money is stored in minor units (cents); the admin form takes whole units. */
 const toMinorUnits = (value: number | undefined): number | undefined =>
   value == null ? value : Math.round(value * 100);
 
+/** The encyclopaedia sections render unescaped on the public country page. */
+const RICH_TEXT_FIELDS = [
+  'educationOverview', 'costOfLiving', 'accommodation', 'healthcare', 'banking',
+  'transportation', 'studentLife', 'workingWhileStudying', 'careerOpportunities',
+  'visaInformation', 'popularProgrammes',
+] as const satisfies readonly (keyof CountryInput)[];
+
+const sanitizeRichFields = (data: CountryInput): CountryInput => {
+  const clean = { ...data };
+  for (const field of RICH_TEXT_FIELDS) {
+    const value = clean[field];
+    if (typeof value === 'string') clean[field] = sanitizeRichText(value);
+  }
+  return clean;
+};
+
 const toMinorUnitFields = (data: CountryInput) => ({
-  ...data,
+  ...sanitizeRichFields(data),
   indicativeTuitionMin: toMinorUnits(data.indicativeTuitionMin),
   indicativeTuitionMax: toMinorUnits(data.indicativeTuitionMax),
   costOfLivingMonthly: toMinorUnits(data.costOfLivingMonthly),

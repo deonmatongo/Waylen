@@ -51,18 +51,44 @@
     <aside class="prose-layout__aside">
       <div class="panel">
         <h2 class="panel__title">Other ways to reach us</h2>
-        <%#
-          TODO(phase-1): read these from the Setting table so staff can update
-          contact details without a deploy.
+        <%
+          // `contactSettings` is a key -> value map of the `contact` and `social`
+          // Setting rows (staff edit these in admin settings); every line below
+          // renders only when its value is set.
+          var cs = typeof contactSettings !== 'undefined' && contactSettings ? contactSettings : {};
+          var whatsappDigits = (cs['contact.whatsapp'] || '').replace(/\D/g, '');
+          var offices = [cs['contact.office.primary'], cs['contact.office.secondary']].filter(Boolean);
+          var socials = Object.keys(cs).filter(function (key) {
+            return key.indexOf('social.') === 0 && /^https:\/\//.test(cs[key]);
+          });
         %>
         <ul class="link-list">
           <li><a href="/book-consultation">Book a free consultation</a></li>
           <li><a href="/webinars">Join a webinar</a></li>
+          <% if (cs['contact.email']) { %>
+            <li>Email: <a href="mailto:<%= cs['contact.email'] %>"><%= cs['contact.email'] %></a></li>
+          <% } %>
+          <% if (cs['contact.phone']) { %><li>Phone: <%= cs['contact.phone'] %></li><% } %>
+          <% if (whatsappDigits) { %>
+            <li>WhatsApp: <a href="https://wa.me/<%= whatsappDigits %>" rel="noopener"><%= cs['contact.whatsapp'] %></a></li>
+          <% } %>
         </ul>
-        <p class="panel__note">
-          Office locations, WhatsApp and social links are configured in the admin
-          settings.
-        </p>
+
+        <% if (offices.length) { %>
+          <h3 class="panel__subtitle">Offices</h3>
+          <ul class="link-list">
+            <% offices.forEach(function (office) { %><li><%= office %></li><% }) %>
+          </ul>
+        <% } %>
+
+        <% if (socials.length) { %>
+          <h3 class="panel__subtitle">Follow us</h3>
+          <ul class="link-list">
+            <% socials.forEach(function (key) { %>
+              <li><a href="<%= cs[key] %>" rel="noopener" target="_blank"><%= key.replace('social.', '').replace(/^./, function (c) { return c.toUpperCase(); }) %></a></li>
+            <% }) %>
+          </ul>
+        <% } %>
       </div>
     </aside>
   </div>

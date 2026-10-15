@@ -1,0 +1,86 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/admin/content/testimonials">Testimonials</a>
+  <span aria-hidden="true">/</span>
+  <span><%= testimonial ? testimonial.authorName : 'New testimonial' %></span>
+</nav>
+
+<form class="form" method="post"
+      action="<%= testimonial ? `/admin/content/testimonials/${testimonial.id}` : '/admin/content/testimonials' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel">
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="authorName">Author name</label>
+        <input class="field__input" type="text" id="authorName" name="authorName" required maxlength="120" value="<%= values.authorName || '' %>">
+        <% if (errors.authorName) { %><p class="field__error"><%= errors.authorName[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="authorRole">Role or programme</label>
+        <input class="field__input" type="text" id="authorRole" name="authorRole" maxlength="160" value="<%= values.authorRole || '' %>">
+        <% if (errors.authorRole) { %><p class="field__error"><%= errors.authorRole[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="countryName">Country studied in</label>
+        <input class="field__input" type="text" id="countryName" name="countryName" maxlength="100" value="<%= values.countryName || '' %>">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="quote">Quote</label>
+      <textarea class="field__textarea" id="quote" name="quote" rows="5" required maxlength="2000"><%= values.quote || '' %></textarea>
+      <% if (errors.quote) { %><p class="field__error"><%= errors.quote[0] %></p><% } %>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="source">Source</label>
+        <select class="field__select" id="source" name="source" required>
+          <% sources.forEach(function (source) { %>
+            <option value="<%= source %>" <%= values.source === source ? 'selected' : '' %>><%= format.humaniseEnum(source) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="status">Status</label>
+        <select class="field__select" id="status" name="status" required>
+          <% statuses.forEach(function (status) { %>
+            <option value="<%= status %>" <%= values.status === status ? 'selected' : '' %>><%= format.humaniseEnum(status) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="rating">Rating (1-5, optional)</label>
+        <input class="field__input" type="number" id="rating" name="rating" min="1" max="5" value="<%= values.rating || '' %>">
+        <% if (errors.rating) { %><p class="field__error"><%= errors.rating[0] %></p><% } %>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="displayOrder">Display order</label>
+        <input class="field__input" type="number" id="displayOrder" name="displayOrder" value="<%= values.displayOrder || 0 %>">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="avatarPath">Photo URL (optional)</label>
+      <input class="field__input" type="text" id="avatarPath" name="avatarPath" value="<%= values.avatarPath || '' %>">
+      <% if (errors.avatarPath) { %><p class="field__error"><%= errors.avatarPath[0] %></p><% } %>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="isFeatured">
+        <input type="checkbox" id="isFeatured" name="isFeatured" <%= values.isFeatured ? 'checked' : '' %>>
+        Featured on the home page
+      </label>
+    </div>
+  </section>
+
+  <div class="page-actions">
+    <button class="button button--primary" type="submit"><%= testimonial ? 'Save changes' : 'Create testimonial' %></button>
+    <a class="button button--ghost" href="/admin/content/testimonials">Cancel</a>
+  </div>
+</form>

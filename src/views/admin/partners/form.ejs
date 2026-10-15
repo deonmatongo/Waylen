@@ -60,6 +60,7 @@
       <div class="field">
         <label class="field__label" for="websiteUrl">Website</label>
         <input class="field__input" type="text" id="websiteUrl" name="websiteUrl" value="<%= values.websiteUrl || '' %>">
+        <% if (errors.websiteUrl) { %><p class="field__error"><%= errors.websiteUrl[0] %></p><% } %>
       </div>
     </div>
 

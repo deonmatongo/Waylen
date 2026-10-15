@@ -4,6 +4,12 @@
 import type { Request, Response } from 'express';
 import { contactSchema } from '../../validators/contact.validator.js';
 import { enquiryService } from '../../services/enquiry.service.js';
+import { prisma } from '../../config/database.js';
+
+async function loadContactSettings(): Promise<Record<string, string>> {
+  const rows = await prisma.setting.findMany({ where: { group: { in: ['contact', 'social'] } } });
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
 
 export async function show(req: Request, res: Response): Promise<void> {
   res.render('public/contact', {
@@ -12,6 +18,7 @@ export async function show(req: Request, res: Response): Promise<void> {
       'Talk to the Waylen team — by form, WhatsApp or email. We reply to every enquiry.',
     values: {},
     errors: {},
+    contactSettings: await loadContactSettings(),
   });
 }
 
@@ -23,6 +30,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
       title: 'Contact us',
       values: req.body,
       errors: parsed.error.flatten().fieldErrors,
+      contactSettings: await loadContactSettings(),
     });
     return;
   }

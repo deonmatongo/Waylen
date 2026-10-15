@@ -9,7 +9,7 @@
       </p>
       <h1><%= webinar.title %></h1>
 
-      <% if (webinar.description) { %><%- webinar.description %><% } %>
+      <% if (webinar.description) { %><%- include('../../partials/rich-text', { html: webinar.description }) %><% } %>
 
       <% if (webinar.recordingUrl) { %>
         <h2>Recording</h2>

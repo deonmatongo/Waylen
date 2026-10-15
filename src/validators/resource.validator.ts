@@ -2,9 +2,14 @@
  * Resource Library editor validation (PRD §5.2, §8.1).
  */
 import { z } from 'zod';
+import { httpUrl, httpUrlOrSitePath } from './url.js';
+import { sanitizeRichText } from '../utils/sanitize.js';
 import { ResourceType, PublishStatus } from '@prisma/client';
 
 /** Blank form fields arrive as `''`, which a bare `.optional()` would still try to coerce. */
+/** Trimmed rich text, reduced to the CMS allow-list before it is stored. */
+const richText = z.string().trim().transform(sanitizeRichText);
+
 const optionalText = (schema: z.ZodTypeAny) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
@@ -17,10 +22,10 @@ export const resourceSchema = z.object({
   requiresAuth: checkbox.default(false),
 
   excerpt: optionalText(z.string().trim().max(300)),
-  body: optionalText(z.string().trim()),
+  body: optionalText(richText),
   coverImagePath: optionalText(z.string().trim().max(500)),
-  filePath: optionalText(z.string().trim().max(500)),
-  externalUrl: optionalText(z.string().trim().max(500)),
+  filePath: optionalText(httpUrlOrSitePath()),
+  externalUrl: optionalText(httpUrl()),
   readMinutes: optionalText(z.coerce.number().int().min(1)),
 
   /** Submitted as a comma-separated string, stored as a JSON array. */

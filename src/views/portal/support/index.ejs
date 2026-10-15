@@ -11,7 +11,7 @@
         <h3 class="panel__subtitle"><%= format.humaniseEnum(group.topic) %></h3>
         <dl class="detail-list">
           <% group.items.forEach(function (faq) { %>
-            <div><dt><%= faq.question %></dt><dd><%- faq.answer %></dd></div>
+            <div><dt><%= faq.question %></dt><dd><%- include('../../partials/rich-text', { html: faq.answer }) %></dd></div>
           <% }) %>
         </dl>
       <% }) %>

@@ -4,7 +4,8 @@
   cookies, so "Accept all" and "Necessary only" currently behave the same —
   but the choice is genuinely persisted (see initCookieBanner in app.js),
   so an analytics category added later has a real preference to check
-  rather than needing this UI rebuilt.
+  rather than needing this UI rebuilt. The footer's "Cookie settings" button
+  reopens this banner at any time.
 %>
 <div class="cookie-consent" data-cookie-banner hidden role="region" aria-label="Cookie notice">
   <div class="cookie-consent__card">
@@ -51,11 +52,11 @@
 
       <div class="cookie-consent__pref">
         <div>
-          <label class="cookie-consent__pref-title" for="cookie-pref-analytics">Analytics</label>
-          <p class="cookie-consent__pref-desc">We don't currently use analytics cookies. This stays off unless you turn it on.</p>
+          <label class="cookie-consent__pref-title" for="cookie-pref-analytics">Analytics <span class="cookie-consent__pref-status">(not currently used)</span></label>
+          <p class="cookie-consent__pref-desc">We don't set any analytics cookies, so there is nothing to switch on. If that changes we'll ask you first.</p>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="cookie-pref-analytics" data-cookie-analytics>
+          <input type="checkbox" id="cookie-pref-analytics" data-cookie-analytics disabled>
           <span class="toggle__thumb"></span>
         </label>
       </div>

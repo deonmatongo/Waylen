@@ -3,6 +3,7 @@
  * commission terms are admin-only fields and must never be exposed publicly.
  */
 import { z } from 'zod';
+import { httpUrl } from './url.js';
 import { PartnerCategory, PartnerStatus } from '@prisma/client';
 
 /** Blank form fields arrive as `''`, which a bare `.optional()` would still try to coerce. */
@@ -24,7 +25,7 @@ export const partnerSchema = z.object({
 
   description: optionalText(z.string().trim()),
   logoPath: optionalText(z.string().trim().max(500)),
-  websiteUrl: optionalText(z.string().trim().max(500)),
+  websiteUrl: optionalText(httpUrl()),
 
   contactName: optionalText(z.string().trim().max(160)),
   contactEmail: optionalText(z.string().trim().email().max(200)),

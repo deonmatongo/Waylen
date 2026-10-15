@@ -2,9 +2,13 @@
  * Opportunity listing editor validation (PRD §4.2, §8.1).
  */
 import { z } from 'zod';
+import { sanitizeRichText } from '../utils/sanitize.js';
 import { OpportunityCategory, StudyLevel, PublishStatus } from '@prisma/client';
 
 /** Blank form fields arrive as `''`, which a bare `.optional()` would still try to coerce. */
+/** Trimmed rich text, reduced to the CMS allow-list before it is stored. */
+const richText = z.string().trim().transform(sanitizeRichText);
+
 const optionalText = (schema: z.ZodTypeAny) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
@@ -17,8 +21,8 @@ export const opportunitySchema = z.object({
   countryId: z.string().cuid('Choose a country'),
   institutionId: optionalText(z.string().cuid()),
 
-  description: z.string().trim().min(10, 'Describe the programme'),
-  entryRequirements: optionalText(z.string().trim()),
+  description: z.string().trim().min(10, 'Describe the programme').transform(sanitizeRichText),
+  entryRequirements: optionalText(richText),
   studyLevel: optionalText(z.nativeEnum(StudyLevel)),
   duration: optionalText(z.string().trim().max(50)),
 
@@ -38,7 +42,7 @@ export const opportunitySchema = z.object({
   currency: z.string().trim().toUpperCase().length(3).default('EUR'),
 
   scholarshipAvailable: checkbox.default(false),
-  scholarshipDetails: optionalText(z.string().trim()),
+  scholarshipDetails: optionalText(richText),
   isFeatured: checkbox.default(false),
 
   metaTitle: optionalText(z.string().trim().max(70)),

@@ -8,6 +8,8 @@ import { OPPORTUNITY_CATEGORY_LABELS } from '../../config/constants.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 import { resourceSchema } from '../../validators/resource.validator.js';
 import { opportunitySchema } from '../../validators/opportunity.validator.js';
+import { faqSchema, testimonialSchema, TESTIMONIAL_SOURCES } from '../../validators/content.validator.js';
+import { PublishStatus } from '@prisma/client';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const [resourceCount, opportunityCount, faqCount, testimonialCount] = await Promise.all([
@@ -298,4 +300,168 @@ export async function testimonials(req: Request, res: Response): Promise<void> {
     layout: 'layouts/admin',
     testimonials,
   });
+}
+
+// ── FAQs ─────────────────────────────────────────────────────────────────────
+
+const faqCountries = () =>
+  prisma.country.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } });
+
+export async function createFaq(req: Request, res: Response): Promise<void> {
+  res.render('admin/content/faq-form', {
+    title: 'New FAQ',
+    layout: 'layouts/admin',
+    faq: null,
+    countries: await faqCountries(),
+    statuses: Object.values(PublishStatus),
+    values: { status: PublishStatus.PUBLISHED },
+    errors: {},
+  });
+}
+
+export async function storeFaq(req: Request, res: Response): Promise<void> {
+  const parsed = faqSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/faq-form', {
+      title: 'New FAQ',
+      layout: 'layouts/admin',
+      faq: null,
+      countries: await faqCountries(),
+      statuses: Object.values(PublishStatus),
+      values: req.body,
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  await prisma.faq.create({ data: parsed.data });
+
+  req.flash('success', 'The FAQ has been created.');
+  res.redirect('/admin/content/faqs');
+}
+
+export async function editFaq(req: Request, res: Response): Promise<void> {
+  const faq = await prisma.faq.findUnique({ where: { id: req.params.id as string } });
+  if (!faq) throw new NotFoundError('That FAQ could not be found.');
+
+  res.render('admin/content/faq-form', {
+    title: 'Edit FAQ',
+    layout: 'layouts/admin',
+    faq,
+    countries: await faqCountries(),
+    statuses: Object.values(PublishStatus),
+    values: faq,
+    errors: {},
+  });
+}
+
+export async function updateFaq(req: Request, res: Response): Promise<void> {
+  const faq = await prisma.faq.findUnique({ where: { id: req.params.id as string } });
+  if (!faq) throw new NotFoundError('That FAQ could not be found.');
+
+  const parsed = faqSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/faq-form', {
+      title: 'Edit FAQ',
+      layout: 'layouts/admin',
+      faq,
+      countries: await faqCountries(),
+      statuses: Object.values(PublishStatus),
+      values: { ...req.body, id: faq.id },
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  // An omitted country means "general" — clear any previous scoping.
+  await prisma.faq.update({
+    where: { id: faq.id },
+    data: { ...parsed.data, countryId: parsed.data.countryId ?? null },
+  });
+
+  req.flash('success', 'The FAQ has been updated.');
+  res.redirect('/admin/content/faqs');
+}
+
+// ── Testimonials ─────────────────────────────────────────────────────────────
+
+const testimonialFormLocals = {
+  layout: 'layouts/admin',
+  statuses: Object.values(PublishStatus),
+  sources: TESTIMONIAL_SOURCES,
+};
+
+export async function createTestimonial(req: Request, res: Response): Promise<void> {
+  res.render('admin/content/testimonial-form', {
+    title: 'New testimonial',
+    ...testimonialFormLocals,
+    testimonial: null,
+    values: { status: PublishStatus.DRAFT, source: 'STUDENT' },
+    errors: {},
+  });
+}
+
+export async function storeTestimonial(req: Request, res: Response): Promise<void> {
+  const parsed = testimonialSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/testimonial-form', {
+      title: 'New testimonial',
+      ...testimonialFormLocals,
+      testimonial: null,
+      values: req.body,
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  await prisma.testimonial.create({ data: parsed.data });
+
+  req.flash('success', 'The testimonial has been created.');
+  res.redirect('/admin/content/testimonials');
+}
+
+export async function editTestimonial(req: Request, res: Response): Promise<void> {
+  const testimonial = await prisma.testimonial.findUnique({ where: { id: req.params.id as string } });
+  if (!testimonial) throw new NotFoundError('That testimonial could not be found.');
+
+  res.render('admin/content/testimonial-form', {
+    title: `Edit: ${testimonial.authorName}`,
+    ...testimonialFormLocals,
+    testimonial,
+    values: testimonial,
+    errors: {},
+  });
+}
+
+export async function updateTestimonial(req: Request, res: Response): Promise<void> {
+  const testimonial = await prisma.testimonial.findUnique({ where: { id: req.params.id as string } });
+  if (!testimonial) throw new NotFoundError('That testimonial could not be found.');
+
+  const parsed = testimonialSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).render('admin/content/testimonial-form', {
+      title: `Edit: ${testimonial.authorName}`,
+      ...testimonialFormLocals,
+      testimonial,
+      values: { ...req.body, id: testimonial.id },
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  // Cleared optional fields are written as null rather than left unchanged.
+  const { authorRole, countryName, rating, avatarPath, ...rest } = parsed.data;
+  await prisma.testimonial.update({
+    where: { id: testimonial.id },
+    data: {
+      ...rest,
+      authorRole: authorRole ?? null,
+      countryName: countryName ?? null,
+      rating: rating ?? null,
+      avatarPath: avatarPath ?? null,
+    },
+  });
+
+  req.flash('success', 'The testimonial has been updated.');
+  res.redirect('/admin/content/testimonials');
 }

@@ -9,7 +9,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" href="/img/brand/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="<%= typeof isProduction !== 'undefined' && isProduction ? '/css/app.min.css' : '/css/app.css' %>">
 
   <%- typeof style !== 'undefined' ? style : '' %>
 </head>

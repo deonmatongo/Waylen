@@ -85,7 +85,7 @@
           <% if (country[pair[0]]) { %>
             <section id="<%= pair[0] %>">
               <h2><%= pair[1] %></h2>
-              <%- country[pair[0]] %>
+              <%- include('../../partials/rich-text', { html: country[pair[0]] }) %>
             </section>
           <% } %>
         <% }) %>
@@ -97,7 +97,7 @@
               <% country.faqs.forEach(function (faq) { %>
                 <div class="faq-list__item">
                   <dt><%= faq.question %></dt>
-                  <dd><%- faq.answer %></dd>
+                  <dd><%- include('../../partials/rich-text', { html: faq.answer }) %></dd>
                 </div>
               <% }) %>
             </dl>

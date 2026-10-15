@@ -4,15 +4,6 @@
       <h1><%= service.name %></h1>
       <p class="article-head__lede"><%= service.summary %></p>
 
-      <%#
-        TODO(phase-1): move the long-form copy for each service into the CMS
-        (Resource with type ARTICLE, keyed by service slug) so staff can edit
-        it without a deploy — PRD §8.1.
-      %>
-      <%- include('../../partials/scaffold-notice', {
-            phase: 'Phase 1 — content',
-            detail: 'Long-form copy for this service will be authored in the admin CMS. The page structure, routing and navigation are complete.'
-          }) %>
     </div>
 
     <aside class="prose-layout__aside">

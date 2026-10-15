@@ -533,6 +533,12 @@
   function initHeroVideo() {
     var video = document.querySelector('.cp-hero__video');
     if (!video) return;
+    // Respect reduced-motion: leave the poster frame showing and never play.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      video.removeAttribute('autoplay');
+      video.pause();
+      return;
+    }
     var start = function () {
       if (!video.paused) return;
       var attempt = video.play();
@@ -574,9 +580,11 @@
 
   function initCookieBanner() {
     var banner = document.querySelector('[data-cookie-banner]');
-    if (!banner || readCookieConsent()) return;
+    if (!banner) return;
 
-    banner.hidden = false;
+    // First visit shows the banner; afterwards it is reopened on demand from
+    // the footer's "Cookie settings" button.
+    if (!readCookieConsent()) banner.hidden = false;
 
     var prefsPanel = banner.querySelector('[data-cookie-prefs]');
     var manageButton = banner.querySelector('[data-cookie-manage]');
@@ -617,6 +625,41 @@
         closeBanner();
       });
     }
+
+    var reopenButtons = document.querySelectorAll('[data-cookie-reopen]');
+    Array.prototype.forEach.call(reopenButtons, function (button) {
+      button.addEventListener('click', function () {
+        if (prefsPanel) prefsPanel.hidden = false;
+        if (manageButton) manageButton.setAttribute('aria-expanded', 'true');
+        banner.hidden = false;
+        banner.setAttribute('tabindex', '-1');
+        banner.focus();
+      });
+    });
+  }
+
+  /**
+   * `data-confirm="…"` on a form asks before submitting (CSP is script-src
+   * 'self', so an inline onsubmit cannot be used). Registered before the
+   * submit guards; stopImmediatePropagation keeps a cancelled submit from
+   * leaving its button stuck on "Working…".
+   */
+  function initConfirmForms() {
+    document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!window.confirm(form.getAttribute('data-confirm'))) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      });
+    });
+  }
+
+  /** `data-auto-print` opens the browser print dialog once the page has loaded (printable receipts). */
+  function initAutoPrint() {
+    if (!document.querySelector('[data-auto-print]')) return;
+    if (document.readyState === 'complete') window.print();
+    else window.addEventListener('load', function () { window.print(); });
   }
 
   function init() {
@@ -625,7 +668,9 @@
     initPortalUserMenu();
     initReferralCopy();
     initCustomSelects();
+    initConfirmForms();
     initSubmitGuards();
+    initAutoPrint();
     initUploadHints();
     initFlashDismiss();
     initScrollReveal();

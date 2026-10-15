@@ -56,6 +56,10 @@
             <% if (user.staffProfile && user.staffProfile.jobTitle) { %>
               <small class="table__hint"><%= user.staffProfile.jobTitle %></small>
             <% } %>
+            <form method="post" action="/admin/users/<%= user.id %>/reset-mfa" class="inline-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="link-button link-button--danger" type="submit">Reset MFA</button>
+            </form>
           </td>
           <td><%= format.humaniseEnum(user.role) %></td>
           <td>
@@ -81,6 +85,11 @@
               <form method="post" action="/admin/users/<%= user.id %>/suspend" class="inline-form">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button class="link-button link-button--danger" type="submit">Suspend</button>
+              </form>
+            <% } else if (user.status === 'SUSPENDED') { %>
+              <form method="post" action="/admin/users/<%= user.id %>/unsuspend" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="link-button" type="submit">Reactivate</button>
               </form>
             <% } %>
           </td>
