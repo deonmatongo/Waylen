@@ -1,0 +1,20 @@
+<h1 class="auth__title">Two-factor verification</h1>
+<p class="auth__lede">Enter the 6-digit code from your authenticator app, or one of your recovery codes.</p>
+
+<% if (error) { %>
+  <div class="field-error field-error--form" role="alert"><%= error %></div>
+<% } %>
+
+<form class="form" method="post" action="/login/mfa" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="field">
+    <label class="field__label" for="code">Authentication code</label>
+    <input class="field__input" type="text" id="code" name="code" inputmode="text"
+           autocomplete="one-time-code" autocapitalize="off" spellcheck="false" autofocus required>
+  </div>
+
+  <button class="button button--primary button--block" type="submit">Verify</button>
+</form>
+
+<p class="auth__links"><a href="/login">Back to sign in</a></p>

@@ -38,6 +38,7 @@ export async function loadCurrentUser(
           role: true,
           status: true,
           emailVerifiedAt: true,
+          mfaEnabled: true,
           passwordChangedAt: true,
           studentProfile: { select: { id: true, reference: true, currentStage: true } },
         },

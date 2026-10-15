@@ -12,6 +12,7 @@ export interface CurrentUser {
   role: UserRole;
   status: UserStatus;
   emailVerifiedAt: Date | null;
+  mfaEnabled: boolean;
   studentProfile: {
     id: string;
     reference: string;

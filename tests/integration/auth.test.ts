@@ -7,6 +7,7 @@
  * file creates uses the `+auth-audit-<run>@` local-part convention below so
  * afterAll can clean up precisely, never with a broad DELETE.
  */
+import crypto from 'node:crypto';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Express } from 'express';
@@ -19,6 +20,21 @@ const RUN_ID = `auth-audit-${Date.now()}`;
 const emailFor = (label: string) => `${RUN_ID}-${label}@example.com`;
 const STRONG_PASSWORD = 'Str0ngPassw0rd!';
 const OTHER_STRONG_PASSWORD = 'An0therStrong!';
+
+/**
+ * Verification/reset tokens are stored as SHA-256 hashes, so the raw value
+ * only ever exists in the emailed link. Tests that need a usable link swap in
+ * a hash of a token they choose, then use that raw token.
+ */
+async function seedToken(
+  email: string,
+  column: 'verificationToken' | 'passwordResetToken',
+): Promise<string> {
+  const raw = crypto.randomBytes(24).toString('base64url');
+  const hash = crypto.createHash('sha256').update(raw).digest('hex');
+  await prisma.user.update({ where: { email }, data: { [column]: hash } });
+  return raw;
+}
 
 interface Agent {
   /** Already joined as a single `Cookie:` header value ("a=1; b=2"). */
@@ -137,7 +153,7 @@ describe('sign up', () => {
     expect(user!.verificationExpiresAt).not.toBeNull();
   });
 
-  it('rejects a duplicate email with a 409, without overwriting the original account', async () => {
+  it('answers a duplicate email like a fresh signup, without overwriting the original account', async () => {
     const email = emailFor('dup');
     const { cookies, csrfToken } = await primeCsrf('/register');
     await request(app)
@@ -167,7 +183,9 @@ describe('sign up', () => {
         _csrf: second.csrfToken,
       });
 
-    expect(res.status).toBe(409);
+    // No enumeration: same redirect as a fresh signup, original untouched.
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe('/verify-email/pending');
     const user = await prisma.user.findUnique({ where: { email } });
     expect(user!.fullName).toBe('Original');
   });
@@ -192,8 +210,21 @@ describe('email verification', () => {
 
     const unverified = await prisma.user.findUniqueOrThrow({ where: { email } });
 
-    const verifyRes = await request(app).get(`/verify-email/${unverified.verificationToken}`);
-    expect(verifyRes.status).toBe(302);
+    expect(unverified.verificationToken).not.toBeNull();
+    const rawToken = await seedToken(email, 'verificationToken');
+
+    // GET must not consume the token (link scanners) — it only renders a confirm form.
+    const confirm = await request(app).get(`/verify-email/${rawToken}`);
+    expect(confirm.status).toBe(200);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email } })).emailVerifiedAt).toBeNull();
+
+    const form = await primeCsrf(`/verify-email/${rawToken}`);
+    const verifyRes = await request(app)
+      .post(`/verify-email/${rawToken}`)
+      .set('Cookie', form.cookies)
+      .type('form')
+      .send({ _csrf: form.csrfToken });
+    expect(verifyRes.status).toBe(303);
     expect(verifyRes.headers.location).toBe('/portal');
 
     const verified = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -202,12 +233,22 @@ describe('email verification', () => {
     // Single-use.
     expect(verified.verificationToken).toBeNull();
 
-    const reuse = await request(app).get(`/verify-email/${unverified.verificationToken}`);
+    const reuseForm = await primeCsrf(`/verify-email/${rawToken}`);
+    const reuse = await request(app)
+      .post(`/verify-email/${rawToken}`)
+      .set('Cookie', reuseForm.cookies)
+      .type('form')
+      .send({ _csrf: reuseForm.csrfToken });
     expect(reuse.status).toBe(422);
   });
 
   it('rejects an unknown/invalid token', async () => {
-    const res = await request(app).get('/verify-email/not-a-real-token');
+    const form = await primeCsrf('/verify-email/not-a-real-token');
+    const res = await request(app)
+      .post('/verify-email/not-a-real-token')
+      .set('Cookie', form.cookies)
+      .type('form')
+      .send({ _csrf: form.csrfToken });
     expect(res.status).toBe(422);
   });
 });
@@ -300,7 +341,9 @@ describe('sign in', () => {
       .send({ email, password: STRONG_PASSWORD, _csrf: csrfToken });
 
     expect(res.status).toBe(401);
-    expect(res.text).toMatch(/too many failed attempts/i);
+    // Still refused with the correct password, but with the generic message —
+    // the lockout must not confirm the account exists.
+    expect(res.text).toMatch(/email or password is not correct/i);
     // 9 sequential logins, each an Argon2 verify plus a round trip to a
     // remote database, comfortably exceed the 5s default test timeout.
   }, 30_000);
@@ -377,8 +420,8 @@ describe('forgot / reset password', () => {
       .send({ email, _csrf: forgot.csrfToken });
 
     const withToken = await prisma.user.findUniqueOrThrow({ where: { email } });
-    const resetToken = withToken.passwordResetToken;
-    expect(resetToken).not.toBeNull();
+    expect(withToken.passwordResetToken).not.toBeNull();
+    const resetToken = await seedToken(email, 'passwordResetToken');
 
     const resetForm = await primeCsrf(`/reset-password/${resetToken}`);
     const resetRes = await request(app)
@@ -445,14 +488,15 @@ describe('forgot / reset password', () => {
       .send({ email, _csrf: forgot.csrfToken });
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const rawToken = await seedToken(email, 'passwordResetToken');
     await prisma.user.update({
       where: { id: user.id },
       data: { passwordResetExpiresAt: new Date(Date.now() - 1000) },
     });
 
-    const resetForm = await primeCsrf(`/reset-password/${user.passwordResetToken}`);
+    const resetForm = await primeCsrf(`/reset-password/${rawToken}`);
     const res = await request(app)
-      .post(`/reset-password/${user.passwordResetToken}`)
+      .post(`/reset-password/${rawToken}`)
       .set('Cookie', resetForm.cookies)
       .type('form')
       .send({

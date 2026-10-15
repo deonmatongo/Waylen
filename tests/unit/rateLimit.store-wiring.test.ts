@@ -57,11 +57,11 @@ describe('rate limiter store wiring', () => {
 
     const rateLimitModule = await import('../../src/middleware/rateLimit.js');
 
-    // One call per limiter, each with its own namespace prefix so the four
+    // One call per limiter, each with its own namespace prefix so the seven
     // limiters' keys never collide in the shared Redis database.
-    expect(createUpstashStore).toHaveBeenCalledTimes(4);
+    expect(createUpstashStore).toHaveBeenCalledTimes(7);
     const prefixesUsed = createUpstashStore.mock.calls.map((call) => call[0]);
-    expect(new Set(prefixesUsed).size).toBe(4);
+    expect(new Set(prefixesUsed).size).toBe(7);
 
     expect(typeof rateLimitModule.globalRateLimiter).toBe('function');
     expect(typeof rateLimitModule.authRateLimiter).toBe('function');

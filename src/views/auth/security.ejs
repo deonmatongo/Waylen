@@ -1,0 +1,53 @@
+<section class="panel">
+  <h2 class="panel__title">Two-factor authentication</h2>
+
+  <% if (recoveryCodes) { %>
+    <p class="panel__note">
+      Two-factor authentication is now on. Save these recovery codes somewhere safe: each works once,
+      and they will not be shown again.
+    </p>
+    <ul>
+      <% recoveryCodes.forEach(function (c) { %><li><code><%= c %></code></li><% }) %>
+    </ul>
+  <% } else if (enabled) { %>
+    <p class="panel__note">Two-factor authentication is <strong>enabled</strong> on your account.</p>
+
+    <form class="form" method="post" action="/account/security" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="action" value="disable">
+      <% if (errors.disable) { %><p class="field-error" role="alert"><%= errors.disable %></p><% } %>
+      <div class="field">
+        <label class="field__label" for="currentPassword">Current password</label>
+        <input class="field__input" type="password" id="currentPassword" name="currentPassword"
+               autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="code">Authentication or recovery code</label>
+        <input class="field__input" type="text" id="code" name="code" autocomplete="one-time-code" required>
+      </div>
+      <button class="button" type="submit">Disable two-factor authentication</button>
+    </form>
+  <% } else { %>
+    <p class="panel__note">
+      Add this account to an authenticator app (1Password, Google Authenticator, Authy, etc.) using the
+      setup key below, then enter the 6-digit code to turn two-factor authentication on.
+    </p>
+    <% if (setup) { %>
+      <p>Setup key: <code><%= setup.secret %></code></p>
+      <p>Or open this link on a device with an authenticator app:<br>
+        <code style="word-break: break-all;"><%= setup.uri %></code></p>
+    <% } %>
+
+    <form class="form" method="post" action="/account/security" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="action" value="confirm">
+      <div class="field">
+        <label class="field__label" for="code">6-digit code</label>
+        <input class="field__input" type="text" id="code" name="code" inputmode="numeric"
+               autocomplete="one-time-code" required>
+        <% if (errors.code) { %><p class="field-error"><%= errors.code %></p><% } %>
+      </div>
+      <button class="button button--primary" type="submit">Turn on two-factor authentication</button>
+    </form>
+  <% } %>
+</section>

@@ -19,30 +19,36 @@ export async function requireJwt(req: Request, _res: Response, next: NextFunctio
     return next(new UnauthorizedError('Token is invalid or expired.'));
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: payload.sub },
-    select: {
-      id: true, email: true, fullName: true, role: true,
-      status: true, emailVerifiedAt: true, passwordChangedAt: true,
-      studentProfile: { select: { id: true, reference: true, currentStage: true } },
-    },
-  });
+  // Async handlers are not caught by Express 4 — route a DB failure to the
+  // error handler rather than leaving the request hanging.
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true, email: true, fullName: true, role: true,
+        status: true, emailVerifiedAt: true, mfaEnabled: true, passwordChangedAt: true,
+        studentProfile: { select: { id: true, reference: true, currentStage: true } },
+      },
+    });
 
-  if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
-    return next(new UnauthorizedError('That account is not active.'));
+    if (!user || user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
+      return next(new UnauthorizedError('That account is not active.'));
+    }
+
+    // A password reset/change invalidates every token issued before it — a
+    // token with no `iat` at all is also treated as stale rather than trusted.
+    if (
+      user.passwordChangedAt &&
+      (!payload.iat || payload.iat * 1000 < user.passwordChangedAt.getTime())
+    ) {
+      return next(new UnauthorizedError('Your password has changed. Please sign in again.'));
+    }
+
+    req.currentUser = user;
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  // A password reset/change invalidates every token issued before it — a
-  // token with no `iat` at all is also treated as stale rather than trusted.
-  if (
-    user.passwordChangedAt &&
-    (!payload.iat || payload.iat * 1000 < user.passwordChangedAt.getTime())
-  ) {
-    return next(new UnauthorizedError('Your password has changed. Please sign in again.'));
-  }
-
-  req.currentUser = user;
-  next();
 }
 
 export function requireJwtStudent(req: Request, _res: Response, next: NextFunction): void {

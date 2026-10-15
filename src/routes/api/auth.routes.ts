@@ -4,7 +4,7 @@ import { authService } from '../../services/auth.service.js';
 import { refreshTokenService } from '../../services/refreshToken.service.js';
 import { signToken } from '../../utils/jwt.js';
 import { requireJwt } from '../../middleware/apiAuth.js';
-import { authRateLimiter } from '../../middleware/rateLimit.js';
+import { authRateLimiter, refreshRateLimiter } from '../../middleware/rateLimit.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/database.js';
 import { UnauthorizedError } from '../../utils/errors.js';
@@ -28,6 +28,15 @@ authApiRouter.post(
     }
 
     const user = await authService.login(email, password);
+
+    // Mobile has no second-factor step; refuse rather than bypass MFA.
+    if (user.mfaEnabled) {
+      res.status(403).json({
+        error:
+          'This account has two-factor authentication enabled, which the mobile app does not support. Please sign in on the web.',
+      });
+      return;
+    }
 
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedError('Please verify your email before signing in on the app.');
@@ -68,6 +77,7 @@ authApiRouter.post(
  */
 authApiRouter.post(
   '/refresh',
+  refreshRateLimiter,
   asyncHandler(async (req, res) => {
     const { refreshToken } = req.body as Record<string, unknown>;
 
@@ -116,6 +126,7 @@ authApiRouter.post(
  */
 authApiRouter.post(
   '/logout',
+  refreshRateLimiter,
   asyncHandler(async (req, res) => {
     const { refreshToken } = req.body as Record<string, unknown>;
 

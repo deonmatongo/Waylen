@@ -5,11 +5,13 @@ import type { UserRole } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
-import { hashPassword, verifyPassword, generateToken } from '../utils/crypto.js';
+import { hashPassword, verifyPassword, generateToken, sha256 } from '../utils/crypto.js';
 import { studentReference } from '../utils/reference.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../utils/errors.js';
 import { mailService } from './mail.service.js';
 import { notificationService } from './notification.service.js';
+import { sessionService } from './session.service.js';
+import { refreshTokenService } from './refreshToken.service.js';
 
 const VERIFICATION_TTL_HOURS = 48;
 const RESET_TTL_MINUTES = 60;
@@ -18,6 +20,49 @@ const INVITE_TTL_HOURS = 24 * 7;
 /** Consecutive failures before the account is temporarily locked. */
 const MAX_FAILED_LOGINS = 8;
 const LOCKOUT_MINUTES = 15;
+
+/**
+ * Verification and reset tokens are stored only as a SHA-256 hex digest (in
+ * the existing verificationToken / passwordResetToken columns); the raw token
+ * exists only in the emailed link, so a DB leak does not yield usable links.
+ * A fast hash is right here: the tokens are 256 bits of randomness, so there
+ * is nothing to brute-force (same reasoning as refreshToken.service.ts).
+ */
+export function hashToken(token: string): string {
+  return sha256(Buffer.from(token, 'utf8'));
+}
+
+/** Generic message for every failed sign-in, whatever the reason. */
+const INVALID_CREDENTIALS = 'That email or password is not correct.';
+
+/** Verified against when the email is unknown/blocked, so response time doesn't reveal it. */
+let dummyHash: Promise<string> | undefined;
+function getDummyHash(): Promise<string> {
+  dummyHash ??= hashPassword(generateToken());
+  return dummyHash;
+}
+
+export interface LockState {
+  /** Sign-in must be refused right now. */
+  locked: boolean;
+  /** A previous lockout has run its course, so the counter starts over. */
+  expired: boolean;
+}
+
+/**
+ * Pure lockout decision. Once the window has elapsed the failure counter no
+ * longer counts — otherwise a single further typo would instantly relock.
+ */
+export function getLockState(
+  user: { failedLoginCount: number; failedLoginAt: Date | null },
+  now = Date.now(),
+): LockState {
+  if (user.failedLoginCount < MAX_FAILED_LOGINS || !user.failedLoginAt) {
+    return { locked: false, expired: false };
+  }
+  const withinWindow = now - user.failedLoginAt.getTime() < LOCKOUT_MINUTES * 60_000;
+  return { locked: withinWindow, expired: !withinWindow };
+}
 
 export interface RegisterInput {
   fullName: string;
@@ -33,13 +78,24 @@ export const authService = {
   /**
    * Creates a student account and its profile in one transaction, then emails
    * a verification link. Portal access stays closed until it is used.
+   *
+   * If the address is already registered nothing is created and the caller
+   * gets `{ created: false }` — the controller responds exactly as for a new
+   * signup (no enumeration), and the existing owner is emailed a notice.
    */
-  async register(input: RegisterInput) {
+  async register(input: RegisterInput): Promise<{ created: boolean }> {
     const email = input.email.trim().toLowerCase();
 
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, fullName: true },
+    });
     if (existing) {
-      throw new ConflictError('An account already exists for that email address.');
+      // Same argon2 cost as the create path, so timing doesn't give it away.
+      await hashPassword(input.password);
+      await this.sendExistingAccountNotice(email, existing.fullName);
+      logger.info({ userId: existing.id }, 'Registration attempted for an existing account');
+      return { created: false };
     }
 
     const token = generateToken();
@@ -66,7 +122,7 @@ export const authService = {
         passwordHash,
         role: 'STUDENT',
         status: 'PENDING_VERIFICATION',
-        verificationToken: token,
+        verificationToken: hashToken(token),
         verificationExpiresAt: new Date(Date.now() + VERIFICATION_TTL_HOURS * 3600_000),
         studentProfile: {
           create: {
@@ -86,7 +142,29 @@ export const authService = {
     await this.sendVerificationEmail(user.email, user.fullName, token);
 
     logger.info({ userId: user.id, reference: user.studentProfile?.reference }, 'Student registered');
-    return user;
+    return { created: true };
+  },
+
+  /** Tells the owner of an existing account that someone tried to sign up with their address. */
+  async sendExistingAccountNotice(email: string, fullName: string): Promise<void> {
+    try {
+      await mailService.send({
+        to: email,
+        subject: `Someone tried to create a ${env.APP_NAME} account with your email`,
+        template: 'generic',
+        data: {
+          title: 'You already have an account',
+          fullName,
+          body:
+            'Someone tried to register a new account with this email address, but you already have one. ' +
+            'If that was you, you can sign in or reset your password below. If not, you can ignore this email — nothing has changed.',
+          actionUrl: '/forgot-password',
+          actionLabel: 'Reset my password',
+        },
+      });
+    } catch (err) {
+      logger.error({ err, email }, 'Existing-account notice failed to send');
+    }
   },
 
   /**
@@ -114,8 +192,10 @@ export const authService = {
   /**
    * Authenticates a sign-in attempt.
    *
-   * The same generic message is returned whether the email is unknown or the
-   * password is wrong, so the response cannot be used to enumerate accounts.
+   * Every failure — unknown email, wrong password, locked, suspended or
+   * archived — returns the same generic message after the same argon2 work,
+   * so neither the response nor its timing can be used to enumerate accounts
+   * or confirm one exists. The real reason is logged server-side.
    */
   async login(email: string, password: string) {
     const user = await prisma.user.findUnique({
@@ -128,39 +208,42 @@ export const authService = {
         role: true,
         status: true,
         emailVerifiedAt: true,
+        mfaEnabled: true,
         failedLoginCount: true,
         failedLoginAt: true,
       },
     });
 
-    const genericFailure = new UnauthorizedError('That email or password is not correct.');
-    if (!user) throw genericFailure;
-
-    if (user.status === 'SUSPENDED' || user.status === 'ARCHIVED') {
-      throw new UnauthorizedError('That account is not currently active. Please contact us.');
+    if (!user) {
+      await verifyPassword(await getDummyHash(), password);
+      throw new UnauthorizedError(INVALID_CREDENTIALS);
     }
 
-    // Temporary lockout after repeated failures.
-    if (
-      user.failedLoginCount >= MAX_FAILED_LOGINS &&
-      user.failedLoginAt &&
-      Date.now() - user.failedLoginAt.getTime() < LOCKOUT_MINUTES * 60_000
-    ) {
-      throw new UnauthorizedError(
-        `Too many failed attempts. Please try again in ${LOCKOUT_MINUTES} minutes or reset your password.`,
-      );
-    }
+    const lock = getLockState(user);
+    const blocked = user.status === 'SUSPENDED' || user.status === 'ARCHIVED';
 
+    // Verify even when the account is locked or blocked so every failure
+    // costs the same; the result is ignored in those cases.
     const valid = await verifyPassword(user.passwordHash, password);
+
+    if (blocked || lock.locked) {
+      logger.warn(
+        { userId: user.id, reason: blocked ? `status:${user.status}` : 'locked' },
+        'Sign-in refused',
+      );
+      throw new UnauthorizedError(INVALID_CREDENTIALS);
+    }
+
     if (!valid) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          failedLoginCount: { increment: 1 },
+          // An expired lockout restarts the count rather than relocking at once.
+          failedLoginCount: lock.expired ? 1 : { increment: 1 },
           failedLoginAt: new Date(),
         },
       });
-      throw genericFailure;
+      throw new UnauthorizedError(INVALID_CREDENTIALS);
     }
 
     await prisma.user.update({
@@ -174,7 +257,7 @@ export const authService = {
   /** Consumes a verification token. Tokens are single-use and time-limited. */
   async verifyEmail(token: string) {
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
+      where: { verificationToken: hashToken(token) },
       select: { id: true, email: true, fullName: true, verificationExpiresAt: true },
     });
 
@@ -220,7 +303,7 @@ export const authService = {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        verificationToken: token,
+        verificationToken: hashToken(token),
         verificationExpiresAt: new Date(Date.now() + VERIFICATION_TTL_HOURS * 3600_000),
       },
     });
@@ -244,7 +327,7 @@ export const authService = {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        passwordResetToken: token,
+        passwordResetToken: hashToken(token),
         passwordResetExpiresAt: new Date(Date.now() + RESET_TTL_MINUTES * 60_000),
       },
     });
@@ -271,7 +354,7 @@ export const authService = {
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
     const user = await prisma.user.findUnique({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: hashToken(token) },
       select: { id: true, passwordResetExpiresAt: true },
     });
 
@@ -286,6 +369,10 @@ export const authService = {
         passwordHash: await hashPassword(newPassword),
         passwordResetToken: null,
         passwordResetExpiresAt: null,
+        // A reset proves control of the inbox just as verification does —
+        // don't leave a still-valid verification link lying around.
+        verificationToken: null,
+        verificationExpiresAt: null,
         failedLoginCount: 0,
         failedLoginAt: null,
         // Invalidates every session/JWT issued before this moment — see
@@ -294,6 +381,13 @@ export const authService = {
         passwordChangedAt: new Date(),
       },
     });
+
+    // A reset usually means the old credential may be compromised: end every
+    // browser session and mobile refresh chain, not just stop issuing new ones.
+    await Promise.all([
+      sessionService.revokeAllForUser(user.id),
+      refreshTokenService.revokeAllForUser(user.id),
+    ]);
 
     logger.info({ userId: user.id }, 'Password reset completed');
   },
@@ -321,7 +415,7 @@ export const authService = {
         role: input.role,
         status: 'ACTIVE',
         emailVerifiedAt: new Date(),
-        passwordResetToken: token,
+        passwordResetToken: hashToken(token),
         passwordResetExpiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 3600_000),
         staffProfile: { create: { jobTitle: input.jobTitle ?? null, regions: '[]' } },
       },
@@ -364,5 +458,35 @@ export const authService = {
       where: { id: userId },
       data: { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date() },
     });
+
+    // Sign the user out everywhere (passwordChangedAt already invalidates the
+    // current session on its next request).
+    await Promise.all([
+      sessionService.revokeAllForUser(userId),
+      refreshTokenService.revokeAllForUser(userId),
+    ]);
+  },
+
+  /**
+   * Reverses a suspension (and clears any login lockout). An account that
+   * never verified its email goes back to PENDING_VERIFICATION, not ACTIVE.
+   */
+  async unsuspend(userId: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, status: true, emailVerifiedAt: true },
+    });
+    if (!user) throw new ValidationError('That user could not be found.');
+    if (user.status !== 'SUSPENDED') return;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: user.emailVerifiedAt ? 'ACTIVE' : 'PENDING_VERIFICATION',
+        failedLoginCount: 0,
+        failedLoginAt: null,
+      },
+    });
+    logger.info({ userId }, 'User unsuspended');
   },
 };

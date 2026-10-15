@@ -1,0 +1,11 @@
+<h1 class="auth__title">Confirm your email</h1>
+<p class="auth__lede">
+  One more step: confirm your email address to unlock your portal.
+</p>
+
+<form class="form" method="post" action="/verify-email/<%= token %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button class="button button--primary button--block" type="submit">Confirm my email</button>
+</form>
+
+<p class="auth__links"><a href="/">Back to the website</a></p>

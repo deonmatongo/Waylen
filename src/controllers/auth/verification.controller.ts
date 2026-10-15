@@ -14,6 +14,19 @@ export async function pending(req: Request, res: Response): Promise<void> {
   });
 }
 
+/**
+ * GET /verify-email/:token only renders a confirmation page. Consuming the
+ * token on GET would let email-security scanners and link previewers burn it
+ * (and sign someone in) before the user ever clicks; the POST does the work.
+ */
+export async function confirm(req: Request, res: Response): Promise<void> {
+  res.render('auth/verify-confirm', {
+    title: 'Confirm your email',
+    layout: 'layouts/auth',
+    token: req.params.token,
+  });
+}
+
 export async function verify(req: Request, res: Response): Promise<void> {
   try {
     const user = await authService.verifyEmail(req.params.token as string);

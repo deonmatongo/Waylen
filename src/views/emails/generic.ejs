@@ -32,7 +32,7 @@
                 <td style="background-color:#0b1b34;border-radius:8px;">
                   <a href="<%= appUrl + actionUrl %>"
                      style="display:inline-block;padding:13px 26px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
-                    View in your portal
+                    <%= typeof actionLabel !== 'undefined' && actionLabel ? actionLabel : 'View in your portal' %>
                   </a>
                 </td>
               </tr>

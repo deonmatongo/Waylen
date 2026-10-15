@@ -39,6 +39,15 @@ export function decryptBuffer(payload: Buffer): Buffer {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
+/** Encrypts a short string secret (e.g. an MFA seed) to base64 for a DB column. */
+export function encryptSecret(plaintext: string): string {
+  return encryptBuffer(Buffer.from(plaintext, 'utf8')).data.toString('base64');
+}
+
+export function decryptSecret(stored: string): string {
+  return decryptBuffer(Buffer.from(stored, 'base64')).toString('utf8');
+}
+
 export function sha256(buffer: Buffer): string {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
