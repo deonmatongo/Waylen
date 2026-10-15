@@ -13,6 +13,12 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { encryptBuffer, decryptBuffer, sha256 } from '../utils/crypto.js';
@@ -41,8 +47,7 @@ interface StorageDriver {
 // recycled) instance loses the file. This only stops uploads from crashing
 // outright — it does not make document storage reliable. Treat any document
 // uploaded in production through this driver as liable to disappear, and
-// replace it with the S3 driver below before this app holds real student
-// documents long-term.
+// use STORAGE_DRIVER=s3 before this app holds real student documents.
 const LOCAL_STORAGE_ROOT = process.env.VERCEL
   ? path.join(os.tmpdir(), 'waylen-documents')
   : env.STORAGE_LOCAL_PATH;
@@ -53,8 +58,7 @@ if (env.isProduction && env.STORAGE_DRIVER === 'local') {
       (process.env.VERCEL ? '/tmp, which' : env.STORAGE_LOCAL_PATH + ', which') +
       ' does not persist across serverless instances or cold starts. ' +
       'Uploaded documents will intermittently or permanently disappear. ' +
-      'This is a stop-gap only — implement the S3 driver in ' +
-      'src/services/storage.service.ts before relying on this in production.',
+      'Set STORAGE_DRIVER=s3 before relying on this in production.',
   );
 }
 
@@ -82,19 +86,93 @@ const localDriver: StorageDriver = {
 
 // ── S3 driver (production) ─────────────────────────────────────────────────
 
-const s3Driver: StorageDriver = {
-  async put() {
-    throw new ServiceUnavailableError(
-      'S3 storage driver is not implemented yet. Install @aws-sdk/client-s3 and complete src/services/storage.service.ts.',
-    );
-  },
-  async get() {
-    throw new ServiceUnavailableError('S3 storage driver is not implemented yet.');
-  },
-  async delete() {
-    throw new ServiceUnavailableError('S3 storage driver is not implemented yet.');
-  },
-};
+export interface S3DriverConfig {
+  bucket?: string;
+  region?: string;
+  endpoint?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+}
+
+function isNoSuchKey(err: unknown): boolean {
+  const e = err as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
+  return e?.name === 'NoSuchKey' || e?.Code === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404;
+}
+
+/**
+ * Works with AWS S3 and S3-compatible stores (R2, Supabase Storage) when an
+ * endpoint is supplied. Objects are the already-encrypted blobs; SSE is
+ * applied on top as defence in depth. The client is created lazily so the
+ * local driver never needs S3 configuration.
+ */
+export function createS3Driver(config: S3DriverConfig): StorageDriver {
+  let client: S3Client | undefined;
+
+  const getClient = (): { s3: S3Client; bucket: string } => {
+    if (!config.bucket) {
+      throw new ServiceUnavailableError('S3 storage is not configured (S3_BUCKET missing).');
+    }
+    if (!client) {
+      const endpoint = config.endpoint || undefined;
+      client = new S3Client({
+        region: config.region || 'auto',
+        ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
+        ...(config.accessKeyId && config.secretAccessKey
+          ? {
+              credentials: {
+                accessKeyId: config.accessKeyId,
+                secretAccessKey: config.secretAccessKey,
+              },
+            }
+          : {}),
+      });
+    }
+    return { s3: client, bucket: config.bucket };
+  };
+
+  return {
+    async put(key, data) {
+      const { s3, bucket } = getClient();
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: data,
+          ContentType: 'application/octet-stream',
+          ServerSideEncryption: 'AES256',
+        }),
+      );
+    },
+
+    async get(key) {
+      const { s3, bucket } = getClient();
+      try {
+        const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        if (!res.Body) throw new NotFoundError('That file is no longer available.');
+        return Buffer.from(await res.Body.transformToByteArray());
+      } catch (err) {
+        if (err instanceof NotFoundError) throw err;
+        if (isNoSuchKey(err)) throw new NotFoundError('That file is no longer available.');
+        logger.error({ err, storageKey: key }, 'S3 get failed');
+        throw new ServiceUnavailableError('File storage is temporarily unavailable.');
+      }
+    },
+
+    async delete(key) {
+      const { s3, bucket } = getClient();
+      // S3 DeleteObject is idempotent: a missing key is not an error.
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    },
+  };
+}
+
+const s3Driver = createS3Driver({
+  bucket: env.S3_BUCKET,
+  region: env.S3_REGION,
+  endpoint: env.S3_ENDPOINT,
+  accessKeyId: env.S3_ACCESS_KEY_ID,
+  secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+});
 
 const driver: StorageDriver = env.STORAGE_DRIVER === 's3' ? s3Driver : localDriver;
 
