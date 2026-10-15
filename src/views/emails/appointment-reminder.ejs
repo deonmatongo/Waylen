@@ -19,11 +19,11 @@
 
         <tr>
           <td style="padding:28px 32px;color:#22314d;font-size:15px;line-height:1.6;">
-            <h1 style="margin:0 0 16px;font-size:20px;color:#0b1b34;">Your appointment is tomorrow</h1>
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0b1b34;">Your appointment is coming up</h1>
             <p style="margin:0 0 14px;">Hello <%= fullName.split(' ')[0] %>,</p>
             <p style="margin:0 0 14px;">
               A reminder that your session is on
-              <strong><%= startsAt.toUTCString() %></strong> (reference <%= reference %>).
+              <strong><%= typeof startsAtLabel !== 'undefined' && startsAtLabel ? startsAtLabel : startsAt.toUTCString() %></strong> (reference <%= reference %>).
             </p>
             <% if (typeof location !== 'undefined' && location) { %>
               <p style="margin:0 0 14px;">Location: <%= location %></p>
@@ -39,6 +39,10 @@
                 </td>
               </tr>
             </table>
+            <% } else if (typeof meetingLinkPending !== 'undefined' && meetingLinkPending) { %>
+              <p style="margin:0 0 14px;">
+                Your Microsoft Teams link is not ready yet. We will email it to you before your session.
+              </p>
             <% } %>
           </td>
         </tr>

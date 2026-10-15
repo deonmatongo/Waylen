@@ -35,10 +35,10 @@
       <select class="field__select" id="startsAt" name="startsAt" required>
         <option value="">Select a time</option>
         <% slots.slice(0, 80).forEach(function (slot) { %>
-          <option value="<%= slot.toISOString() %>"><%= format.formatDateTime(slot) %></option>
+          <option value="<%= slot.toISOString() %>"><%= zoned.dateTime(slot) %></option>
         <% }) %>
       </select>
-      <p class="field__hint">Sessions are <%= durationMinutes %> minutes.</p>
+      <p class="field__hint">Sessions are <%= durationMinutes %> minutes. Times are shown in <%= zoned.timeZone.replace(/_/g, ' ') %> time.</p>
     </div>
 
     <div class="field">

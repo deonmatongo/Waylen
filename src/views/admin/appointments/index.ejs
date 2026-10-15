@@ -29,7 +29,7 @@
         <div class="review-list__body">
           <p class="review-list__eyebrow">
             <time datetime="<%= appointment.startsAt.toISOString() %>">
-              <%= format.formatDateTime(appointment.startsAt) %>
+              <%= zoned.dateTime(appointment.startsAt) %>
             </time>
             · <%= appointment.durationMinutes %> min
             · <%= format.humaniseEnum(appointment.format) %>
@@ -91,6 +91,17 @@
           <% } %>
 
           <% if (appointment.status === 'REQUESTED' || appointment.status === 'CONFIRMED') { %>
+            <form class="form form--tight" method="post" action="/admin/appointments/<%= appointment.id %>/reschedule">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label class="field__label visually-hidden" for="startsAt-<%= appointment.id %>">New time (<%= zoned.timeZone.replace(/_/g, ' ') %>)</label>
+                <input class="field__input" type="datetime-local" id="startsAt-<%= appointment.id %>" name="startsAt" required>
+              </div>
+              <button class="button button--secondary button--small button--block" type="submit">
+                Reschedule
+              </button>
+            </form>
+
             <form class="form form--tight" method="post" action="/admin/appointments/<%= appointment.id %>/cancel">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button class="link-button link-button--danger" type="submit">Cancel</button>

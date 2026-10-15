@@ -66,14 +66,14 @@
           <div class="slot-picker">
             <% slotDays.forEach(function (day) { %>
               <fieldset class="slot-picker__day">
-                <legend class="slot-picker__date"><%= format.formatDate(day.slots[0], 'EEEE d MMMM') %></legend>
+                <legend class="slot-picker__date"><%= zoned.longDate(day.slots[0]) %></legend>
                 <div class="slot-picker__times">
                   <% day.slots.forEach(function (slot) { %>
                     <% var iso = slot.toISOString(); %>
                     <label class="slot-chip">
                       <input type="radio" name="startsAt" value="<%= iso %>"
                              <%= values.startsAt === iso ? 'checked' : '' %> required>
-                      <span><%= format.formatDate(slot, 'HH:mm') %></span>
+                      <span><%= zoned.time(slot) %></span>
                     </label>
                   <% }) %>
                 </div>
@@ -82,6 +82,7 @@
           </div>
         <% } %>
 
+        <p class="field__hint">All times are shown in <%= zoned.timeZone.replace(/_/g, ' ') %> time.</p>
         <p class="field__hint">
           <% if (liveAvailability) { %>
             Live availability from our calendar — pick any open time and you are instantly booked,

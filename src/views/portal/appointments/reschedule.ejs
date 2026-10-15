@@ -1,0 +1,28 @@
+<%# Students may move an open appointment to any currently available slot. %>
+<section class="panel">
+  <p class="panel__note">
+    Currently booked: <strong><%= zoned.dateTime(appointment.startsAt) %></strong>
+    (<%= typeLabels[appointment.type] %>, <%= format.humaniseEnum(appointment.format) %>).
+  </p>
+
+  <form class="form" method="post" action="/portal/appointments/<%= appointment.id %>/reschedule">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label class="field__label" for="startsAt">Choose a new slot</label>
+      <select class="field__select" id="startsAt" name="startsAt" required>
+        <option value="">Select a time</option>
+        <% slots.slice(0, 80).forEach(function (slot) { %>
+          <option value="<%= slot.toISOString() %>"><%= zoned.dateTime(slot) %></option>
+        <% }) %>
+      </select>
+      <p class="field__hint">
+        Sessions are <%= durationMinutes %> minutes. Times are shown in
+        <%= zoned.timeZone.replace(/_/g, ' ') %> time.
+      </p>
+    </div>
+
+    <button class="button button--primary" type="submit">Reschedule</button>
+    <a class="button button--ghost" href="/portal/appointments">Keep current time</a>
+  </form>
+</section>

@@ -9,11 +9,27 @@ import { logger } from '../config/logger.js';
 import { notificationService } from '../services/notification.service.js';
 import { mailService } from '../services/mail.service.js';
 import { APPOINTMENT_TYPE_LABELS } from '../config/constants.js';
+import { businessFormatter } from '../services/availability.service.js';
 
-/** Reminds attendees 24 hours ahead. */
-export async function sendAppointmentReminders(): Promise<void> {
-  const now = new Date();
-  const windowEnd = new Date(now.getTime() + 24 * 3_600_000);
+/**
+ * How far ahead appointment reminders look. Vercel Cron runs the sweep once a
+ * day, so the window must span a full day between runs: with a 48h look-ahead
+ * every appointment is first seen 24-48h before it starts (a 24h window would
+ * miss anything that starts between one run's cutoff and the next run), and
+ * `reminderSentAt` stops it being sent again on later runs. Appointments booked
+ * with less notice are caught on the next run while still in the future.
+ */
+export const APPOINTMENT_REMINDER_LOOKAHEAD_HOURS = 48;
+
+/** Reminds attendees of appointments starting within the look-ahead window, once each. */
+export async function sendAppointmentReminders(
+  options: { now?: Date; lookaheadHours?: number } = {},
+): Promise<void> {
+  const now = options.now ?? new Date();
+  const windowEnd = new Date(
+    now.getTime() + (options.lookaheadHours ?? APPOINTMENT_REMINDER_LOOKAHEAD_HOURS) * 3_600_000,
+  );
+  const formatter = businessFormatter();
 
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -25,6 +41,7 @@ export async function sendAppointmentReminders(): Promise<void> {
       id: true,
       reference: true,
       type: true,
+      format: true,
       startsAt: true,
       meetingUrl: true,
       location: true,
@@ -34,50 +51,55 @@ export async function sendAppointmentReminders(): Promise<void> {
     },
   });
 
+  let sent = 0;
   for (const appointment of appointments) {
+    // Claim the row before sending so two overlapping runs cannot both remind.
+    const claim = await prisma.appointment.updateMany({
+      where: { id: appointment.id, reminderSentAt: null },
+      data: { reminderSentAt: new Date() },
+    });
+    if (claim.count === 0) continue;
+
+    const data = {
+      reference: appointment.reference,
+      startsAt: appointment.startsAt,
+      startsAtLabel: formatter.dateTimeWithZone(appointment.startsAt),
+      meetingUrl: appointment.meetingUrl,
+      meetingLinkPending: appointment.format === 'ONLINE' && !appointment.meetingUrl,
+      location: appointment.location,
+    };
+
     try {
       if (appointment.studentProfile) {
         await notificationService.dispatch({
           userId: appointment.studentProfile.userId,
           event: 'appointment.reminder',
-          title: `Reminder: ${APPOINTMENT_TYPE_LABELS[appointment.type]} tomorrow`,
+          title: `Reminder: ${APPOINTMENT_TYPE_LABELS[appointment.type]} on ${formatter.longDate(appointment.startsAt)}`,
           actionUrl: '/portal/appointments',
           emailTemplate: 'appointment-reminder',
-          emailData: {
-            reference: appointment.reference,
-            startsAt: appointment.startsAt,
-            meetingUrl: appointment.meetingUrl,
-            location: appointment.location,
-          },
+          emailData: data,
         });
       } else if (appointment.guestEmail) {
         // Guest bookings have no account, so they are emailed directly.
         await mailService.send({
           to: appointment.guestEmail,
-          subject: 'Your Waylen consultation is tomorrow',
+          subject: `Reminder: your Waylen consultation on ${formatter.longDate(appointment.startsAt)}`,
           template: 'appointment-reminder',
-          data: {
-            fullName: appointment.guestName,
-            reference: appointment.reference,
-            startsAt: appointment.startsAt,
-            meetingUrl: appointment.meetingUrl,
-            location: appointment.location,
-          },
+          data: { fullName: appointment.guestName, ...data },
         });
       }
-
-      await prisma.appointment.update({
-        where: { id: appointment.id },
-        data: { reminderSentAt: new Date() },
-      });
+      sent += 1;
     } catch (err) {
-      // One failure must not stop the rest of the batch.
+      // Release the claim so the next run retries; one failure must not stop the batch.
       logger.error({ err, appointmentId: appointment.id }, 'Appointment reminder failed');
+      await prisma.appointment
+        .update({ where: { id: appointment.id }, data: { reminderSentAt: null } })
+        .catch((releaseErr) => logger.error({ err: releaseErr }, 'Could not release reminder claim'));
     }
   }
 
-  if (appointments.length > 0) {
-    logger.info({ count: appointments.length }, 'Appointment reminders processed');
+  if (sent > 0) {
+    logger.info({ count: sent }, 'Appointment reminders processed');
   }
 }
 

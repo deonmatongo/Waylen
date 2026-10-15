@@ -16,6 +16,16 @@ export const isGraphConfigured = Boolean(
     env.MS_GRAPH_ORGANISER_UPN,
 );
 
+/** A non-2xx Graph response, carrying the upstream status so callers can treat e.g. 404 as "already gone". */
+export class GraphRequestError extends ServiceUnavailableError {
+  readonly graphStatus: number;
+
+  constructor(status: number, detail: string) {
+    super(`Microsoft Graph request failed (${status}): ${detail}`);
+    this.graphStatus = status;
+  }
+}
+
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -63,7 +73,7 @@ export async function graphFetch<T>(path: string, init: RequestInit = {}): Promi
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new ServiceUnavailableError(`Microsoft Graph request failed (${response.status}): ${detail}`);
+    throw new GraphRequestError(response.status, detail);
   }
 
   if (response.status === 204) return undefined as T;
