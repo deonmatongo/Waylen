@@ -3,7 +3,7 @@
  */
 import type { Request, Response } from 'express';
 import { prisma } from '../../config/database.js';
-import { authService } from '../../services/auth.service.js';
+import { authService, isPendingInvite } from '../../services/auth.service.js';
 import { auditService } from '../../services/audit.service.js';
 import { mfaService } from '../../services/mfa.service.js';
 import { sessionService } from '../../services/session.service.js';
@@ -32,7 +32,7 @@ function listStaffUsers() {
 }
 
 export async function index(req: Request, res: Response): Promise<void> {
-  const users = await listStaffUsers();
+  const users = (await listStaffUsers()).map((u) => ({ ...u, pendingInvite: isPendingInvite(u) }));
 
   res.render('admin/users/index', {
     title: 'Staff accounts',
@@ -50,7 +50,7 @@ export async function store(req: Request, res: Response): Promise<void> {
     res.status(422).render('admin/users/index', {
       title: 'Staff accounts',
       layout: 'layouts/admin',
-      users: await listStaffUsers(),
+      users: (await listStaffUsers()).map((u) => ({ ...u, pendingInvite: isPendingInvite(u) })),
       roles: STAFF_ROLE_OPTIONS,
       values: req.body,
       errors: parsed.error.flatten().fieldErrors,
@@ -207,5 +207,23 @@ export async function resetMfa(req: Request, res: Response): Promise<void> {
   });
 
   req.flash('success', 'Two-factor authentication reset; the user was signed out everywhere.');
+  res.redirect('/admin/users');
+}
+
+export async function resendInvite(req: Request, res: Response): Promise<void> {
+  const id = req.params.id as string;
+
+  const { email } = await authService.resendStaffInvite(id, STAFF_ROLES);
+
+  await auditService.record({
+    actorId: req.currentUser!.id,
+    action: 'UPDATE',
+    entity: 'User',
+    entityId: id,
+    changes: { inviteResent: true },
+    ipAddress: req.ip ?? null,
+  });
+
+  req.flash('success', `A fresh invite was sent to ${email}.`);
   res.redirect('/admin/users');
 }

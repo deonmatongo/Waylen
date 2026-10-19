@@ -40,7 +40,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const user = await authService.login(parsed.data.email, parsed.data.password);
+    const user = await authService.login(parsed.data.email, parsed.data.password, { ip: req.ip });
 
     if (user.mfaEnabled) {
       const challenge = await mfaService.startChallenge(user.id);

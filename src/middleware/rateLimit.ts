@@ -14,7 +14,8 @@
  * set both env vars to close that gap in production.
  */
 import crypto from 'node:crypto';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { MemoryStore } from 'express-rate-limit';
+import type { Options } from 'express-rate-limit';
 import type { Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -149,3 +150,27 @@ export const refreshRateLimiter = rateLimit({
   handler: rateLimitHandler('Too many attempts. Please wait a few minutes and try again.'),
   store: isUpstashConfigured ? createUpstashStore('rl:auth-refresh:') : undefined,
 });
+
+/**
+ * A bare windowed counter on the same store abstraction the limiters use
+ * (Upstash when configured, per-process memory otherwise), for callers that
+ * need to count events themselves rather than sit in the middleware chain —
+ * e.g. the sign-in throttle in loginThrottle.service.ts.
+ */
+export interface CounterStore {
+  /** Adds one hit and returns the total within the current window. */
+  hit(key: string): Promise<number>;
+  /** Takes one hit back (floors at the store's own behaviour). */
+  unhit(key: string): Promise<void>;
+  reset(key: string): Promise<void>;
+}
+
+export function createCounterStore(prefix: string, windowMs: number): CounterStore {
+  const store = isUpstashConfigured ? createUpstashStore(prefix) : new MemoryStore();
+  store.init?.({ windowMs } as Options);
+  return {
+    hit: async (key) => (await store.increment(key)).totalHits,
+    unhit: async (key) => store.decrement(key),
+    reset: async (key) => store.resetKey(key),
+  };
+}

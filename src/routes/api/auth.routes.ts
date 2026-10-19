@@ -27,7 +27,7 @@ authApiRouter.post(
       return;
     }
 
-    const user = await authService.login(email, password);
+    const user = await authService.login(email, password, { ip: req.ip });
 
     // Mobile has no second-factor step; refuse rather than bypass MFA.
     if (user.mfaEnabled) {

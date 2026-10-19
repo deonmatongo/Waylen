@@ -12,6 +12,8 @@ import { mailService } from './mail.service.js';
 import { notificationService } from './notification.service.js';
 import { sessionService } from './session.service.js';
 import { refreshTokenService } from './refreshToken.service.js';
+import { referralService } from './referral.service.js';
+import { loginThrottle } from './loginThrottle.service.js';
 
 const VERIFICATION_TTL_HOURS = 48;
 const RESET_TTL_MINUTES = 60;
@@ -64,6 +66,11 @@ export function getLockState(
   return { locked: withinWindow, expired: !withinWindow };
 }
 
+/** A staff invite is pending until the person has signed in for the first time. */
+export function isPendingInvite(user: { status: string; lastLoginAt: Date | null }): boolean {
+  return user.status === 'ACTIVE' && user.lastLoginAt === null;
+}
+
 export interface RegisterInput {
   fullName: string;
   email: string;
@@ -72,6 +79,8 @@ export interface RegisterInput {
   preferredStudyLevel?: string;
   preferredCourses?: string[];
   preferredDestinationSlugs?: string[];
+  /** Referrer's student reference from the signup link; ignored if unknown. */
+  referralRef?: string;
 }
 
 export const authService = {
@@ -115,6 +124,9 @@ export const authService = {
         })
       : [];
 
+    // Unknown / self references resolve to null and are dropped silently.
+    const referredByStudentId = await referralService.resolveReferrer(input.referralRef, email);
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -127,6 +139,7 @@ export const authService = {
         studentProfile: {
           create: {
             reference: studentReference(),
+            referredByStudentId,
             countryOfOriginId: country?.id ?? null,
             preferredStudyLevel: (input.preferredStudyLevel as never) ?? null,
             preferredCourses: JSON.stringify(input.preferredCourses ?? []),
@@ -197,7 +210,15 @@ export const authService = {
    * so neither the response nor its timing can be used to enumerate accounts
    * or confirm one exists. The real reason is logged server-side.
    */
-  async login(email: string, password: string) {
+  async login(email: string, password: string, ctx: { ip?: string | null } = {}) {
+    // IP-aware throttle first: an over-budget IP gets the generic failure
+    // without touching the account, so it cannot drive account lockouts.
+    const ip = ctx.ip || null;
+    if (ip && (await loginThrottle.attempt(ip, email))) {
+      logger.warn({ ip }, 'Sign-in throttled');
+      throw new UnauthorizedError(INVALID_CREDENTIALS);
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
       select: {
@@ -235,14 +256,20 @@ export const authService = {
     }
 
     if (!valid) {
-      await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { id: user.id },
         data: {
           // An expired lockout restarts the count rather than relocking at once.
           failedLoginCount: lock.expired ? 1 : { increment: 1 },
           failedLoginAt: new Date(),
         },
+        select: { failedLoginCount: true },
       });
+      // Reaching the threshold exactly happens once per lockout window
+      // (further attempts are refused above), so this mails once.
+      if (updated?.failedLoginCount === MAX_FAILED_LOGINS) {
+        await this.sendLockoutNotice(user.email, user.fullName);
+      }
       throw new UnauthorizedError(INVALID_CREDENTIALS);
     }
 
@@ -250,8 +277,31 @@ export const authService = {
       where: { id: user.id },
       data: { lastLoginAt: new Date(), failedLoginCount: 0, failedLoginAt: null },
     });
+    if (ip) await loginThrottle.succeeded(ip, email);
 
     return user;
+  },
+
+  /** Tells the owner their account was temporarily locked after repeated failures. */
+  async sendLockoutNotice(email: string, fullName: string): Promise<void> {
+    try {
+      await mailService.send({
+        to: email,
+        subject: `Your ${env.APP_NAME} account is temporarily locked`,
+        template: 'generic',
+        data: {
+          title: 'Your account is temporarily locked',
+          fullName,
+          body:
+            `There were several unsuccessful attempts to sign in to your account, so we have paused sign-in for ${LOCKOUT_MINUTES} minutes. ` +
+            "If that was you, wait and try again, or reset your password. If it wasn't, we recommend resetting your password now.",
+          actionUrl: '/forgot-password',
+          actionLabel: 'Reset my password',
+        },
+      });
+    } catch (err) {
+      logger.error({ err, email }, 'Lockout notice failed to send');
+    }
   },
 
   /** Consumes a verification token. Tokens are single-use and time-limited. */
@@ -421,26 +471,59 @@ export const authService = {
       },
     });
 
-    // The account is already created at this point — a failed send must not
-    // surface as the generic catch-all error below, which would misreport a
-    // real success as "an account already exists" if the admin retries.
+    await this.sendStaffInviteEmail(user.email, user.fullName, token);
+
+    logger.info({ userId: user.id, role: user.role }, 'Staff member invited');
+    return user;
+  },
+
+  /** The account already exists when this runs, so a failed send is logged, not thrown. */
+  async sendStaffInviteEmail(email: string, fullName: string, token: string): Promise<void> {
     try {
       await mailService.send({
-        to: user.email,
+        to: email,
         subject: `You're invited to join ${env.APP_NAME}`,
         template: 'invite-staff',
         data: {
-          fullName: user.fullName,
+          fullName,
           inviteUrl: `${env.APP_URL}/reset-password/${token}`,
           expiresInDays: Math.round(INVITE_TTL_HOURS / 24),
         },
       });
     } catch (err) {
-      logger.error({ err, email: user.email }, 'Staff invite email failed to send');
+      logger.error({ err, email }, 'Staff invite email failed to send');
+    }
+  },
+
+  /**
+   * Re-issues the invite link for a staff member who has never signed in
+   * (the previous link may have expired or been lost). The old token is
+   * replaced, so it stops working.
+   */
+  async resendStaffInvite(userId: string, staffRoles: readonly UserRole[]): Promise<{ email: string }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, fullName: true, role: true, status: true, lastLoginAt: true },
+    });
+    if (!user || !staffRoles.includes(user.role)) {
+      throw new ValidationError('Only staff accounts can be sent an invite.');
+    }
+    if (!isPendingInvite(user)) {
+      throw new ValidationError('That person has already signed in — there is no pending invite to resend.');
     }
 
-    logger.info({ userId: user.id, role: user.role }, 'Staff member invited');
-    return user;
+    const token = generateToken();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: hashToken(token),
+        passwordResetExpiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 3600_000),
+      },
+    });
+
+    await this.sendStaffInviteEmail(user.email, user.fullName, token);
+    logger.info({ userId: user.id }, 'Staff invite resent');
+    return { email: user.email };
   },
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {

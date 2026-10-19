@@ -230,6 +230,7 @@ adminRouter.post('/users', requireSuperAdmin, asyncHandler(userController.store)
 adminRouter.post('/users/:id/role', requireSuperAdmin, asyncHandler(userController.updateRole));
 adminRouter.post('/users/:id/suspend', requireSuperAdmin, asyncHandler(userController.suspend));
 adminRouter.post('/users/:id/unsuspend', requireSuperAdmin, asyncHandler(userController.unsuspend));
+adminRouter.post('/users/:id/resend-invite', requireSuperAdmin, asyncHandler(userController.resendInvite));
 adminRouter.post('/users/:id/reset-mfa', requireSuperAdmin, asyncHandler(userController.resetMfa));
 adminRouter.post('/users/:id/anonymise', requireSuperAdmin, asyncHandler(privacyAdminController.anonymise));
 

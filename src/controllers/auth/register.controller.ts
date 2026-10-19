@@ -6,9 +6,10 @@ import { authService } from '../../services/auth.service.js';
 import { registerSchema } from '../../validators/auth.validator.js';
 import { listPublishedCountries, listAllCountries } from '../../models/content.model.js';
 import { ValidationError } from '../../utils/errors.js';
+import { normaliseReferralRef } from '../../services/referral.service.js';
 import { logger } from '../../config/logger.js';
 
-export async function show(_req: Request, res: Response): Promise<void> {
+export async function show(req: Request, res: Response): Promise<void> {
   const [originCountries, destinationCountries] = await Promise.all([
     listAllCountries(),
     listPublishedCountries(),
@@ -19,7 +20,7 @@ export async function show(_req: Request, res: Response): Promise<void> {
     layout: 'layouts/auth',
     originCountries,
     destinationCountries,
-    values: {},
+    values: { ref: normaliseReferralRef(req.query.ref) ?? '' },
     errors: {},
   });
 }
@@ -53,6 +54,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
       preferredStudyLevel: parsed.data.preferredStudyLevel,
       preferredCourses: parsed.data.preferredCourses,
       preferredDestinationSlugs: parsed.data.preferredDestinations,
+      referralRef: parsed.data.ref,
     });
 
     // Identical response whether the address was new or already registered

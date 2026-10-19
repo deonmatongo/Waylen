@@ -5,6 +5,7 @@
  * shape, so these schemas are the contract.
  */
 import { z } from 'zod';
+import { normaliseReferralRef } from '../services/referral.service.js';
 
 /**
  * Minimum 10 characters with mixed character classes. Length is weighted over
@@ -64,6 +65,12 @@ export const registerSchema = z
       .optional(),
     preferredCourses: stringArray,
     preferredDestinations: stringArray,
+    // Friend-referral link (?ref=WYL-STU-XXXXXX). Anything malformed is
+    // dropped rather than rejected — a bad link must not block signup.
+    ref: z
+      .unknown()
+      .transform((v) => normaliseReferralRef(v))
+      .optional(),
     acceptTerms: z.literal('on', {
       errorMap: () => ({ message: 'Please accept the terms and privacy policy' }),
     }),

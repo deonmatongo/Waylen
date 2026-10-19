@@ -81,6 +81,13 @@
               <button class="link-button" type="submit">Save</button>
             </form>
 
+            <% if (user.pendingInvite) { %>
+              <form method="post" action="/admin/users/<%= user.id %>/resend-invite" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="link-button" type="submit">Resend invite</button>
+              </form>
+            <% } %>
+
             <% if (user.status === 'ACTIVE') { %>
               <form method="post" action="/admin/users/<%= user.id %>/suspend" class="inline-form">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
