@@ -208,13 +208,15 @@
               <small class="table__hint"><%= format.formatFileSize(contract.sizeBytes) %></small>
             </td>
             <td>
-              <span class="badge badge--<%= contract.status === 'ACTIVE' ? 'positive' : contract.status === 'SIGNED' ? 'neutral' : 'warning' %>">
+              <span class="badge badge--<%= contract.status === 'ACTIVE' ? 'positive' : contract.status === 'CANCELLED' ? 'negative' : contract.status === 'AWAITING_SIGNATURE' ? 'warning' : 'neutral' %>">
                 <%= contractStatusLabels[contract.status] %>
               </span>
             </td>
             <td><%= format.formatDate(contract.createdAt) %></td>
             <td class="table__actions">
               <a class="link-button" href="/admin/contracts/<%= contract.id %>/view">View</a>
+              <%# Cancelled and expired are terminal, so no further status change is offered. %>
+              <% if (contract.status !== 'CANCELLED' && contract.status !== 'EXPIRED') { %>
               <form class="inline-form" method="post" action="/admin/contracts/<%= contract.id %>/status">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <select class="field__select" name="status">
@@ -226,6 +228,7 @@
                 </select>
                 <button class="link-button" type="submit">Update</button>
               </form>
+              <% } %>
             </td>
           </tr>
         <% }) %>

@@ -32,6 +32,7 @@ import {
   canTransitionContract,
   contractService,
   contractStatusTitle,
+  isContractLive,
 } from '../../src/services/contract.service.js';
 
 beforeEach(() => {
@@ -47,6 +48,36 @@ describe('contract transitions', () => {
     expect(canTransitionContract('AWAITING_SIGNATURE', 'ACTIVE')).toBe(false);
     expect(canTransitionContract('ACTIVE', 'SIGNED')).toBe(false);
     expect(canTransitionContract('SIGNED', 'SIGNED')).toBe(false);
+  });
+
+  it('allows cancelling and expiring from the right states only', () => {
+    for (const from of ['AWAITING_SIGNATURE', 'SIGNED', 'ACTIVE'] as const) {
+      expect(canTransitionContract(from, 'CANCELLED')).toBe(true);
+    }
+    expect(canTransitionContract('AWAITING_SIGNATURE', 'EXPIRED')).toBe(true);
+    expect(canTransitionContract('ACTIVE', 'EXPIRED')).toBe(true);
+    expect(canTransitionContract('SIGNED', 'EXPIRED')).toBe(false);
+  });
+
+  it('treats CANCELLED and EXPIRED as terminal', () => {
+    for (const from of ['CANCELLED', 'EXPIRED'] as const) {
+      for (const to of ['AWAITING_SIGNATURE', 'SIGNED', 'ACTIVE', 'CANCELLED', 'EXPIRED'] as const) {
+        expect(canTransitionContract(from, to)).toBe(false);
+      }
+    }
+    expect(isContractLive('CANCELLED')).toBe(false);
+    expect(isContractLive('EXPIRED')).toBe(false);
+    expect(isContractLive('ACTIVE')).toBe(true);
+  });
+
+  it('cancels an awaiting contract and tells the student it needs no signature', async () => {
+    await contractService.updateStatus({ contractId: 'c1', status: 'CANCELLED', actorId: 'a1' });
+    expect(state.status).toBe('CANCELLED');
+    expect(state.signedAt).toBeNull();
+    expect(dispatch.mock.calls[0]![0].title).toBe('Agreement is now cancelled and no longer needs your signature');
+    await expect(
+      contractService.updateStatus({ contractId: 'c1', status: 'SIGNED', actorId: 'a1' }),
+    ).rejects.toMatchObject({ statusCode: 422 });
   });
 
   it('rejects illegal moves with a ValidationError and does not notify', async () => {
@@ -67,6 +98,7 @@ describe('contract transitions', () => {
   it('uses accurate copy per status and a safe fallback', () => {
     expect(contractStatusTitle('X', 'AWAITING_SIGNATURE')).toBe('X is now awaiting your signature');
     expect(contractStatusTitle('X', 'ACTIVE')).toBe('X is now active');
-    expect(contractStatusTitle('X', 'CANCELLED' as never)).toBe('X is now marked cancelled');
+    expect(contractStatusTitle('X', 'EXPIRED')).toBe('X is now expired');
+    expect(contractStatusTitle('X', 'BOGUS' as never)).toBe('X is now marked bogus');
   });
 });

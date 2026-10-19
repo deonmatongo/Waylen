@@ -30,6 +30,10 @@
     {
       "path": "/cron/retention",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/cron/notification-retry",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

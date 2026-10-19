@@ -17,6 +17,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { sendAppointmentReminders, sendWebinarReminders } from '../jobs/reminders.job.js';
 import { flagOverdueInvoices } from '../jobs/billing.job.js';
+import { notificationService } from '../services/notification.service.js';
 import { runRetention } from '../jobs/retention.job.js';
 import { safeCompare } from '../utils/crypto.js';
 
@@ -71,6 +72,14 @@ cronRouter.get(
   '/retention',
   asyncHandler(async (_req, res) => {
     const result = await runRetention();
+    res.status(200).json({ ok: true, ...result });
+  }),
+);
+
+cronRouter.get(
+  '/notification-retry',
+  asyncHandler(async (_req, res) => {
+    const result = await notificationService.retryFailed();
     res.status(200).json({ ok: true, ...result });
   }),
 );

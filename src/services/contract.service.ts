@@ -19,16 +19,24 @@ export interface RetrievedContract {
 }
 
 /**
- * Allowed lifecycle moves. Contracts only go forward: signed, then active.
- * Anything not listed (including no-op same-status moves) is rejected.
- * Typed as a full Record so adding a ContractStatus (e.g. CANCELLED/EXPIRED)
- * fails to compile until its transitions and copy are defined here.
+ * Allowed lifecycle moves. Contracts go forward (signed, then active) and can
+ * be cancelled or expire; CANCELLED and EXPIRED are terminal. Anything not
+ * listed (including no-op same-status moves) is rejected.
+ * Typed as a full Record so adding a ContractStatus fails to compile until
+ * its transitions and copy are defined here.
  */
 export const CONTRACT_TRANSITIONS: Record<ContractStatus, readonly ContractStatus[]> = {
-  AWAITING_SIGNATURE: ['SIGNED'],
-  SIGNED: ['ACTIVE'],
-  ACTIVE: [],
+  AWAITING_SIGNATURE: ['SIGNED', 'CANCELLED', 'EXPIRED'],
+  SIGNED: ['ACTIVE', 'CANCELLED'],
+  ACTIVE: ['EXPIRED', 'CANCELLED'],
+  CANCELLED: [],
+  EXPIRED: [],
 };
+
+/** Only live agreements are offered for signing or download as current. */
+export function isContractLive(status: ContractStatus): boolean {
+  return status !== 'CANCELLED' && status !== 'EXPIRED';
+}
 
 export function canTransitionContract(from: ContractStatus, to: ContractStatus): boolean {
   return CONTRACT_TRANSITIONS[from]?.includes(to) ?? false;
@@ -39,6 +47,8 @@ const STATUS_COPY: Record<ContractStatus, string> = {
   AWAITING_SIGNATURE: 'awaiting your signature',
   SIGNED: 'signed',
   ACTIVE: 'active',
+  CANCELLED: 'cancelled and no longer needs your signature',
+  EXPIRED: 'expired',
 };
 
 export function contractStatusTitle(title: string, status: ContractStatus): string {

@@ -26,7 +26,7 @@
               <small class="table__hint"><%= format.formatFileSize(contract.sizeBytes) %></small>
             </td>
             <td>
-              <span class="badge badge--<%= contract.status === 'ACTIVE' ? 'positive' : contract.status === 'SIGNED' ? 'neutral' : 'warning' %>">
+              <span class="badge badge--<%= statusBadges[contract.status] %>">
                 <%= statusLabels[contract.status] %>
               </span>
             </td>
@@ -35,7 +35,12 @@
             </td>
             <td class="table__actions">
               <a class="link-button" href="/portal/contracts/<%= contract.id %>">View</a>
-              <a class="link-button" href="/portal/contracts/<%= contract.id %>?download=1">Download</a>
+              <% if (contract.status === 'CANCELLED' || contract.status === 'EXPIRED') { %>
+                <%# Kept for reference only — no longer a current agreement. %>
+                <small class="table__hint">No longer in effect</small>
+              <% } else { %>
+                <a class="link-button" href="/portal/contracts/<%= contract.id %>?download=1">Download</a>
+              <% } %>
             </td>
           </tr>
         <% }) %>

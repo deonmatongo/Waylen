@@ -4,7 +4,7 @@
 import type { Request, Response } from 'express';
 import { contractService } from '../../services/contract.service.js';
 import { findStudentByUserId } from '../../models/student.model.js';
-import { CONTRACT_STATUS_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
+import { CONTRACT_STATUS_BADGES, CONTRACT_STATUS_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { sendStoredFile } from '../../utils/fileResponse.js';
 
@@ -19,6 +19,7 @@ export async function index(req: Request, res: Response): Promise<void> {
     layout: 'layouts/portal',
     contracts,
     statusLabels: CONTRACT_STATUS_LABELS,
+    statusBadges: CONTRACT_STATUS_BADGES,
     documentsTabs: DOCUMENTS_TABS,
   });
 }

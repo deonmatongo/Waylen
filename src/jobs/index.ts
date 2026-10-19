@@ -15,6 +15,7 @@ import { logger } from '../config/logger.js';
 import { sendAppointmentReminders, sendWebinarReminders } from './reminders.job.js';
 import { flagOverdueInvoices } from './billing.job.js';
 import { runRetention } from './retention.job.js';
+import { notificationService } from '../services/notification.service.js';
 
 interface ScheduledJob {
   name: string;
@@ -22,11 +23,19 @@ interface ScheduledJob {
   run: () => Promise<void>;
 }
 
+const MINUTE = 60_000;
 const HOUR = 3_600_000;
 
 const JOBS: ScheduledJob[] = [
   { name: 'appointment-reminders', everyMs: HOUR, run: () => sendAppointmentReminders({ lookaheadHours: 24 }) },
   { name: 'webinar-reminders', everyMs: HOUR, run: sendWebinarReminders },
+  {
+    name: 'notification-retry',
+    everyMs: 15 * MINUTE,
+    run: async () => {
+      await notificationService.retryFailed();
+    },
+  },
   { name: 'overdue-invoices', everyMs: 12 * HOUR, run: flagOverdueInvoices },
   {
     name: 'retention',

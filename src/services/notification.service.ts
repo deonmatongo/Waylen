@@ -5,7 +5,7 @@
  * later." That extension point is `CHANNELS_BY_EVENT`: adding a channel is a
  * change to that table plus a transport, not a change to every call site.
  */
-import type { NotificationChannel } from '@prisma/client';
+import type { NotificationChannel, Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { mailService } from './mail.service.js';
@@ -80,61 +80,81 @@ export interface DispatchOptions {
 }
 
 const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
-const RETRY_SUFFIX = /\s\[retry:(\d+)\]$/;
+/** Base backoff: a row is retried no sooner than this * attempts after its last try. */
+const RETRY_BACKOFF_MS = 15 * 60 * 1000;
 
-/** The schema has no attempts column, so the count rides on failureReason as " [retry:N]". */
-export function parseRetryCount(failureReason: string | null): number {
-  const match = failureReason ? RETRY_SUFFIX.exec(failureReason) : null;
-  return match ? Number(match[1]) : 0;
+/** Keeps only the JSON-serialisable part of the email data (Dates become ISO strings). */
+export function toJsonSafe(data: Record<string, unknown> | undefined): Prisma.InputJsonObject | undefined {
+  if (!data) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(data)) as Prisma.InputJsonObject;
+  } catch {
+    return undefined;
+  }
 }
 
-export function withRetryCount(failureReason: string | null, attempts: number): string {
-  const base = (failureReason ?? 'Unknown error').replace(RETRY_SUFFIX, '');
-  return `${base} [retry:${attempts}]`;
+/** True once a row has waited out its backoff (15 min * attempts since lastAttemptAt). */
+export function isRetryDue(attempts: number, lastAttemptAt: Date | null, now = Date.now()): boolean {
+  if (!lastAttemptAt) return true;
+  return now - lastAttemptAt.getTime() >= RETRY_BACKOFF_MS * Math.max(attempts, 1);
 }
 
 export const notificationService = {
   /**
-   * Re-sends EMAIL rows that failed within the last 24h and have been retried
-   * fewer than `maxAttempts` times. Meant to be called from a cron/job.
-   * Retries use the generic template (title/body/actionUrl) because the
-   * original template name and data are not persisted on the row.
+   * Re-sends EMAIL rows that failed within the last 24h, using the template and
+   * data persisted at dispatch time (generic template if none was stored).
+   * Rows are retried at most `maxAttempts` times in total (the first send
+   * counts), with a 15 min * attempts backoff from `lastAttemptAt`; a row that
+   * exhausts its attempts is marked permanently failed and never picked again.
+   * Meant to be called from a cron/job; safe to overlap because each attempt
+   * is claimed by compare-and-set on `emailAttempts`.
    * Returns how many rows were sent and how many failed again.
    */
   async retryFailed(limit = 50, maxAttempts = 3): Promise<{ sent: number; failed: number }> {
+    const now = Date.now();
     const rows = await prisma.notification.findMany({
       where: {
         channel: 'EMAIL',
         sentAt: null,
         failureReason: { not: null },
-        createdAt: { gte: new Date(Date.now() - RETRY_WINDOW_MS) },
-        NOT: { failureReason: { endsWith: `[retry:${maxAttempts}]` } },
+        emailAttempts: { lt: maxAttempts },
+        createdAt: { gte: new Date(now - RETRY_WINDOW_MS) },
+        OR: [{ lastAttemptAt: null }, { lastAttemptAt: { lte: new Date(now - RETRY_BACKOFF_MS) } }],
       },
       orderBy: { createdAt: 'asc' },
-      take: limit,
+      take: limit * 3,
       include: { user: { select: { email: true, fullName: true } } },
     });
 
     let sent = 0;
     let failed = 0;
+    let processed = 0;
     for (const row of rows) {
-      const attempts = parseRetryCount(row.failureReason);
-      if (attempts >= maxAttempts) continue;
+      if (processed >= limit) break;
+      if (row.emailAttempts >= maxAttempts) continue;
+      if (!isRetryDue(row.emailAttempts, row.lastAttemptAt, now)) continue;
 
-      // Claim the row (compare-and-set on failureReason) so overlapping cron
-      // runs do not double-send.
+      // Claim the attempt (compare-and-set on emailAttempts) so overlapping
+      // cron runs do not double-send.
+      const attempt = row.emailAttempts + 1;
       const claimed = await prisma.notification.updateMany({
-        where: { id: row.id, sentAt: null, failureReason: row.failureReason },
-        data: { failureReason: withRetryCount(row.failureReason, attempts + 1) },
+        where: { id: row.id, sentAt: null, emailAttempts: row.emailAttempts },
+        data: { emailAttempts: attempt, lastAttemptAt: new Date() },
       });
       if (claimed.count === 0) continue;
+      processed++;
+
+      const extra =
+        row.emailData && typeof row.emailData === 'object' && !Array.isArray(row.emailData)
+          ? (row.emailData as Record<string, unknown>)
+          : {};
 
       try {
         await mailService.send({
           to: row.user.email,
           subject: row.title,
-          template: 'generic',
-          data: { fullName: row.user.fullName, title: row.title, body: row.body, actionUrl: row.actionUrl },
+          template: row.emailTemplate ?? 'generic',
+          data: { fullName: row.user.fullName, title: row.title, body: row.body, actionUrl: row.actionUrl, ...extra },
         });
         await prisma.notification.update({
           where: { id: row.id },
@@ -143,10 +163,13 @@ export const notificationService = {
         sent++;
       } catch (err) {
         failed++;
-        logger.error({ err, notificationId: row.id, attempt: attempts + 1 }, 'Notification email retry failed');
+        logger.error({ err, notificationId: row.id, attempt }, 'Notification email retry failed');
+        const reason = err instanceof Error ? err.message : 'Unknown error';
         await prisma.notification.update({
           where: { id: row.id },
-          data: { failureReason: withRetryCount(err instanceof Error ? err.message : null, attempts + 1) },
+          data: {
+            failureReason: attempt >= maxAttempts ? `Permanently failed after ${attempt} attempts: ${reason}` : reason,
+          },
         });
       }
     }
@@ -183,6 +206,10 @@ export const notificationService = {
             actionUrl: options.actionUrl ?? null,
             // In-app notifications are "sent" the moment they are stored.
             sentAt: channel === 'IN_APP' ? new Date() : null,
+            // Persisted so retryFailed can re-render the original email.
+            ...(channel === 'EMAIL'
+              ? { emailTemplate: options.emailTemplate ?? null, emailData: toJsonSafe(options.emailData) }
+              : {}),
           },
         });
 
@@ -203,13 +230,17 @@ export const notificationService = {
           });
           await prisma.notification.update({
             where: { id: notification.id },
-            data: { sentAt: new Date() },
+            data: { sentAt: new Date(), emailAttempts: 1, lastAttemptAt: new Date() },
           });
         } catch (err) {
           logger.error({ err, event: options.event }, 'Failed to send notification email');
           await prisma.notification.update({
             where: { id: notification.id },
-            data: { failureReason: err instanceof Error ? err.message : 'Unknown error' },
+            data: {
+              failureReason: err instanceof Error ? err.message : 'Unknown error',
+              emailAttempts: 1,
+              lastAttemptAt: new Date(),
+            },
           });
         }
       }),

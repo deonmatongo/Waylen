@@ -171,6 +171,17 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   AWAITING_SIGNATURE: 'Awaiting Signature',
   SIGNED: 'Signed',
   ACTIVE: 'Active',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
+};
+
+/** Badge modifier per contract status (shared by portal and admin views). */
+export const CONTRACT_STATUS_BADGES: Record<ContractStatus, 'positive' | 'neutral' | 'warning' | 'negative'> = {
+  AWAITING_SIGNATURE: 'warning',
+  SIGNED: 'neutral',
+  ACTIVE: 'positive',
+  CANCELLED: 'negative',
+  EXPIRED: 'neutral',
 };
 
 /** The 4 tabs of the portal's one Documents section (client navigation feedback). */
