@@ -117,18 +117,28 @@
     <h2 class="panel__title">Payment history</h2>
     <table class="table">
       <thead>
-        <tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th></tr>
+        <tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Receipt</span></th></tr>
       </thead>
       <tbody>
         <% invoice.payments.forEach(function (payment) { %>
           <tr>
             <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
             <td><%= format.humaniseEnum(payment.method) %></td>
-            <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
+            <td>
+              <%= format.formatMoney(payment.amountMinor, payment.currency) %>
+              <% if (payment.refundedMinor > 0) { %>
+                <br><small>Refunded <%= format.formatMoney(payment.refundedMinor, payment.currency) %></small>
+              <% } %>
+            </td>
             <td>
               <span class="badge badge--<%= payment.status === 'SUCCEEDED' ? 'positive' : payment.status === 'FAILED' ? 'negative' : 'neutral' %>">
                 <%= format.humaniseEnum(payment.status) %>
               </span>
+            </td>
+            <td>
+              <% if (payment.status === 'SUCCEEDED') { %>
+                <a class="link-button" href="/portal/invoices/<%= invoice.id %>/payments/<%= payment.id %>/receipt" target="_blank" rel="noopener">Receipt</a>
+              <% } %>
             </td>
           </tr>
         <% }) %>

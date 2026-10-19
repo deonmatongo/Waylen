@@ -98,6 +98,11 @@ portalRouter.post(
   asyncHandler(invoiceController.uploadProof),
 );
 portalRouter.get('/invoices/:id/receipt', requireFeature('payments'), asyncHandler(invoiceController.receipt));
+portalRouter.get(
+  '/invoices/:id/payments/:paymentId/receipt',
+  requireFeature('payments'),
+  asyncHandler(invoiceController.paymentReceipt),
+);
 
 // ── Appointments (PRD §5.2 — 45 min, Teams) ────────────────────────────────
 portalRouter.get('/appointments', asyncHandler(appointmentController.index));

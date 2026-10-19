@@ -104,16 +104,23 @@
             <tr>
               <td><%= format.formatDate(payment.paidAt || payment.createdAt) %></td>
               <td><%= format.humaniseEnum(payment.method) %></td>
-              <td><%= format.formatMoney(payment.amountMinor, payment.currency) %></td>
+              <td>
+                <%= format.formatMoney(payment.amountMinor, payment.currency) %>
+                <% if (payment.refundedMinor > 0) { %>
+                  <br><small>Refunded <%= format.formatMoney(payment.refundedMinor, payment.currency) %></small>
+                <% } %>
+              </td>
               <td><%= format.humaniseEnum(payment.status) %></td>
               <td><%= payment.manualReference || payment.providerReference || '—' %></td>
               <td>
-                <% if (payment.status === 'SUCCEEDED' && payment.provider && ['ADMIN_STAFF', 'SUPER_ADMIN'].includes(currentUser.role)) { %>
+                <% const refundable = payment.amountMinor - payment.refundedMinor; %>
+                <% if (payment.status === 'SUCCEEDED' && payment.provider && refundable > 0 && ['ADMIN_STAFF', 'SUPER_ADMIN'].includes(currentUser.role)) { %>
                   <form class="inline-form" method="post" action="/admin/invoices/payments/<%= payment.id %>/refund"
                         data-confirm="Refund this payment through <%= payment.provider %>? This cannot be undone.">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <input class="field__input" type="number" name="amountMinor" min="1" max="<%= payment.amountMinor %>" step="1"
-                           placeholder="Full amount" aria-label="Refund amount in cents (blank for the full payment)">
+                    <label class="visually-hidden" for="refund-<%= payment.id %>">Refund amount in cents (up to <%= refundable %>)</label>
+                    <input class="field__input" type="number" id="refund-<%= payment.id %>" name="amountMinor"
+                           min="1" max="<%= refundable %>" step="1" value="<%= refundable %>" required>
                     <button class="button button--ghost" type="submit">Refund</button>
                   </form>
                 <% } %>

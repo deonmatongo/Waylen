@@ -3,6 +3,7 @@
  * never require a code change).
  */
 import { z } from 'zod';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
 import { PublishStatus } from '@prisma/client';
 
 /** Blank form fields arrive as `''`, which a bare `.optional()` would still try to coerce. */
@@ -44,7 +45,7 @@ export const countrySchema = z.object({
   indicativeTuitionMin: optionalText(z.coerce.number().int().min(0)),
   indicativeTuitionMax: optionalText(z.coerce.number().int().min(0)),
   costOfLivingMonthly: optionalText(z.coerce.number().int().min(0)),
-  currency: z.string().trim().toUpperCase().length(3).default('EUR'),
+  currency: z.string().trim().toUpperCase().length(3).default(DEFAULT_CURRENCY),
 
   metaTitle: optionalText(z.string().trim().max(70)),
   metaDescription: optionalText(z.string().trim().max(160)),

@@ -2,6 +2,7 @@
  * Opportunity listing editor validation (PRD §4.2, §8.1).
  */
 import { z } from 'zod';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
 import { sanitizeRichText } from '../utils/sanitize.js';
 import { OpportunityCategory, StudyLevel, PublishStatus } from '@prisma/client';
 
@@ -39,7 +40,7 @@ export const opportunitySchema = z.object({
 
   indicativeTuitionMin: optionalText(z.coerce.number().int().min(0)),
   indicativeTuitionMax: optionalText(z.coerce.number().int().min(0)),
-  currency: z.string().trim().toUpperCase().length(3).default('EUR'),
+  currency: z.string().trim().toUpperCase().length(3).default(DEFAULT_CURRENCY),
 
   scholarshipAvailable: checkbox.default(false),
   scholarshipDetails: optionalText(richText),

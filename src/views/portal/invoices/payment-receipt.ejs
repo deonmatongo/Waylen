@@ -1,0 +1,32 @@
+<%# Receipt for one confirmed payment. The print dialog opens on load (data-auto-print, handled by public/js/app.js). %>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/portal/invoices">Invoices</a>
+  <span aria-hidden="true">/</span>
+  <a href="/portal/invoices/<%= invoice.id %>"><%= invoice.number %></a>
+  <span aria-hidden="true">/</span>
+  <span>Receipt</span>
+</nav>
+
+<section class="panel">
+  <h2 class="panel__title">Payment receipt</h2>
+
+  <dl class="detail-list">
+    <div><dt>Receipt number</dt><dd><code><%= receiptNumber %></code></dd></div>
+    <div><dt>Received from</dt><dd><%= student.fullName %></dd></div>
+    <div><dt>Date</dt><dd><%= format.formatDate(payment.paidAt || payment.createdAt) %></dd></div>
+    <div><dt>Method</dt><dd><%= format.humaniseEnum(payment.method) %></dd></div>
+    <% if (payment.manualReference || payment.providerReference) { %>
+      <div><dt>Reference</dt><dd><code><%= payment.manualReference || payment.providerReference %></code></dd></div>
+    <% } %>
+    <div><dt>Invoice</dt><dd><code><%= invoice.number %></code></dd></div>
+    <div><dt>Amount received</dt><dd><strong><%= format.formatMoney(payment.amountMinor, payment.currency) %></strong></dd></div>
+    <% if (payment.refundedMinor > 0) { %>
+      <div><dt>Refunded</dt><dd><%= format.formatMoney(payment.refundedMinor, payment.currency) %></dd></div>
+    <% } %>
+    <div><dt>Invoice balance after this payment</dt><dd><%= format.formatMoney(balanceAfterMinor, invoice.currency) %></dd></div>
+  </dl>
+
+  <p class="panel__note">Keep this receipt for your records. Use your browser's print dialog to save it as a PDF.</p>
+</section>
+
+<span data-auto-print hidden></span>

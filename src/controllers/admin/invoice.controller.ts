@@ -16,8 +16,13 @@ import { PaymentMethod } from '@prisma/client';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const { status } = req.query;
-  const [invoices, pendingPayments] = await Promise.all([
-    billingService.listForStaff({ status: status as never }),
+  const requestedPage = Number.parseInt(typeof req.query.page === 'string' ? req.query.page : '1', 10);
+  const [results, pendingPayments] = await Promise.all([
+    billingService.listForStaff({
+      status: status as never,
+      page: Number.isFinite(requestedPage) ? requestedPage : 1,
+      perPage: 25,
+    }),
     billingService.listPendingPayments({
       counsellorId: req.currentUser!.role === 'COUNSELLOR' ? req.currentUser!.id : undefined,
     }),
@@ -26,7 +31,11 @@ export async function index(req: Request, res: Response): Promise<void> {
   res.render('admin/invoices/index', {
     title: 'Invoices',
     layout: 'layouts/admin',
-    invoices,
+    invoices: results.items,
+    results,
+    baseUrl: '/admin/invoices',
+    // Only the filter survives into pagination links; `page` is set by the partial.
+    query: typeof status === 'string' && status ? { status } : {},
     pendingCount: pendingPayments.length,
     filters: { status },
   });
@@ -85,7 +94,7 @@ export async function store(req: Request, res: Response): Promise<void> {
       students: students.items,
       values: req.body,
       errors: parsed.error.flatten().fieldErrors,
-    });
+      });
     return;
   }
 

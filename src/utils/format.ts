@@ -3,12 +3,16 @@
  * trivially testable.
  */
 import { format, formatDistanceToNow, isPast } from 'date-fns';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
+
+/** Re-exported so EJS views (which only see `format`) share the one fallback currency. */
+export { DEFAULT_CURRENCY };
 
 /**
  * Money is stored in minor units throughout (PRD §5.2 invoicing) — this is the
  * only place it becomes a display string.
  */
-export function formatMoney(amountMinor: number, currency = 'EUR', locale = 'en-GB'): string {
+export function formatMoney(amountMinor: number, currency = DEFAULT_CURRENCY, locale = 'en-GB'): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
@@ -20,7 +24,7 @@ export function formatMoney(amountMinor: number, currency = 'EUR', locale = 'en-
 export function formatTuitionRange(
   minMinor: number | null,
   maxMinor: number | null,
-  currency = 'EUR',
+  currency = DEFAULT_CURRENCY,
 ): string {
   if (minMinor == null && maxMinor == null) return 'On enquiry';
   if (minMinor != null && maxMinor != null && minMinor !== maxMinor) {

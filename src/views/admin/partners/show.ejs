@@ -58,7 +58,7 @@
             <td><%= format.formatDate(referral.convertedAt) %></td>
             <td>
               <%= referral.commissionAmountMinor
-                    ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || 'EUR')
+                    ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || format.DEFAULT_CURRENCY)
                     : '—' %>
             </td>
           </tr>

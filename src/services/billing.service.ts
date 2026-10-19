@@ -7,8 +7,10 @@
  *     allocated inside the same transaction as the insert.
  */
 import type { InvoiceStatus, PaymentMethod, Prisma } from '@prisma/client';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
+import { formatMoney } from '../utils/format.js';
 import { invoiceNumber } from '../utils/reference.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.js';
 import { notificationService } from './notification.service.js';
@@ -45,9 +47,13 @@ function computeInvoiceSettlement(
   return { paidMinor, settled: paidMinor >= invoice.totalMinor };
 }
 
+/** Receipt number for one payment: the invoice number plus a short, stable suffix of the payment id. */
+export function receiptNumber(invoiceNumberValue: string, paymentId: string): string {
+  return `RCT-${invoiceNumberValue}-${paymentId.slice(-6).toUpperCase()}`;
+}
+
 /** failureReason stamped on a gateway checkout nobody completed — see expireStalePendingPayments. */
 const ABANDONED_REASON = 'Checkout abandoned — expired without a gateway confirmation.';
-const PARTIAL_REFUND_PREFIX = 'Partially refunded';
 const INVOICE_NUMBER_ATTEMPTS = 3;
 /** A gateway checkout this young is assumed to still be open in the student's browser. */
 const ACTIVE_CHECKOUT_WINDOW_MS = 60 * 60 * 1000;
@@ -177,7 +183,7 @@ export const billingService = {
             number: invoiceNumber(year, sequence),
             studentProfileId: input.studentProfileId,
             status: 'DRAFT',
-            currency: input.currency ?? 'EUR',
+            currency: input.currency ?? DEFAULT_CURRENCY,
             subtotalMinor,
             taxMinor,
             totalMinor: subtotalMinor + taxMinor,
@@ -341,6 +347,33 @@ export const billingService = {
     return invoice;
   },
 
+  /**
+   * A single confirmed payment for its owner's receipt. Ownership is part of
+   * the query (payment -> invoice -> student), so another student's payment
+   * id is indistinguishable from a missing one.
+   */
+  async findReceiptForStudent(invoiceId: string, paymentId: string, studentProfileId: string) {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, studentProfileId, status: { not: 'DRAFT' } },
+      include: { payments: { where: { status: 'SUCCEEDED' }, orderBy: { createdAt: 'asc' } } },
+    });
+    const payment = invoice?.payments.find((p) => p.id === paymentId);
+    if (!invoice || !payment) throw new NotFoundError('That receipt could not be found.');
+
+    // Balance as it stood once this payment landed: everything confirmed up to and including it.
+    const index = invoice.payments.findIndex((p) => p.id === paymentId);
+    const paidToDate = invoice.payments
+      .slice(0, index + 1)
+      .reduce((sum, p) => sum + p.amountMinor - p.refundedMinor, 0);
+
+    return {
+      invoice,
+      payment,
+      receiptNumber: receiptNumber(invoice.number, payment.id),
+      balanceAfterMinor: Math.max(0, invoice.totalMinor - paidToDate),
+    };
+  },
+
   async findById(invoiceId: string) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
@@ -356,10 +389,15 @@ export const billingService = {
     return invoice;
   },
 
-  async listForStaff(filters: { status?: InvoiceStatus } = {}) {
+  /** One page (25 by default) of invoices for staff, newest first, with the total for pagination. */
+  async listForStaff(filters: { status?: InvoiceStatus; page?: number; perPage?: number } = {}) {
     const where: Prisma.InvoiceWhereInput = filters.status ? { status: filters.status } : {};
+    const perPage = Math.min(100, Math.max(1, filters.perPage ?? 25));
+    const total = await prisma.invoice.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const page = Math.min(totalPages, Math.max(1, Math.floor(filters.page ?? 1) || 1));
 
-    return prisma.invoice.findMany({
+    const items = await prisma.invoice.findMany({
       where,
       select: {
         id: true,
@@ -374,9 +412,11 @@ export const billingService = {
           select: { id: true, reference: true, user: { select: { fullName: true } } },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: (page - 1) * perPage,
+      take: perPage,
     });
+    return { items, total, page, perPage, totalPages };
   },
 
   async voidInvoice(invoiceId: string, actorId: string) {
@@ -915,7 +955,7 @@ export const billingService = {
   },
 
   /**
-   * Refunds a gateway payment (in full, or once partially) through the
+   * Refunds a gateway payment (in full, or any number of partial amounts up to what is still refundable) through the
    * provider that took it, then books it: Payment -> REFUNDED, invoice
    * balance recomputed from the payments that still stand. ADMIN_STAFF and
    * SUPER_ADMIN only — enforced here as well as on the route.
@@ -935,14 +975,15 @@ export const billingService = {
         id: true,
         status: true,
         amountMinor: true,
+        refundedMinor: true,
         currency: true,
         provider: true,
         providerReference: true,
-        failureReason: true,
         invoice: {
           select: {
             id: true,
             totalMinor: true,
+            dueAt: true,
             studentProfileId: true,
             studentProfile: { select: { userId: true } },
           },
@@ -958,22 +999,23 @@ export const billingService = {
         'Only online card payments can be refunded here. Refund bank transfers outside the platform.',
       );
     }
-    if (payment.failureReason?.startsWith(PARTIAL_REFUND_PREFIX)) {
-      throw new ValidationError('This payment has already been partially refunded.');
-    }
 
-    const refundMinor = amountMinor ?? payment.amountMinor;
-    if (!Number.isInteger(refundMinor) || refundMinor <= 0 || refundMinor > payment.amountMinor) {
-      throw new ValidationError('Enter a refund amount between 1 and the payment amount.');
+    const refundableMinor = payment.amountMinor - payment.refundedMinor;
+    const refundMinor = amountMinor ?? refundableMinor;
+    if (!Number.isInteger(refundMinor) || refundMinor <= 0 || refundMinor > refundableMinor) {
+      throw new ValidationError(
+        refundableMinor > 0
+          ? `Enter a refund amount between 1 and ${refundableMinor} (the amount still refundable).`
+          : 'This payment has already been refunded in full.',
+      );
     }
-    const full = refundMinor === payment.amountMinor;
+    const full = refundMinor === refundableMinor;
 
-    // Optimistic claim on exactly what was read — a concurrent refund changes it.
+    // Optimistic claim on exactly the refundedMinor that was read — a
+    // concurrent refund changes it, so refundedMinor can never pass amountMinor.
     const claimed = await prisma.payment.updateMany({
-      where: { id: payment.id, status: 'SUCCEEDED', failureReason: payment.failureReason },
-      data: full
-        ? { status: 'REFUNDED' }
-        : { failureReason: `${PARTIAL_REFUND_PREFIX} ${refundMinor} of ${payment.amountMinor} minor units.` },
+      where: { id: payment.id, status: 'SUCCEEDED', refundedMinor: payment.refundedMinor },
+      data: { refundedMinor: { increment: refundMinor }, ...(full ? { status: 'REFUNDED' as const } : {}) },
     });
     if (claimed.count !== 1) {
       throw new ValidationError('That payment is already being refunded.');
@@ -986,27 +1028,34 @@ export const billingService = {
         providerReference: payment.providerReference,
         amountMinor: refundMinor,
         currency: payment.currency,
-        idempotencyKey: `refund-${payment.id}-${refundMinor}`,
+        // Includes what was already refunded so two equal partials do not collide.
+        idempotencyKey: `refund-${payment.id}-${payment.refundedMinor}-${refundMinor}`,
       }));
     } catch (err) {
       await prisma.payment.updateMany({
         where: { id: payment.id },
-        data: { status: 'SUCCEEDED', failureReason: payment.failureReason },
+        data: { status: 'SUCCEEDED', refundedMinor: { decrement: refundMinor } },
       });
       throw err;
     }
 
     const invoice = await prisma.$transaction(async (tx) => {
+      // What still stands: successful payments net of anything refunded from them.
       const remaining = await tx.payment.aggregate({
         where: { invoiceId: payment.invoice.id, status: 'SUCCEEDED' },
-        _sum: { amountMinor: true },
+        _sum: { amountMinor: true, refundedMinor: true },
       });
-      // A partial refund leaves the payment SUCCEEDED at its full amount, so
-      // take the refunded part off by hand.
-      const stillPaid = (remaining._sum.amountMinor ?? 0) - (full ? 0 : refundMinor);
+      const stillPaid = (remaining._sum.amountMinor ?? 0) - (remaining._sum.refundedMinor ?? 0);
       const paidMinor = Math.min(payment.invoice.totalMinor, Math.max(0, stillPaid));
+      const pastDue = payment.invoice.dueAt !== null && payment.invoice.dueAt < new Date();
       const status: InvoiceStatus =
-        paidMinor === 0 ? 'REFUNDED' : paidMinor < payment.invoice.totalMinor ? 'PARTIALLY_PAID' : 'PAID';
+        paidMinor === 0
+          ? 'REFUNDED'
+          : paidMinor < payment.invoice.totalMinor
+            ? pastDue
+              ? 'OVERDUE'
+              : 'PARTIALLY_PAID'
+            : 'PAID';
 
       await tx.invoice.update({
         where: { id: payment.invoice.id },
@@ -1024,6 +1073,7 @@ export const billingService = {
       changes: {
         status: { from: 'SUCCEEDED', to: full ? 'REFUNDED' : 'SUCCEEDED (partial refund)' },
         refundedMinor: refundMinor,
+        totalRefundedMinor: payment.refundedMinor + refundMinor,
         provider: payment.provider,
         refundReference: refundReference ?? null,
         invoiceStatus: invoice.status,
@@ -1036,7 +1086,7 @@ export const billingService = {
       userId: payment.invoice.studentProfile.userId,
       event: 'payment.received',
       title: 'A refund has been issued',
-      body: `We have refunded ${refundMinor} minor units (${payment.currency}) to your original payment method. It can take a few days to appear.`,
+      body: `We have refunded ${formatMoney(refundMinor, payment.currency)} to your original payment method. It can take a few days to appear.`,
       actionUrl: `/portal/invoices/${payment.invoice.id}`,
     });
 

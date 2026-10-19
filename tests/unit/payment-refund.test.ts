@@ -26,9 +26,9 @@ const state = {
     currency: 'EUR',
     provider: 'paystack' as string | null,
     providerReference: 'wyl_ps_1' as string | null,
-    failureReason: null as string | null,
+    refundedMinor: 0,
   },
-  invoice: { id: 'i1', totalMinor: 50_000, paidMinor: 50_000, status: 'PAID' },
+  invoice: { id: 'i1', totalMinor: 50_000, paidMinor: 50_000, status: 'PAID', dueAt: null as Date | null },
   others: 0,
 };
 const refundGateway = vi.fn();
@@ -53,6 +53,7 @@ vi.mock('../../src/config/database.js', () => {
         Promise.resolve({
           _sum: {
             amountMinor: state.others + (state.payment.status === 'SUCCEEDED' ? state.payment.amountMinor : 0),
+            refundedMinor: state.payment.status === 'SUCCEEDED' ? state.payment.refundedMinor : 0,
           },
         }),
       ),
@@ -75,18 +76,27 @@ vi.mock('../../src/config/database.js', () => {
             invoice: {
               id: 'i1',
               totalMinor: state.invoice.totalMinor,
+              dueAt: state.invoice.dueAt,
               studentProfileId: 'sp1',
               studentProfile: { userId: 'u1' },
             },
           }),
         ),
         updateMany: vi.fn(
-          ({ where, data }: { where: { status?: string; failureReason?: string | null }; data: Record<string, unknown> }) => {
+          ({
+            where,
+            data,
+          }: {
+            where: { status?: string; refundedMinor?: number };
+            data: { status?: string; refundedMinor?: { increment?: number; decrement?: number } };
+          }) => {
             if (where.status && where.status !== state.payment.status) return Promise.resolve({ count: 0 });
-            if ('failureReason' in where && where.failureReason !== state.payment.failureReason) {
+            if (where.refundedMinor !== undefined && where.refundedMinor !== state.payment.refundedMinor) {
               return Promise.resolve({ count: 0 });
             }
-            Object.assign(state.payment, data);
+            if (data.status) state.payment.status = data.status;
+            state.payment.refundedMinor +=
+              (data.refundedMinor?.increment ?? 0) - (data.refundedMinor?.decrement ?? 0);
             return Promise.resolve({ count: 1 });
           },
         ),
@@ -109,9 +119,9 @@ beforeEach(() => {
     currency: 'EUR',
     provider: 'paystack',
     providerReference: 'wyl_ps_1',
-    failureReason: null,
+    refundedMinor: 0,
   };
-  state.invoice = { id: 'i1', totalMinor: 50_000, paidMinor: 50_000, status: 'PAID' };
+  state.invoice = { id: 'i1', totalMinor: 50_000, paidMinor: 50_000, status: 'PAID', dueAt: null };
   state.others = 0;
   refundGateway.mockReset().mockResolvedValue({ refundReference: 'rf_1' });
   dispatch.mockReset();
@@ -131,13 +141,44 @@ describe('billingService.refundPayment', () => {
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ actorId: 'admin1', entity: 'Payment' }));
   });
 
-  it('partial refund leaves the invoice PARTIALLY_PAID and blocks a second partial', async () => {
-    await billingService.refundPayment('p1', 'admin1', 10_000);
+  it('partial refund records refundedMinor, keeps the payment SUCCEEDED and the invoice PARTIALLY_PAID', async () => {
+    const result = await billingService.refundPayment('p1', 'admin1', 10_000);
 
-    expect(state.payment.status).toBe('SUCCEEDED');
-    expect(state.payment.failureReason).toMatch(/^Partially refunded/);
+    expect(refundGateway).toHaveBeenCalledWith(expect.objectContaining({ amountMinor: 10_000 }));
+    expect(state.payment).toMatchObject({ status: 'SUCCEEDED', refundedMinor: 10_000 });
     expect(state.invoice).toMatchObject({ paidMinor: 40_000, status: 'PARTIALLY_PAID' });
-    await expect(billingService.refundPayment('p1', 'admin1', 5_000)).rejects.toThrow(/already been partially/);
+    expect(result.full).toBe(false);
+  });
+
+  it('allows repeated partials up to the remainder, then marks the payment REFUNDED', async () => {
+    await billingService.refundPayment('p1', 'admin1', 10_000);
+    await billingService.refundPayment('p1', 'admin1', 15_000);
+    expect(state.payment).toMatchObject({ status: 'SUCCEEDED', refundedMinor: 25_000 });
+    expect(state.invoice).toMatchObject({ paidMinor: 25_000, status: 'PARTIALLY_PAID' });
+
+    // Same amount twice must not reuse an idempotency key.
+    const keys = refundGateway.mock.calls.map((c) => (c[0] as { idempotencyKey: string }).idempotencyKey);
+    expect(new Set(keys).size).toBe(2);
+
+    await expect(billingService.refundPayment('p1', 'admin1', 25_001)).rejects.toThrow(/between 1 and 25000/);
+    const last = await billingService.refundPayment('p1', 'admin1');
+    expect(last.full).toBe(true);
+    expect(state.payment).toMatchObject({ status: 'REFUNDED', refundedMinor: 50_000 });
+    expect(state.invoice).toMatchObject({ paidMinor: 0, status: 'REFUNDED' });
+  });
+
+  it('a partial refund on an invoice past its due date moves it to OVERDUE', async () => {
+    state.invoice.dueAt = new Date('2020-01-01');
+    await billingService.refundPayment('p1', 'admin1', 10_000);
+    expect(state.invoice.status).toBe('OVERDUE');
+  });
+
+  it('rejects zero, negative and fractional amounts without touching the gateway', async () => {
+    for (const bad of [0, -5, 10.5]) {
+      await expect(billingService.refundPayment('p1', 'admin1', bad)).rejects.toThrow(/between/);
+    }
+    expect(refundGateway).not.toHaveBeenCalled();
+    expect(state.payment.refundedMinor).toBe(0);
   });
 
   it('refunding an overpaid payment down to the total keeps the invoice PAID', async () => {
@@ -149,7 +190,7 @@ describe('billingService.refundPayment', () => {
   it('rolls the claim back when the gateway refuses', async () => {
     refundGateway.mockRejectedValueOnce(new Error('gateway down'));
     await expect(billingService.refundPayment('p1', 'admin1')).rejects.toThrow('gateway down');
-    expect(state.payment.status).toBe('SUCCEEDED');
+    expect(state.payment).toMatchObject({ status: 'SUCCEEDED', refundedMinor: 0 });
     expect(state.invoice.status).toBe('PAID');
   });
 

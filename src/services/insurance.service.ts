@@ -11,6 +11,7 @@
  * rebuild.
  */
 import type { Invoice, InsurancePolicy } from '@prisma/client';
+import { DEFAULT_CURRENCY } from '../config/packages.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { policyNumber } from '../utils/reference.js';
@@ -70,7 +71,7 @@ export const insuranceService = {
       coverageEndsAt: input.coverageEndsAt,
       days,
       premiumMinor,
-      currency: 'EUR',
+      currency: DEFAULT_CURRENCY,
     };
   },
 

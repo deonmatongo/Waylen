@@ -180,3 +180,23 @@ export async function receipt(req: Request, res: Response): Promise<void> {
     autoPrint: true,
   });
 }
+
+/** Printable receipt for a single confirmed payment. */
+export async function paymentReceipt(req: Request, res: Response): Promise<void> {
+  const student = await findStudentByUserId(req.currentUser!.id);
+  if (!student) throw new NotFoundError('We could not find your student profile.');
+
+  const receipt = await billingService.findReceiptForStudent(
+    req.params.id as string,
+    req.params.paymentId as string,
+    student.id,
+  );
+
+  res.render('portal/invoices/payment-receipt', {
+    title: `Receipt ${receipt.receiptNumber}`,
+    layout: 'layouts/portal',
+    ...receipt,
+    student: { fullName: req.currentUser!.fullName },
+    autoPrint: true,
+  });
+}

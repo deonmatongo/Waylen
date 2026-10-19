@@ -53,7 +53,7 @@
           <td><%= format.formatDate(referral.createdAt) %></td>
           <td>
             <%= referral.commissionAmountMinor
-                  ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || 'EUR')
+                  ? format.formatMoney(referral.commissionAmountMinor, referral.commissionCurrency || format.DEFAULT_CURRENCY)
                   : '—' %>
           </td>
           <td class="table__actions">
