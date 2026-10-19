@@ -26,7 +26,7 @@
   <h2 class="panel__title">Guides &amp; articles</h2>
 
   <% if (!results.items.length) { %>
-    <p class="panel__note">Nothing published yet.</p>
+    <p class="panel__note"><%= pageMeta.page > 1 ? 'No more guides on this page.' : 'Nothing published yet.' %></p>
   <% } else { %>
     <ul class="mini-list">
       <% results.items.forEach(function (resource) { %>
@@ -43,3 +43,5 @@
     </ul>
   <% } %>
 </section>
+
+<%- include('../../partials/pagination', { results: pageMeta, baseUrl: '/portal/resources', query: pageQuery }) %>

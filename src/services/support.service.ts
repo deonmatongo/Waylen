@@ -77,6 +77,21 @@ export const supportService = {
     });
   },
 
+  /** One page of a student's tickets plus the total. */
+  async listPageForStudent(studentProfileId: string, options: { skip: number; take: number }) {
+    const [items, total] = await Promise.all([
+      prisma.supportTicket.findMany({
+        where: { studentProfileId },
+        include: { _count: { select: { messages: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: options.skip,
+        take: options.take,
+      }),
+      prisma.supportTicket.count({ where: { studentProfileId } }),
+    ]);
+    return { items, total };
+  },
+
   async findForStudent(id: string, studentProfileId: string, studentUserId: string) {
     const ticket = await prisma.supportTicket.findFirst({
       where: { id, studentProfileId },

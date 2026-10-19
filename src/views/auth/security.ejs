@@ -33,6 +33,11 @@
       setup key below, then enter the 6-digit code to turn two-factor authentication on.
     </p>
     <% if (setup) { %>
+      <% if (setup.qrSvg) { %>
+        <div class="qr" role="img" aria-label="QR code for your authenticator app"
+             style="width: 220px; max-width: 100%; background: #fff; padding: 4px;"><%- setup.qrSvg %></div>
+        <p class="panel__note">Scan this code with your authenticator app, or enter the key manually.</p>
+      <% } %>
       <p>Setup key: <code><%= setup.secret %></code></p>
       <p>Or open this link on a device with an authenticator app:<br>
         <code style="word-break: break-all;"><%= setup.uri %></code></p>

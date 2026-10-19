@@ -3,7 +3,7 @@
  */
 import { prisma } from '../config/database.js';
 
-export async function listUpcomingWebinars(limit = 6) {
+export async function listUpcomingWebinars(limit = 6, skip = 0) {
   return prisma.webinar.findMany({
     where: { status: 'PUBLISHED', startsAt: { gte: new Date() } },
     select: {
@@ -22,8 +22,13 @@ export async function listUpcomingWebinars(limit = 6) {
       _count: { select: { registrations: true } },
     },
     orderBy: { startsAt: 'asc' },
+    skip,
     take: limit,
   });
+}
+
+export async function countUpcomingWebinars() {
+  return prisma.webinar.count({ where: { status: 'PUBLISHED', startsAt: { gte: new Date() } } });
 }
 
 export async function listPastWebinarsWithRecordings(limit = 12) {

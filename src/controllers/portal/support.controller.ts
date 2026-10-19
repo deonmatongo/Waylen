@@ -10,6 +10,7 @@ import { supportService } from '../../services/support.service.js';
 import { newTicketSchema, ticketReplySchema } from '../../validators/support.validator.js';
 import { SUPPORT_TABS, SUPPORT_TICKET_CATEGORY_LABELS, SUPPORT_TICKET_STATUS_LABELS } from '../../config/constants.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const faqs = await listAllFaqs();
@@ -33,12 +34,14 @@ export async function tickets(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const items = await supportService.listForStudent(student.id);
+  const pageReq = parsePage(req.query, { perPage: 20 });
+  const { items, total } = await supportService.listPageForStudent(student.id, pageReq);
 
   res.render('portal/support/tickets', {
     title: 'My tickets',
     layout: 'layouts/portal',
     tickets: items,
+    pageMeta: buildPageMeta(pageReq, total),
     supportTabs: SUPPORT_TABS,
     categoryLabels: SUPPORT_TICKET_CATEGORY_LABELS,
     statusLabels: SUPPORT_TICKET_STATUS_LABELS,

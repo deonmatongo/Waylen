@@ -8,13 +8,17 @@ import { prisma } from '../../config/database.js';
 import { findStudentByUserId } from '../../models/student.model.js';
 import { messageSchema, newThreadSchema } from '../../validators/message.validator.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const threads = await prisma.messageThread.findMany({
-    where: { studentProfileId: student.id },
+  const pageReq = parsePage(req.query, { perPage: 25 });
+  const where = { studentProfileId: student.id };
+  const [threads, total] = await Promise.all([
+    prisma.messageThread.findMany({
+    where,
     select: {
       id: true,
       subject: true,
@@ -23,12 +27,17 @@ export async function index(req: Request, res: Response): Promise<void> {
       _count: { select: { messages: true } },
     },
     orderBy: { lastMessageAt: 'desc' },
-  });
+    skip: pageReq.skip,
+    take: pageReq.take,
+    }),
+    prisma.messageThread.count({ where }),
+  ]);
 
   res.render('portal/messages/index', {
     title: 'Messages',
     layout: 'layouts/portal',
     threads,
+    pageMeta: buildPageMeta(pageReq, total),
   });
 }
 

@@ -6,6 +6,7 @@ import type { Request, Response } from 'express';
 import { referralService } from '../../services/referral.service.js';
 import { prisma } from '../../config/database.js';
 import { ValidationError } from '../../utils/errors.js';
+import { parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const { status, partnerId } = req.query;
@@ -14,6 +15,8 @@ export async function index(req: Request, res: Response): Promise<void> {
     referralService.list({
       status: status as never,
       partnerId: typeof partnerId === 'string' ? partnerId : undefined,
+      page: parsePage(req.query).page,
+      perPage: 25,
     }),
     prisma.partner.findMany({
       where: { status: 'ACTIVE' },
@@ -27,7 +30,10 @@ export async function index(req: Request, res: Response): Promise<void> {
     layout: 'layouts/admin',
     referrals,
     partners,
-    filters: { status, partnerId },
+    filters: {
+      ...(typeof status === 'string' && status ? { status } : {}),
+      ...(typeof partnerId === 'string' && partnerId ? { partnerId } : {}),
+    },
   });
 }
 

@@ -11,6 +11,7 @@ import { ForbiddenError, NotFoundError, ValidationError } from '../../utils/erro
 import { adminConfirmSchema, adminRescheduleSchema } from '../../validators/appointment.validator.js';
 import { businessFormatter, getBusinessTimeZone } from '../../services/availability.service.js';
 import { parseInZone } from '../../utils/timezone.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 /**
  * A counsellor may act on an appointment only if it isn't assigned to a
@@ -39,8 +40,11 @@ export async function index(req: Request, res: Response): Promise<void> {
   const user = req.currentUser!;
   const { status, from } = req.query;
 
-  const [appointments, counsellors] = await Promise.all([
+  const pageReq = parsePage(req.query, { perPage: 25 });
+  const [{ items: appointments, total }, counsellors] = await Promise.all([
     appointmentService.listForStaff({
+      skip: pageReq.skip,
+      take: pageReq.take,
       counsellorId: user.role === 'COUNSELLOR' ? user.id : undefined,
       status: status as never,
       from: typeof from === 'string' && from && !Number.isNaN(new Date(from).getTime()) ? new Date(from) : undefined,
@@ -55,6 +59,11 @@ export async function index(req: Request, res: Response): Promise<void> {
     counsellors,
     typeLabels: APPOINTMENT_TYPE_LABELS,
     filters: { status, from },
+    pageMeta: buildPageMeta(pageReq, total),
+    pageQuery: {
+      ...(typeof status === 'string' && status ? { status } : {}),
+      ...(typeof from === 'string' && from ? { from } : {}),
+    },
     zoned: businessFormatter(),
   });
 }

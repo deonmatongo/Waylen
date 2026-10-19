@@ -259,7 +259,10 @@ export const documentService = {
     await storageService.remove(document.storageKey);
   },
 
-  async listForStudent(studentProfileId: string, options: { issuedByWaylen?: boolean } = {}) {
+  async listForStudent(
+    studentProfileId: string,
+    options: { issuedByWaylen?: boolean; skip?: number; take?: number } = {},
+  ) {
     return prisma.document.findMany({
       where: {
         studentProfileId,
@@ -267,6 +270,7 @@ export const documentService = {
           ? { isIssuedByWaylen: options.issuedByWaylen }
           : {}),
       },
+      ...(options.take !== undefined ? { skip: options.skip ?? 0, take: options.take } : {}),
       select: {
         id: true,
         type: true,
@@ -282,6 +286,22 @@ export const documentService = {
       },
       orderBy: { createdAt: 'desc' },
     });
+  },
+
+  /** One page of a student's documents plus the total, for the portal lists. */
+  async listPageForStudent(
+    studentProfileId: string,
+    options: { issuedByWaylen?: boolean; skip: number; take: number },
+  ) {
+    const where = {
+      studentProfileId,
+      ...(options.issuedByWaylen !== undefined ? { isIssuedByWaylen: options.issuedByWaylen } : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.listForStudent(studentProfileId, options),
+      prisma.document.count({ where }),
+    ]);
+    return { items, total };
   },
 
   /** The staff review queue, oldest first so nothing is left waiting. */

@@ -13,17 +13,24 @@ import {
 } from '../../config/constants.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { sendStoredFile } from '../../utils/fileResponse.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const documents = await documentService.listForStudent(student.id, { issuedByWaylen: false });
+  const pageReq = parsePage(req.query, { perPage: 20 });
+  const { items: documents, total } = await documentService.listPageForStudent(student.id, {
+    issuedByWaylen: false,
+    skip: pageReq.skip,
+    take: pageReq.take,
+  });
 
   res.render('portal/documents/index', {
     title: 'My uploads',
     layout: 'layouts/portal',
     documents,
+    pageMeta: buildPageMeta(pageReq, total),
     statusLabels: DOCUMENT_STATUS_LABELS,
     documentsTabs: DOCUMENTS_TABS,
     uploadableTypes: STUDENT_UPLOAD_DOCUMENT_TYPES.map((type) => ({

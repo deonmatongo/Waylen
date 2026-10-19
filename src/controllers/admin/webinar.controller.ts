@@ -6,9 +6,12 @@ import slugify from 'slugify';
 import { prisma } from '../../config/database.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 import { webinarSchema } from '../../validators/webinar.validator.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
-  const webinars = await prisma.webinar.findMany({
+  const pageReq = parsePage(req.query, { perPage: 25 });
+  const [webinars, total] = await Promise.all([
+    prisma.webinar.findMany({
     select: {
       id: true,
       slug: true,
@@ -21,12 +24,17 @@ export async function index(req: Request, res: Response): Promise<void> {
       _count: { select: { registrations: true } },
     },
     orderBy: { startsAt: 'desc' },
-  });
+    skip: pageReq.skip,
+    take: pageReq.take,
+    }),
+    prisma.webinar.count(),
+  ]);
 
   res.render('admin/webinars/index', {
     title: 'Webinars',
     layout: 'layouts/admin',
     webinars,
+    pageMeta: buildPageMeta(pageReq, total),
   });
 }
 

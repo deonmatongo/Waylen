@@ -7,15 +7,20 @@ import { prisma } from '../../config/database.js';
 import { PARTNER_CATEGORY_LABELS } from '../../config/constants.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 import { partnerSchema } from '../../validators/partner.validator.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const { category, status } = req.query;
 
-  const partners = await prisma.partner.findMany({
-    where: {
-      ...(category ? { category: category as never } : {}),
-      ...(status ? { status: status as never } : {}),
-    },
+  const pageReq = parsePage(req.query, { perPage: 25 });
+  const where = {
+    ...(category ? { category: category as never } : {}),
+    ...(status ? { status: status as never } : {}),
+  };
+
+  const [partners, total] = await Promise.all([
+    prisma.partner.findMany({
+    where,
     select: {
       id: true,
       slug: true,
@@ -28,7 +33,11 @@ export async function index(req: Request, res: Response): Promise<void> {
       _count: { select: { referrals: true } },
     },
     orderBy: [{ category: 'asc' }, { name: 'asc' }],
-  });
+    skip: pageReq.skip,
+    take: pageReq.take,
+    }),
+    prisma.partner.count({ where }),
+  ]);
 
   res.render('admin/partners/index', {
     title: 'Partner directory',
@@ -36,6 +45,11 @@ export async function index(req: Request, res: Response): Promise<void> {
     partners,
     categoryLabels: PARTNER_CATEGORY_LABELS,
     filters: { category, status },
+    pageMeta: buildPageMeta(pageReq, total),
+    pageQuery: {
+      ...(typeof category === 'string' && category ? { category } : {}),
+      ...(typeof status === 'string' && status ? { status } : {}),
+    },
   });
 }
 

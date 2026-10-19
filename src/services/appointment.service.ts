@@ -698,13 +698,17 @@ export const appointmentService = {
     counsellorId?: string;
     status?: AppointmentStatus;
     from?: Date;
+    skip?: number;
+    take?: number;
   } = {}) {
-    return prisma.appointment.findMany({
-      where: {
-        ...(filters.counsellorId ? { counsellorId: filters.counsellorId } : {}),
-        ...(filters.status ? { status: filters.status } : {}),
-        startsAt: { gte: filters.from ?? new Date(Date.now() - 7 * 86_400_000) },
-      },
+    const where = {
+      ...(filters.counsellorId ? { counsellorId: filters.counsellorId } : {}),
+      ...(filters.status ? { status: filters.status } : {}),
+      startsAt: { gte: filters.from ?? new Date(Date.now() - 7 * 86_400_000) },
+    };
+    const [items, total] = await Promise.all([
+      prisma.appointment.findMany({
+      where,
       select: {
         id: true,
         reference: true,
@@ -723,8 +727,12 @@ export const appointmentService = {
         },
       },
       orderBy: { startsAt: 'asc' },
-      take: 200,
-    });
+      skip: filters.skip ?? 0,
+      take: filters.take ?? 200,
+      }),
+      prisma.appointment.count({ where }),
+    ]);
+    return { items, total };
   },
 
   /**

@@ -10,6 +10,7 @@ import { countrySchema } from '../../validators/country.validator.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 import { sanitizeRichText } from '../../utils/sanitize.js';
 import type { CountryInput } from '../../validators/country.validator.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 /** Money is stored in minor units (cents); the admin form takes whole units. */
 const toMinorUnits = (value: number | undefined): number | undefined =>
@@ -39,7 +40,9 @@ const toMinorUnitFields = (data: CountryInput) => ({
 });
 
 export async function index(req: Request, res: Response): Promise<void> {
-  const countries = await prisma.country.findMany({
+  const pageReq = parsePage(req.query, { perPage: 25 });
+  const [countries, total] = await Promise.all([
+    prisma.country.findMany({
     select: {
       id: true,
       slug: true,
@@ -51,12 +54,17 @@ export async function index(req: Request, res: Response): Promise<void> {
       _count: { select: { opportunities: true, studentsTargeting: true } },
     },
     orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-  });
+    skip: pageReq.skip,
+    take: pageReq.take,
+    }),
+    prisma.country.count(),
+  ]);
 
   res.render('admin/countries/index', {
     title: 'Countries',
     layout: 'layouts/admin',
     countries,
+    pageMeta: buildPageMeta(pageReq, total),
   });
 }
 

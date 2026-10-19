@@ -7,17 +7,24 @@ import { findStudentByUserId } from '../../models/student.model.js';
 import { DOCUMENT_TYPE_LABELS, DOCUMENTS_TABS } from '../../config/constants.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { sendStoredFile } from '../../utils/fileResponse.js';
+import { buildPageMeta, parsePage } from '../../utils/pagination.js';
 
 export async function index(req: Request, res: Response): Promise<void> {
   const student = await findStudentByUserId(req.currentUser!.id);
   if (!student) throw new NotFoundError('We could not find your student profile.');
 
-  const documents = await documentService.listForStudent(student.id, { issuedByWaylen: true });
+  const pageReq = parsePage(req.query, { perPage: 20 });
+  const { items: documents, total } = await documentService.listPageForStudent(student.id, {
+    issuedByWaylen: true,
+    skip: pageReq.skip,
+    take: pageReq.take,
+  });
 
   res.render('portal/downloads/index', {
     title: 'Waylen documents',
     layout: 'layouts/portal',
     documents,
+    pageMeta: buildPageMeta(pageReq, total),
     typeLabels: DOCUMENT_TYPE_LABELS,
     documentsTabs: DOCUMENTS_TABS,
   });

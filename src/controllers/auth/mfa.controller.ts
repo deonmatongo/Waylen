@@ -3,6 +3,7 @@
  */
 import type { Request, Response } from 'express';
 import { parse as parseCookie } from 'cookie';
+import QRCode from 'qrcode';
 import { prisma } from '../../config/database.js';
 import { mfaService } from '../../services/mfa.service.js';
 import { auditService } from '../../services/audit.service.js';
@@ -92,9 +93,23 @@ export async function submitChallenge(req: Request, res: Response): Promise<void
 
 interface View {
   enabled: boolean;
-  setup?: { secret: string; uri: string } | null;
+  setup?: { secret: string; uri: string; qrSvg?: string } | null;
   recoveryCodes?: string[] | null;
   errors?: Record<string, string>;
+}
+
+/**
+ * Inline SVG of the otpauth URI. Rendered server-side so the secret never
+ * leaves the app and no CSP change is needed; failure just hides the QR.
+ */
+async function withQr(setup: { secret: string; uri: string } | null | undefined): Promise<View['setup']> {
+  if (!setup) return setup;
+  try {
+    const qrSvg = await QRCode.toString(setup.uri, { type: 'svg', margin: 1, width: 220 });
+    return { ...setup, qrSvg };
+  } catch {
+    return setup;
+  }
 }
 
 function renderSecurity(res: Response, view: View, status = 200): void {
@@ -118,7 +133,7 @@ export async function showSecurity(req: Request, res: Response): Promise<void> {
   const setup =
     mfaService.pendingSecret(state?.mfaSecret ?? null, email) ??
     (await mfaService.beginEnrolment(req.currentUser!.id, email));
-  renderSecurity(res, { enabled: false, setup });
+  renderSecurity(res, { enabled: false, setup: await withQr(setup) });
 }
 
 export async function submitSecurity(req: Request, res: Response): Promise<void> {
@@ -170,7 +185,7 @@ export async function submitSecurity(req: Request, res: Response): Promise<void>
       res,
       {
         enabled: false,
-        setup: mfaService.pendingSecret(state?.mfaSecret ?? null, user.email),
+        setup: await withQr(mfaService.pendingSecret(state?.mfaSecret ?? null, user.email)),
         errors: { code: 'That code is not correct. Check your authenticator app and try again.' },
       },
       422,

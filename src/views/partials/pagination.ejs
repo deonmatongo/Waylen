@@ -2,7 +2,11 @@
 <% if (results.totalPages > 1) { %>
   <nav class="pagination" aria-label="Pagination">
     <% const qs = function (page) {
-         const params = new URLSearchParams(typeof query !== 'undefined' ? query : {});
+         // Drop unset filters so links never carry `status=undefined`.
+         const params = new URLSearchParams();
+         Object.entries(typeof query !== 'undefined' && query ? query : {}).forEach(function (e) {
+           if (e[1] !== undefined && e[1] !== null && e[1] !== '') params.set(e[0], String(e[1]));
+         });
          params.set('page', page);
          return (typeof baseUrl !== 'undefined' ? baseUrl : currentPath) + '?' + params.toString();
        }; %>
